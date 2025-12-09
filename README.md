@@ -14,14 +14,14 @@ LogExp is a **Flask + Postgres application** for ingesting and displaying Geiger
 ```
 logexp/
 ├── logexp/
-│ ├── app/
-│ │ ├── init.py # Flask app factory, poller lifecycle
-│ │ ├── config.py # App configuration (DB URI, timezone, etc.)
-│ │ ├── extensions.py # SQLAlchemy + Migrate instances
-│ │ ├── models.py # Database models (LogExpReading)
-│ │ ├── poller.py # GeigerPoller threaded ingestion service
-│ │ ├── routes.py # API endpoints (readings, diagnostics)
-│ │ └── geiger.py # Hardware integration/parsing
+│     ├── app/
+│     ├── init.py # Flask app factory, poller lifecycle
+│     ├── config.py # App configuration (DB URI, timezone, etc.)
+│     ├── extensions.py # SQLAlchemy + Migrate instances
+│     ├── models.py # Database models (LogExpReading)
+│     ├── poller.py # GeigerPoller threaded ingestion service
+│     ├── routes.py # API endpoints (readings, diagnostics)
+│     └── geiger.py # Hardware integration/parsing
 ├── migrations/ # Alembic migration scripts
 └── README.md # Project documentation
 ```
