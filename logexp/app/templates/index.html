@@ -1,46 +1,26 @@
-<head>
-  <meta charset="UTF-8">
-  <title>LogExp Radiation Monitor</title>
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-</head>
-<body>
-  <h1>LogExp Radiation Monitor</h1>
+{% extends "base.html" %}
+{% block title %}Home - LogExp{% endblock %}
+{% block content %}
+  <h2>Welcome to LogExp</h2>
+  <p>Use the navigation above to explore readings, diagnostics, and documentation.</p>
 
-  <section id="status">
-    <h2>Geiger Port Status</h2>
-    <span id="status-badge" style="
-      display:inline-block;
-      padding:0.5em 1em;
-      border-radius:0.5em;
-      color:white;
-      background-color:gray;">
-      Unknown
-    </span>
-  </section>
+  <!-- Inline Poller Status -->
+  <div id="poller-status">
+    <button onclick="checkStatus()">Check Poller Status</button>
+    <p id="status-result"></p>
+  </div>
 
   <script>
-    async function updateStatus() {
-      const badge = document.getElementById("status-badge");
+    async function checkStatus() {
       try {
-        const res = await fetch("/geiger/test");
-        const data = await res.json();
-        const configured = data.configured_port;
-        if (configured && !configured.test.startsWith("<error")) {
-          badge.textContent = "Connected";
-          badge.style.backgroundColor = "green";
-        } else {
-          badge.textContent = "Disconnected";
-          badge.style.backgroundColor = "red";
-        }
+        const response = await fetch("{{ url_for('main.poller_status') }}");
+        const data = await response.json();
+        document.getElementById("status-result").innerText =
+          "Poller is currently: " + data.poller_status;
       } catch (err) {
-        badge.textContent = "Error";
-        badge.style.backgroundColor = "orange";
+        document.getElementById("status-result").innerText =
+          "Error checking status.";
       }
     }
-
-    // Run once immediately, then every 5 seconds
-    updateStatus();
-    setInterval(updateStatus, 5000);
   </script>
-</body>
-</html>
+{% endblock %}

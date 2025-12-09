@@ -1,4 +1,5 @@
 import os
+import pytz
 from flask import Blueprint, jsonify, request, render_template, current_app
 from logexp.app import db
 from logexp.app.models import LogExpReading
@@ -7,7 +8,7 @@ from logexp.app.geiger import read_geiger
 from logexp.app.geiger import list_serial_ports, try_port
 from typing import Any
 
-bp = Blueprint("readings", __name__)
+bp = Blueprint("main", __name__)
 
 @bp.get("/")
 def index() -> str:
@@ -77,6 +78,12 @@ def update_settings():
     current_app.config["GEIGER_BAUDRATE"] = int(selected_baudrate)
 
     return redirect(url_for("readings.settings"))
+
+@bp.route("/poller/status")
+def poller_status():
+    from .poller import poller_instance
+    status = "running" if poller_instance and poller_instance.is_alive() else "stopped"
+    return jsonify({"poller_status": status})
 
 
     reading = LogExpReading(
