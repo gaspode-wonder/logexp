@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Settings - LogExp Radiation Monitor</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+  <h1>Settings</h1>
+
+  <form method="POST" action="{{ url_for('readings.update_settings') }}">
+    <label for="port">Select Geiger Port:</label>
+    <select name="port" id="port">
+      {% for port in ports %}
+        <option value="{{ port }}" {% if port == configured_port %}selected{% endif %}>{{ port }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="baudrate">Baudrate:</label>
+    <input type="text" name="baudrate" id="baudrate" value="{{ baudrate }}">
+
+    <button type="submit">Save</button>
+  </form>
+
+  <p>Currently configured port: <strong>{{ configured_port }}</strong></p>
+  <p>Baudrate: <strong>{{ baudrate }}</strong></p>
+</body>
+</html>
+

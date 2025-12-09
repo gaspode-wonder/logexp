@@ -1,16 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>LogExp</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <title>LogExp Radiation Monitor</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
-    <h1>Welcome to LogExp</h1>
-    <p>This is your radiation logging API.</p>
-    <ul>
-        <li><a href="/readings">View readings (JSON)</a></li>
-        <li><a href="/health">Health check</a></li>
-    </ul>
+  <h1>LogExp Radiation Monitor</h1>
+
+  <section id="status">
+    <h2>Geiger Port Status</h2>
+    <span id="status-badge" style="
+      display:inline-block;
+      padding:0.5em 1em;
+      border-radius:0.5em;
+      color:white;
+      background-color:gray;">
+      Unknown
+    </span>
+  </section>
+
+  <script>
+    async function updateStatus() {
+      const badge = document.getElementById("status-badge");
+      try {
+        const res = await fetch("/geiger/test");
+        const data = await res.json();
+        const configured = data.configured_port;
+        if (configured && !configured.test.startsWith("<error")) {
+          badge.textContent = "Connected";
+          badge.style.backgroundColor = "green";
+        } else {
+          badge.textContent = "Disconnected";
+          badge.style.backgroundColor = "red";
+        }
+      } catch (err) {
+        badge.textContent = "Error";
+        badge.style.backgroundColor = "orange";
+      }
+    }
+
+    // Run once immediately, then every 5 seconds
+    updateStatus();
+    setInterval(updateStatus, 5000);
+  </script>
 </body>
 </html>
