@@ -1,12 +1,10 @@
-from flask import Flask, render_template, current_app
-from logexp.app.config import Config
-from logexp.app.poller import GeigerPoller
-from logexp.app.extensions import db, migrate
-from logexp.app.blueprints import register_blueprints
-
-def create_app():
+def create_app(config_object=Config):
     app = Flask(__name__)
-    app.config.from_object(Config)
+    app.config.from_object(config_object)
+
+    # Ensure a DB URI is set (tests may override later)
+    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 
     # init db + migrations
     db.init_app(app)

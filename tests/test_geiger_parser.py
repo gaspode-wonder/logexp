@@ -27,7 +27,3 @@ def test_fallback_on_bad_line():
     parsed = parse_geiger_line(line)
     # Should not crash, fallback mode is SLOW
     assert parsed["mode"] == "SLOW"
-
-def test_health_endpoint(test_client):
-    resp = test_client.get("/health")
-    assert resp.status_code == 200

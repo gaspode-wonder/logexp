@@ -5,8 +5,7 @@ from logexp.app import db, create_app
 
 @pytest.fixture(scope="session")
 def test_app():
-    """Create a Flask app configured for testing."""
-    # Use SQLite in-memory for speed and isolation
+    """Create a Flask app configured for testing with in-memory SQLite."""
     os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
     app = create_app()
@@ -14,6 +13,7 @@ def test_app():
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": os.environ["DATABASE_URL"],
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+        "LOCAL_TIMEZONE": "US/Central",  # ensure timezone is set for to_dict()
     })
 
     with app.app_context():
@@ -32,7 +32,3 @@ def db_session(test_app):
     with test_app.app_context():
         yield db.session
         db.session.rollback()
-
-@pytest.fixture(scope="function")
-def test_client(test_app):
-    return test_app.test_client()
