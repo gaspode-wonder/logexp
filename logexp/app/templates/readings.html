@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Readings - LogExp{% endblock %}
+{% block content %}
+  <h2>Recent Readings</h2>
+
+  <p><strong>Poller Status:</strong> <span id="poller-status">{{ poller_status }}</span></p>
+
+  <div id="poller-controls">
+    <button onclick="startPoller()">Start Poller</button>
+    <button onclick="stopPoller()">Stop Poller</button>
+    <button onclick="checkPollerStatus()">Check Poller Status</button>
+    <p id="poller-result"></p>
+  </div>
+
+  <table id="readings-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Timestamp</th>
+        <th>Counts/sec</th>
+        <th>Counts/min</th>
+        <th>µSv/hr</th>
+        <th>Mode</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in readings %}
+      <tr>
+        <td>{{ r.id }}</td>
+        <td>{{ r.timestamp }}</td>
+        <td>{{ r.counts_per_second }}</td>
+        <td>{{ r.counts_per_minute }}</td>
+        <td>{{ r.microsieverts_per_hour }}</td>
+        <td>{{ r.mode }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p><em>Last Refresh: <span id="last-refresh">Initial load</span></em></p>
+
+  <!-- Chart container -->
+  <h3>Counts per Minute Trend</h3>
+  <canvas id="readingsChart" width="600" height="300"></canvas>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    let chart;
+
+    async function startPoller() {
+      const response = await fetch("{{ url_for('routes.poller_start') }}", {method: "POST"});
+      const data = await response.json();
+      document.getElementById("poller-status").innerText = data.status;
+      document.getElementById("poller-result").innerText = "Poller: " + data.status;
+    }
+
+    async function stopPoller() {
+      const response = await fetch("{{ url_for('routes.poller_stop') }}", {method: "POST"});
+      const data = await response.json();
+      document.getElementById("poller-status").innerText = data.status;
+      document.getElementById("poller-result").innerText = "Poller: " + data.status;
+    }
+
+    async function checkPollerStatus() {
+      const response = await fetch("{{ url_for('routes.poller_status') }}");
+      const data = await response.json();
+      document.getElementById("poller-status").innerText = data.status;
+    }
+
+    async function refreshReadings() {
+      const response = await fetch("{{ url_for('readings.readings_json') }}");
+      const data = await response.json();
+
+      // Update table
+      const tbody = document.querySelector("#readings-table tbody");
+      tbody.innerHTML = "";
+      data.forEach(r => {
+        const row = `<tr>
+          <td>${r.id}</td>
+          <td>${r.timestamp}</td>
+          <td>${r.counts_per_second}</td>
+          <td>${r.counts_per_minute}</td>
+          <td>${r.microsieverts_per_hour}</td>
+          <td>${r.mode}</td>
+        </tr>`;
+        tbody.insertAdjacentHTML("beforeend", row);
+      });
+
+      // Update chart
+      const labels = data.map(r => r.timestamp).reverse(); // oldest → newest
+      const values = data.map(r => r.counts_per_minute).reverse();
+
+      if (!chart) {
+        const ctx = document.getElementById("readingsChart").getContext("2d");
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Counts per Minute",
+              data: values,
+              borderColor: "blue",
+              backgroundColor: "rgba(0,0,255,0.1)",
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { title: { display: true, text: "Timestamp" }},
+              y: { title: { display: true, text: "CPM" }}
+            }
+          }
+        });
+      } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = values;
+        chart.update();
+      }
+
+      // Update last refresh timestamp
+      const now = new Date();
+      document.getElementById("last-refresh").innerText = now.toLocaleString();
+    }
+
+    // auto-refresh every 10 seconds
+    setInterval(refreshReadings, 10000);
+
+    // initial load
+    refreshReadings();
+  </script>
+{% endblock %}

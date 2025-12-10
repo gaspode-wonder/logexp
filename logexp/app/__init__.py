@@ -1,9 +1,8 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, current_app
 from logexp.app.config import Config
 from logexp.app.poller import GeigerPoller
 from logexp.app.extensions import db, migrate
-
-poller = None  # global reference
+from logexp.app.blueprints import register_blueprints
 
 def create_app():
     app = Flask(__name__)
@@ -13,22 +12,22 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
-    from logexp.app.routes import bp as readings_bp
-    app.register_blueprint(readings_bp)
+    # register all blueprints
+    register_blueprints(app)
 
-    global poller
-    poller = GeigerPoller(app)
-    poller.start()
+    # attach poller to app instance
+    app.poller = GeigerPoller(app)
+    app.poller.start()
 
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
-        if poller:
+        if hasattr(app, "poller") and app.poller:
             try:
-                poller.stop()
+                app.poller.stop()
             except RuntimeError:
-                # Ignore "cannot join current thread" if teardown is inside poller thread
                 app.logger.debug("Poller stop called from within poller thread; skipping join.")
 
+    # error handlers
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template("errors/404.html"), 404
@@ -41,12 +40,11 @@ def create_app():
     def internal_error(error):
         return render_template("errors/500.html"), 500
 
-
-    # ✅ CLI commands
+    # CLI commands
     @app.cli.command("geiger-start")
     def geiger_start():
         """Start the Geiger poller manually."""
-        global poller
+        poller = current_app.poller
         if poller and not poller._thread.is_alive():
             poller.start()
             print("Geiger poller started.")
@@ -56,11 +54,11 @@ def create_app():
     @app.cli.command("geiger-stop")
     def geiger_stop():
         """Stop the Geiger poller manually."""
-        global poller
-        if poller:
+        poller = current_app.poller
+        if poller and poller._thread.is_alive():
             poller.stop()
             print("Geiger poller stopped.")
         else:
-            print("No poller instance found.")
+            print("Poller not running.")
 
     return app

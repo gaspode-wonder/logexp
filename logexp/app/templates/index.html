@@ -5,22 +5,36 @@
   <p>Use the navigation above to explore readings, diagnostics, and documentation.</p>
 
   <!-- Inline Poller Status -->
-  <div id="poller-status">
-    <button onclick="checkStatus()">Check Poller Status</button>
-    <p id="status-result"></p>
-  </div>
+<script>
+async function checkPollerStatus() {
+  const response = await fetch("{{ url_for('routes.poller_status') }}");
+  const data = await response.json();
+  document.getElementById("poller-status").innerText = data.status;
+}
+</script>
 
-  <script>
-    async function checkStatus() {
-      try {
-        const response = await fetch("{{ url_for('main.poller_status') }}");
-        const data = await response.json();
-        document.getElementById("status-result").innerText =
-          "Poller is currently: " + data.poller_status;
-      } catch (err) {
-        document.getElementById("status-result").innerText =
-          "Error checking status.";
-      }
-    }
-  </script>
+<button onclick="checkPollerStatus()">Check Poller Status</button>
+<p><strong>Poller Status:</strong> <span id="poller-status"></span></p>
+
+
+<div id="poller-controls">
+  <button onclick="startPoller()">Start Poller</button>
+  <button onclick="stopPoller()">Stop Poller</button>
+  <p id="poller-result"></p>
+</div>
+
+<script>
+async function startPoller() {
+  const response = await fetch("{{ url_for('routes.poller_start') }}", {method: "POST"});
+  const data = await response.json();
+  document.getElementById("poller-result").innerText = "Poller: " + data.status;
+}
+
+async function stopPoller() {
+  const response = await fetch("{{ url_for('routes.poller_stop') }}", {method: "POST"});
+  const data = await response.json();
+  document.getElementById("poller-result").innerText = "Poller: " + data.status;
+}
+</script>
+
 {% endblock %}

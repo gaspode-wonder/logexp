@@ -8,10 +8,10 @@ from logexp.app.geiger import read_geiger
 from logexp.app.geiger import list_serial_ports, try_port
 from typing import Any
 
-bp = Blueprint("main", __name__)
+bp = Blueprint("routes", __name__)
 
-@bp.get("/")
-def index() -> str:
+@bp.route("/")
+def routes_index():
     return render_template("index.html")
 
 @bp.get("/readings")
@@ -27,7 +27,20 @@ def create_reading() -> Any:
         validated = ReadingCreate(**payload)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-    
+
+@bp.route("/readings")
+def readings_index():
+    readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
+    poller = current_app.poller
+    poller_status = "running" if poller and poller._thread.is_alive() else "stopped"
+    return render_template("readings.html", readings=readings, poller_status=poller_status)
+
+@bp.route("/readings.json")
+def readings_json():
+    readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
+    return jsonify([r.to_dict() for r in readings])
+
+
 @bp.get("/geiger")
 def geiger_live():
     try:
@@ -81,10 +94,25 @@ def update_settings():
 
 @bp.route("/poller/status")
 def poller_status():
-    from .poller import poller_instance
-    status = "running" if poller_instance and poller_instance.is_alive() else "stopped"
-    return jsonify({"poller_status": status})
+    poller = current_app.poller
+    status = "running" if poller and poller._thread.is_alive() else "stopped"
+    return jsonify({"status": status})
 
+@bp.route("/poller/start", methods=["POST"])
+def poller_start():
+    poller = current_app.poller
+    if poller and not poller._thread.is_alive():
+        poller.start()
+        return jsonify({"status": "started"})
+    return jsonify({"status": "already running"})
+
+@bp.route("/poller/stop", methods=["POST"])
+def poller_stop():
+    poller = current_app.poller
+    if poller and poller._thread.is_alive():
+        poller.stop()
+        return jsonify({"status": "stopped"})
+    return jsonify({"status": "not running"})
 
     reading = LogExpReading(
         counts_per_second=validated.counts_per_second,

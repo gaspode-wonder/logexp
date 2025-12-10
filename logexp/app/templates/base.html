@@ -4,25 +4,17 @@
   <meta charset="UTF-8">
   <title>{% block title %}LogExp{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
-  <header>
-    <h1>LogExp</h1>
-    <nav>
-      <a href="{{ url_for('main.index') }}">Home</a> |
-      <a href="{{ url_for('main.index') }}readings">Readings</a> |
-      <a href="{{ url_for('main.index') }}geiger/test">Diagnostics</a> |
-      <a href="{{ url_for('main.index') }}docs">Docs</a> |
-      <a href="{{ url_for('main.index') }}about">About</a>
-    </nav>
-  </header>
+  <nav>
+    <a href="{{ url_for('routes.routes_index') }}">Home</a> |
+    <a href="{{ url_for('readings.readings_index') }}">Readings</a> |
+    <a href="{{ url_for('diagnostics.diagnostics_index') }}">Diagnostics</a> |
+    <a href="{{ url_for('docs.docs_index') }}">Docs</a> |
+    <a href="{{ url_for('about.about_index') }}">About</a>
+  </nav>
 
-  <main>
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer>
-    <p>&copy; 2025 LogExp Project</p>
-  </footer>
+  {% block content %}{% endblock %}
 </body>
 </html>

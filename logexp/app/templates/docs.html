@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Documentation - LogExp{% endblock %}
+{% block content %}
+  <h2>Documentation</h2>
+  <p>Welcome to the LogExp documentation. Here you’ll find details on setup, usage, and troubleshooting.</p>
+
+  <h3>Quickstart</h3>
+  <ul>
+    <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
+    <li>Configure environment: <code>export DATABASE_URL=...</code></li>
+    <li>Initialize DB: <code>flask db upgrade</code></li>
+    <li>Run app: <code>flask run</code></li>
+  </ul>
+
+  <h3>Endpoints</h3>
+  <ul>
+    <li><code>/readings</code> → JSON of stored readings</li>
+    <li><code>/geiger/test</code> → Diagnostic endpoint</li>
+    <li><code>/poller/status</code> → Poller health check</li>
+  </ul>
+
+  <h3>Troubleshooting</h3>
+  <p>See <code>README.md</code> for detailed troubleshooting steps including Alembic migrations and poller lifecycle management.</p>
+
+  <h3>FAQ</h3>
+  <dl>
+    <dt>❓ Why do I see “cannot join current thread” when stopping the poller?</dt>
+    <dd>This happens if the teardown is called inside the poller thread. It’s safe to ignore; LogExp skips joining in that case.</dd>
+
+    <dt>❓ Alembic migration errors: “stale revision” or “no such table alembic_version”</dt>
+    <dd>Clear the <code>alembic_version</code> table and re‑init migrations. See README for reset commands.</dd>
+
+    <dt>❓ Timezone mismatch in readings</dt>
+    <dd>Ensure <code>LOCAL_TIMEZONE</code> is set correctly in your environment. Defaults to <code>America/Chicago</code>.</dd>
+
+    <dt>❓ Why does the index page show a 500 error?</dt>
+    <dd>Check that all blueprints are registered and templates reference the correct endpoint namespace (e.g. <code>routes.index</code>).</dd>
+  </dl>
+
+  <h3>Hardware: MightyOhm Geiger Counter</h3>
+  <p>LogExp integrates with the <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">MightyOhm Geiger Counter</a>, a DIY radiation detector kit designed for hobbyists and researchers.</p>
+  <ul>
+    <li>USB‑serial interface for easy data ingestion</li>
+    <li>Outputs counts per second/minute and microsieverts/hour</li>
+    <li>Open hardware design with accessible documentation</li>
+    <li>Ideal for logging radiation levels in real‑time with LogExp</li>
+  </ul>
+  <p>For full specifications and assembly details, see the official product page: 
+    <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">MightyOhm Geiger Counter</a>.
+  </p>
+
+  <h3>System Diagram</h3>
+  <pre>
+  [MightyOhm Geiger Counter]
+              │ USB-Serial
+              ▼
+        [LogExp Poller Service]
+              │
+              ▼
+        [Postgres Database]
+              │
+              ▼
+        [Flask API Endpoints]
+              │
+              ▼
+        [Web UI / Clients]
+  </pre>
+
+  <h3>Sample Reading Output</h3>
+  <p>Example JSON payload returned by <code>/readings</code>:</p>
+  <pre>
+  [
+    {
+      "id": 1,
+      "timestamp": "2025-12-09T17:30:00Z",
+      "cpm": 42,
+      "uSv_per_hr": 0.12,
+      "source": "MightyOhm Geiger Counter"
+    },
+    {
+      "id": 2,
+      "timestamp": "2025-12-09T17:31:00Z",
+      "cpm": 47,
+      "uSv_per_hr": 0.14,
+      "source": "MightyOhm Geiger Counter"
+    }
+  ]
+  </pre>
+{% endblock %}

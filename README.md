@@ -13,17 +13,28 @@ LogExp is a **Flask + Postgres application** for ingesting and displaying Geiger
 ## 📂 Project Structure
 ```
 logexp/
-├── logexp/
-│   ├── app/
-│   ├── init.py # Flask app factory, poller lifecycle
-│   ├── config.py # App configuration (DB URI, timezone, etc.)
-│   ├── extensions.py # SQLAlchemy + Migrate instances
-│   ├── models.py # Database models (LogExpReading)
-│   ├── poller.py # GeigerPoller threaded ingestion service
-│   ├── routes.py # API endpoints (readings, diagnostics)
-│   └── geiger.py # Hardware integration/parsing
-├── migrations/ # Alembic migration scripts
-└── README.md # Project documentation
+├── wsgi.py                  # entrypoint, calls create_app()
+├── app/
+│   ├── __init__.py          # create_app(), poller lifecycle, error handlers, CLI
+│   ├── config.py            # Config class (DB URL, settings)
+│   ├── extensions.py        # db, migrate instances
+│   ├── poller.py            # GeigerPoller class
+│   ├── routes.py            # main UI blueprint (bp = Blueprint("main", __name__))
+│   ├── readings.py          # readings API blueprint (bp = Blueprint("readings", __name__))
+│   ├── diagnostics.py       # diagnostics blueprint (bp = Blueprint("diagnostics", __name__))
+│   ├── docs.py              # docs blueprint (bp = Blueprint("docs", __name__))
+│   ├── about.py             # about blueprint (bp = Blueprint("about", __name__))
+│   ├── blueprints/
+│   │   └── __init__.py      # register_blueprints(app) imports and registers all bp
+│   └── templates/
+│       ├── base.html        # nav bar with url_for('routes.index'), etc.
+│       ├── index.html       # home page
+│       ├── about.html       # about page
+│       ├── docs.html        # docs page (FAQ, hardware, diagram, sample output)
+│       └── errors/
+│           ├── 403.html
+│           ├── 404.html
+│           └── 500.html
 ```
 
 ---
@@ -43,7 +54,22 @@ logexp/
   - `flask geiger-restart` → Restart poller safely.
 
 ---
+🧩 Blueprints
 
+- main → UI routes (routes.py)
+  - / → Home page
+  - /poller/status → Poller health check
+- readings → API routes (readings.py)
+  - /readings → JSON of stored readings
+- diagnostics → Hardware diagnostics (diagnostics.py)
+  - /geiger/test → Diagnostic endpoint
+- docs → Documentation page (docs.py)
+  - /docs → Docs page
+- about → About page (about.py)
+  - /about → About page
+
+All blueprints are registered centrally in `logexp/app/blueprints/__init__.py` and loaded via `register_blueprints(app)` in `create_app()`.
+---
 ## 🚀 Quickstart
 
 ### 1. Install dependencies
@@ -109,7 +135,15 @@ Set the `LOCAL_TIMEZONE` environment variable:
 export LOCAL_TIMEZONE="America/New_York"
 ```
 Defaults to `America/Chicago`.
+---
+📡 Hardware
 
+LogExp integrates with the [MightyOhm Geiger Counter](https://mightyohm.com/blog/products/geiger-counter/).
+
+- USB‑serial interface for easy ingestion
+- Outputs counts per minute and microsieverts/hour
+- Open hardware design with accessible documentation
+---
 ## 🔄 System Architecture
 ```mermaid
 flowchart TD

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Diagnostics - LogExp{% endblock %}
+
+{% block content %}
+  <h2>Diagnostics</h2>
+
+  <!-- Poller status -->
+  <p><strong>Poller Status:</strong> <span id="poller-status">{{ poller_status }}</span></p>
+
+  <!-- Poller controls -->
+  <div id="poller-controls">
+    <button onclick="startPoller()">Start Poller</button>
+    <button onclick="stopPoller()">Stop Poller</button>
+    <button onclick="checkPollerStatus()">Check Poller Status</button>
+    <p id="poller-result"></p>
+  </div>
+
+  <!-- Geiger test -->
+  <h3>Geiger Counter Test</h3>
+  <p>Click below to run a quick test of the Geiger endpoint:</p>
+  <button onclick="runGeigerTest()">Run Geiger Test</button>
+  <p id="geiger-result"></p>
+
+  <script>
+  function updatePollerStatus(status) {
+    const el = document.getElementById("poller-status");
+    el.innerText = status;
+    el.className = status === "running" ? "status-running" : "status-stopped";
+  }
+
+  async function startPoller() {
+    const response = await fetch("{{ url_for('routes.poller_start') }}", {method: "POST"});
+    const data = await response.json();
+    updatePollerStatus(data.status);
+    document.getElementById("poller-result").innerText = "Poller: " + data.status;
+  }
+
+  async function stopPoller() {
+    const response = await fetch("{{ url_for('routes.poller_stop') }}", {method: "POST"});
+    const data = await response.json();
+    updatePollerStatus(data.status);
+    document.getElementById("poller-result").innerText = "Poller: " + data.status;
+  }
+
+  async function checkPollerStatus() {
+    const response = await fetch("{{ url_for('routes.poller_status') }}");
+    const data = await response.json();
+    updatePollerStatus(data.status);
+  }
+
+  async function runGeigerTest() {
+    const response = await fetch("{{ url_for('diagnostics.diagnostics_test') }}");
+    if (response.ok) {
+      const data = await response.json();
+      document.getElementById("geiger-result").innerText = "Geiger Test: " + data.status;
+    } else {
+      document.getElementById("geiger-result").innerText = "Geiger Test failed";
+    }
+  }
+
+  // Initialize with server-provided poller_status
+  updatePollerStatus("{{ poller_status }}");
+</script>
+{% endblock %}
