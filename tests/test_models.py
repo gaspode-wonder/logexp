@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 import pytz
 from flask import Flask
+from logexp.seeds.seed_data import seed_test_data
 from logexp.app.models import LogExpReading
 
 @pytest.fixture
@@ -46,3 +47,15 @@ def test_to_dict_returns_expected_fields(app):
     assert result["counts_per_minute"] == 9.0
     assert result["microsieverts_per_hour"] == 0.05
     assert result["mode"] == "normal"
+
+def test_logexp_reading_model(test_app, db_session):
+    seed_test_data(test_app)  # insert row
+
+    # Query using the active test session
+    result = db_session.query(LogExpReading).first()
+
+    assert result.counts_per_second == 1
+    assert result.counts_per_minute == 60
+    assert result.microsieverts_per_hour == 0.01
+    assert result.mode == "test"
+

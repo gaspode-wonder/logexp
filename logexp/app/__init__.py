@@ -1,3 +1,9 @@
+from flask import Flask, render_template, current_app
+from logexp.app.config import Config
+from logexp.app.poller import GeigerPoller
+from logexp.app.extensions import db, migrate
+from logexp.app.blueprints import register_blueprints
+
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -13,9 +19,10 @@ def create_app(config_object=Config):
     # register all blueprints
     register_blueprints(app)
 
-    # attach poller to app instance
-    app.poller = GeigerPoller(app)
-    app.poller.start()
+    # attach poller only if allowed
+    if app.config.get("START_POLLER", True):
+        app.poller = GeigerPoller(app)
+        app.poller.start()
 
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
@@ -58,5 +65,20 @@ def create_app(config_object=Config):
             print("Geiger poller stopped.")
         else:
             print("Poller not running.")
+
+    @app.cli.command("seed")
+    def seed():
+        """Seed the database with sample data (manual only)."""
+        from logexp.seeds import seed_data
+        seed_data.run(app)   # ✅ pass the current app explicitly
+        print("Database seeded.")
+
+    @app.cli.command("clear-db")
+    def clear_db():
+        """Drop all tables and recreate an empty database."""
+        with app.app_context():
+            db.drop_all()
+            db.create_all()
+            print("Test database cleared and recreated.")
 
     return app
