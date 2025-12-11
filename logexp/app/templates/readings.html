@@ -47,89 +47,70 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-    let chart;
+  let chart;
 
-    async function startPoller() {
-      const response = await fetch("{{ url_for('routes.poller_start') }}", {method: "POST"});
-      const data = await response.json();
-      document.getElementById("poller-status").innerText = data.status;
-      document.getElementById("poller-result").innerText = "Poller: " + data.status;
-    }
+  async function refreshReadings() {
+    const response = await fetch("{{ url_for('routes.readings_api') }}");
+    const data = await response.json();
 
-    async function stopPoller() {
-      const response = await fetch("{{ url_for('routes.poller_stop') }}", {method: "POST"});
-      const data = await response.json();
-      document.getElementById("poller-status").innerText = data.status;
-      document.getElementById("poller-result").innerText = "Poller: " + data.status;
-    }
+    // Update table
+    const tbody = document.querySelector("#readings-table tbody");
+    tbody.innerHTML = "";
+    data.forEach(r => {
+      const row = `<tr>
+        <td>${r.id}</td>
+        <td>${r.timestamp}</td>
+        <td>${r.counts_per_second}</td>
+        <td>${r.counts_per_minute}</td>
+        <td>${r.microsieverts_per_hour}</td>
+        <td>${r.mode}</td>
+      </tr>`;
+      tbody.insertAdjacentHTML("beforeend", row);
+    });
 
-    async function checkPollerStatus() {
-      const response = await fetch("{{ url_for('routes.poller_status') }}");
-      const data = await response.json();
-      document.getElementById("poller-status").innerText = data.status;
-    }
+    // Update chart
+    const labels = data.map(r => r.timestamp).reverse();
+    const values = data.map(r => r.counts_per_minute).reverse();
 
-    async function refreshReadings() {
-      const response = await fetch("{{ url_for('readings.readings_json') }}");
-      const data = await response.json();
-
-      // Update table
-      const tbody = document.querySelector("#readings-table tbody");
-      tbody.innerHTML = "";
-      data.forEach(r => {
-        const row = `<tr>
-          <td>${r.id}</td>
-          <td>${r.timestamp}</td>
-          <td>${r.counts_per_second}</td>
-          <td>${r.counts_per_minute}</td>
-          <td>${r.microsieverts_per_hour}</td>
-          <td>${r.mode}</td>
-        </tr>`;
-        tbody.insertAdjacentHTML("beforeend", row);
-      });
-
-      // Update chart
-      const labels = data.map(r => r.timestamp).reverse(); // oldest → newest
-      const values = data.map(r => r.counts_per_minute).reverse();
-
-      if (!chart) {
-        const ctx = document.getElementById("readingsChart").getContext("2d");
-        chart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Counts per Minute",
-              data: values,
-              borderColor: "blue",
-              backgroundColor: "rgba(0,0,255,0.1)",
-              fill: true,
-              tension: 0.2
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              x: { title: { display: true, text: "Timestamp" }},
-              y: { title: { display: true, text: "CPM" }}
-            }
+    if (!chart) {
+      const ctx = document.getElementById("readingsChart").getContext("2d");
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Counts per Minute",
+            data: values,
+            borderColor: "blue",
+            backgroundColor: "rgba(0,0,255,0.1)",
+            fill: true,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: "Timestamp" }},
+            y: { title: { display: true, text: "CPM" }}
           }
-        });
-      } else {
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = values;
-        chart.update();
-      }
-
-      // Update last refresh timestamp
-      const now = new Date();
-      document.getElementById("last-refresh").innerText = now.toLocaleString();
+        }
+      });
+    } else {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = values;
+      chart.update();
     }
 
-    // auto-refresh every 10 seconds
-    setInterval(refreshReadings, 10000);
+    // Update last refresh timestamp
+    const now = new Date();
+    document.getElementById("last-refresh").innerText = now.toLocaleString();
+  }
 
-    // initial load
-    refreshReadings();
+  // auto-refresh every 10 seconds
+  setInterval(refreshReadings, 10000);
+
+  // initial load
+  refreshReadings();
   </script>
+
 {% endblock %}

@@ -47,8 +47,8 @@ def readings_index():
     poller_status = "running" if poller and poller._thread.is_alive() else "stopped"
     return render_template("readings.html", readings=readings, poller_status=poller_status)
 
-@bp.route("/readings.json")
-def readings_json():
+@bp.get("/api/readings")
+def readings_apu():
     readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
     return jsonify([r.to_dict() for r in readings])
 
