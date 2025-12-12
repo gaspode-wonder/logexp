@@ -1,0 +1,10 @@
+<nav class="nav flex-column">
+  <a class="nav-link" href="{{ url_for('routes_ui.readings_index') }}">📊 Readings</a>
+  <a class="nav-link" href="{{ url_for('routes_ui.settings') }}">⚙️ Settings</a>
+  <a class="nav-link" href="{{ url_for('diagnostics.diagnostics_index') }}">🧪 Diagnostics</a>
+
+  <!-- Info Section -->
+  <div class="sidebar-heading">Info</div>
+  <a class="nav-link" href="{{ url_for('info.info_docs') }}">📖 Docs</a>
+  <a class="nav-link" href="{{ url_for('info.info_about') }}">ℹ️ About</a>
+</nav>

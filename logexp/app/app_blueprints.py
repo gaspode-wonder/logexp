@@ -1,4 +1,4 @@
-# logexp/app/blueprints.py
+# logexp/app/app_blueprints.py
 from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for
 from logexp.app import db
 from logexp.app.models import LogExpReading
@@ -10,7 +10,8 @@ bp_ui = Blueprint("routes_ui", __name__)
 
 @bp_ui.route("/")
 def routes_index():
-    return render_template("index.html")
+    # Home now shows readings
+    return redirect(url_for("routes_ui.readings_index"))
 
 @bp_ui.route("/readings")
 def readings_index():
@@ -128,23 +129,20 @@ def poller_stop():
 def health():
     return jsonify({"status": "ok"}), 200
 
-# ---------------- DOCS BLUEPRINT ----------------
-bp_docs = Blueprint("docs", __name__, url_prefix="/docs")
+# ---------------- INFO BLUEPRINT (Docs + About) ----------------
+bp_info = Blueprint("info", __name__, url_prefix="/info")
 
-@bp_docs.route("/")
-def docs_index():
-    return render_template("docs/docs.html")
+@bp_info.route("/")
+def info_index():
+    return render_template("info/index.html")
 
-@bp_docs.route("/timezone")
-def timezone_policy():
-    return render_template("docs/timezone.html")
+@bp_info.route("/docs")
+def info_docs():
+    return render_template("info/docs.html")
 
-# ---------------- ABOUT BLUEPRINT ----------------
-bp_about = Blueprint("about", __name__, url_prefix="/about")
-
-@bp_about.route("/")
-def about_index():
-    return render_template("about.html")
+@bp_info.route("/about")
+def info_about():
+    return render_template("info/about.html")
 
 # --- Diagnostics Blueprint ---
 bp_diagnostics = Blueprint("diagnostics", __name__, url_prefix="/diagnostics")
@@ -159,12 +157,9 @@ def diagnostics_index():
 def diagnostics_test():
     return jsonify({"status": "ok"})
 
-
-
 # ---------------- REGISTER ALL ----------------
 def register_blueprints(app):
     app.register_blueprint(bp_ui)
     app.register_blueprint(bp_api)
-    app.register_blueprint(bp_docs)
-    app.register_blueprint(bp_about)
+    app.register_blueprint(bp_info)        # combined docs + about
     app.register_blueprint(bp_diagnostics)

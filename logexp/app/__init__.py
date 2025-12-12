@@ -86,4 +86,10 @@ def create_app(config_object: type = Config) -> Flask:
             db.create_all()
             print("Test database cleared and recreated.")
 
+    @app.context_processor
+    def inject_globals():
+        from datetime import datetime
+        return {"current_year": datetime.now().year}
+
+
     return app

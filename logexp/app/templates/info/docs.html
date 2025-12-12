@@ -1,16 +1,6 @@
-{% extends "docs/base_docs.html" %}
+{% extends "base.html" %}
 
 {% block title %}Documentation - LogExp{% endblock %}
-
-{% block content %}
-  <h1>Documentation Index</h1>
-  <p>Welcome to the LogExp documentation hub. Choose a topic below:</p>
-
-  <ul>
-    <li><a href="{{ url_for('docs.timezone_policy') }}">Timezone Policy</a></li>
-    <!-- Add other doc entries here -->
-  </ul>
-{% endblock %}
 
 {% block content %}
   <h1>Documentation Index</h1>
@@ -112,6 +102,6 @@
 {% endblock %}
 
 {% block pager %}
-  <a href="{{ url_for('routes_ui.routes_index') }}" class="prev">← Home</a>
-  <a href="{{ url_for('docs.timezone_policy') }}" class="next">Timezone Policy →</a>
+  <a href="{{ url_for('routes_ui.readings_index') }}" class="prev">← Readings</a>
+  <a href="{{ url_for('info.info_about') }}" class="next">About →</a>
 {% endblock %}

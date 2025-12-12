@@ -61,7 +61,7 @@
     });
 
     async function refreshReadings() {
-      const response = await fetch("{{ url_for('readings_api.readings_json') }}");
+      const response = await fetch("{{ url_for('routes_api.readings_json') }}");
       const data = await response.json();
 
       // Update table

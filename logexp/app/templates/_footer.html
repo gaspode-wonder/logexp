@@ -1,0 +1,12 @@
+<footer id="footer">
+  <div class="pager">
+    {% block pager %}
+      <!-- Default pager links -->
+      <a href="{{ url_for('routes_ui.readings_index') }}" class="prev">← Readings</a>
+      <a href="{{ url_for('routes_ui.settings') }}" class="next">Settings →</a>
+    {% endblock %}
+  </div>
+  <p class="footer-text">
+    LogExp © {{ current_year }}
+  </p>
+</footer>

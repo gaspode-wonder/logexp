@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}About - LogExp{% endblock %}
+
+{% block content %}
+  <h1>About LogExp</h1>
+  <p>LogExp is a radiation logging and exploration platform designed to integrate hardware readings with a modern web interface and API services.</p>
+
+  <h2>Purpose</h2>
+  <p>The project was created to make technical data collection accessible, reliable, and easy to visualize. It combines backend robustness with frontend clarity, ensuring collaborators can onboard quickly and troubleshoot effectively.</p>
+
+  <h2>Features</h2>
+  <ul>
+    <li>📊 Real‑time readings from Geiger counters</li>
+    <li>⚙️ Configurable serial port and baudrate settings</li>
+    <li>🧪 Diagnostics tools for poller and hardware testing</li>
+    <li>📖 Documentation hub for setup and troubleshooting</li>
+    <li>ℹ️ Clear UI with sidebar navigation and footer pager</li>
+  </ul>
+
+  <h2>Architecture</h2>
+  <p>LogExp is built with Flask, SQLAlchemy, and Jinja templates. It uses blueprints to separate concerns:</p>
+  <ul>
+    <li><strong>UI</strong> – Readings, Settings, Diagnostics</li>
+    <li><strong>API</strong> – JSON endpoints for readings and poller control</li>
+    <li><strong>Info</strong> – Documentation and About pages</li>
+  </ul>
+
+  <h2>Credits</h2>
+  <p>LogExp integrates with the <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">MightyOhm Geiger Counter</a>, 
+     and builds upon open‑source libraries to provide a reliable radiation logging platform.</p>
+{% endblock %}
+
+{% block pager %}
+  <a href="{{ url_for('info.info_docs') }}" class="prev">← Docs</a>
+  <a href="{{ url_for('routes_ui.readings_index') }}" class="next">Readings →</a>
+{% endblock %}
