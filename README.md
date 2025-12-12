@@ -11,26 +11,27 @@ LogExp is a **Flask + Postgres application** for ingesting and displaying Geiger
 ---
 
 ## 📂 Project Structure
+
 ```
 logexp/
-├── wsgi.py                  # entrypoint, calls create_app()
+├── wsgi.py                     # entrypoint, calls create_app()
 ├── app/
-│   ├── __init__.py          # create_app(), poller lifecycle, error handlers, CLI
-│   ├── config.py            # Config class (DB URL, settings)
-│   ├── extensions.py        # db, migrate instances
-│   ├── poller.py            # GeigerPoller class
-│   ├── routes.py            # main UI blueprint (bp = Blueprint("main", __name__))
-│   ├── readings.py          # readings API blueprint (bp = Blueprint("readings", __name__))
-│   ├── diagnostics.py       # diagnostics blueprint (bp = Blueprint("diagnostics", __name__))
-│   ├── docs.py              # docs blueprint (bp = Blueprint("docs", __name__))
-│   ├── about.py             # about blueprint (bp = Blueprint("about", __name__))
+│   ├── init.py                 # create_app(), poller lifecycle, error handlers, CLI
+│   ├── config.py               # Config class (DB URL, settings)
+│   ├── extensions.py           # db, migrate instances
+│   ├── poller.py               # GeigerPoller class
 │   ├── blueprints/
-│   │   └── __init__.py      # register_blueprints(app) imports and registers all bp
+│   │   ├── routes_ui.py        # UI routes (home, readings, docs, about)
+│   │   ├── readings_api.py     # API routes for readings JSON
+│   │   ├── diagnostics_api.py  # hardware diagnostics
+│   │   ├── poller_api.py       # poller control endpoints
+│   │   └── init.py             # register_blueprints(app)
 │   └── templates/
-│       ├── base.html        # nav bar with url_for('routes.index'), etc.
-│       ├── index.html       # home page
-│       ├── about.html       # about page
-│       ├── docs.html        # docs page (FAQ, hardware, diagram, sample output)
+│       ├── base.html           # nav bar
+│       ├── index.html          # home page
+│       ├── readings.html       # readings page (table + chart)
+│       ├── docs.html           # docs page
+│       ├── about.html          # about page
 │       └── errors/
 │           ├── 403.html
 │           ├── 404.html
@@ -42,33 +43,56 @@ logexp/
 ## ⚙️ Features
 
 - **Hardware ingestion**: Reads Geiger counter output via USB‑serial.
-- **Background poller**: Threaded service for continuous data collection.
+- **Background poller**: Threaded service for continuous data collection.  
+  - Starts automatically when the app launches (unless disabled with `START_POLLER=False`).  
+  - Runs until explicitly stopped via API or CLI.
 - **API endpoints**:
-  - `/readings` → JSON of stored readings.
-  - `/geiger/test` → Diagnostic endpoint for port health.
+  - `/api/readings.json` → JSON of stored readings
+  - `/api/poller/status` → Poller health check
+  - `/api/poller/start` → Start poller
+  - `/api/poller/stop` → Stop poller
+  - `/api/geiger/test` → Diagnostic endpoint
+- **UI endpoints**:
+  - `/` → Home page
+  - `/readings` → Readings page (table + chart)
+  - `/docs` → Documentation page
+  - `/about` → About page
 - **Database schema**: Stores counts per second/minute, microsieverts/hour, mode, and timestamp.
-- **Timestamp localization**: UTC stored in DB, localized at presentation with GMT reference.
+- **Timestamp localization**: UTC stored in DB, displayed in `America/Chicago` timezone with 24‑hour clock.
 - **CLI commands**:
-  - `flask geiger-start` → Start poller manually.
-  - `flask geiger-stop` → Stop poller gracefully.
-  - `flask geiger-restart` → Restart poller safely.
+  - `flask geiger-start` → Start poller manually
+  - `flask geiger-stop` → Stop poller gracefully
+  - `flask seed` → Seed database with sample data
+  - `flask clear-db` → Drop and recreate database
 
 ---
-🧩 Blueprints
+## 🧩 Blueprints
 
-- main → UI routes (routes.py)
-  - / → Home page
-  - /poller/status → Poller health check
-- readings → API routes (readings.py)
-  - /readings → JSON of stored readings
-- diagnostics → Hardware diagnostics (diagnostics.py)
-  - /geiger/test → Diagnostic endpoint
-- docs → Documentation page (docs.py)
-  - /docs → Docs page
-- about → About page (about.py)
-  - /about → About page
+- **routes_ui** → UI pages
+  - `/` → Home page
+  - `/readings` → Readings page (table + chart)
+  - `/docs` → Documentation page
+  - `/about` → About page
+
+- **readings_api** → Readings JSON
+  - `/api/readings.json` → JSON of stored readings
+
+- **poller_api** → Poller control
+  - `/api/poller/status` → Poller health check
+  - `/api/poller/start` → Start poller
+  - `/api/poller/stop` → Stop poller
+
+- **diagnostics_api** → Hardware diagnostics
+  - `/api/geiger/test` → Diagnostic endpoint
+
+- **docs_ui** → Documentation page
+  - `/docs` → Docs page
+
+- **about_ui** → About page
+  - `/about` → About page
 
 All blueprints are registered centrally in `logexp/app/blueprints/__init__.py` and loaded via `register_blueprints(app)` in `create_app()`.
+
 ---
 ## 🚀 Quickstart
 
@@ -95,56 +119,41 @@ flask run
 ```bash
 flask geiger-start
 flask geiger-stop
-flask geiger-restart
 ```
 ### 6. Test endpoints
-- Readings: http://localhost:5000/readings
-- Diagnostics: http://localhost:5000/geiger/test
+- UI Readings: http://localhost:5000/readings
+- API Readings JSON: http://localhost:5000/api/readings.json
+- Poller Status: http://localhost:5000/api/poller/status
+- Diagnostics: http://localhost:5000/api/geiger/test
 ---
-## 🗄️ Database & Migrations
+🗄️ Database & Migrations
+
 LogExp uses Postgres with Flask‑Migrate (Alembic) for schema evolution.
-- Generate migration:
-    ```bash
-    flask db migrate -m "Add new field"
-    ```
-- Apply migration
-    ```bash
-    flask db upgrade
-    ```
-- Reset migrations (if stale versions occur):
-    ```sql
-    DELETE FROM alembic_version;
-    ```
-    ```bash
-    rm -rf migrations/
-    flask db init
-    flask db migrate -m "Initial schema"
-    flask db upgrade
-    ```
----
-## 🕒 Timestamp Localization
-- Storage: UTC (datetime.now(timezone.utc)).
-- Presentation: Localized to configured timezone with GMT reference.
-```
-2025-12-09T05:30:00-06:00 (2025-12-09T11:30:00+00:00 GMT)
-```
-## Configuring Local Timezone
 
-Set the `LOCAL_TIMEZONE` environment variable:
+- Generate migration
 ```bash
-export LOCAL_TIMEZONE="America/New_York"
+flask db migrate -m "Add new field"
 ```
-Defaults to `America/Chicago`.
+- Apply migration
+```bash
+flask db upgrade
+```
+- Reset migrations (if stale versions occur):
+```sql
+DELETE FROM alembic_version;
+```
+```bash
+rm -rf migrations/
+flask db init
+flask db migrate -m "Initial schema"
+flask db upgrade
+```
 ---
-📡 Hardware
-
-LogExp integrates with the [MightyOhm Geiger Counter](https://mightyohm.com/blog/products/geiger-counter/).
-
-- USB‑serial interface for easy ingestion
-- Outputs counts per minute and microsieverts/hour
-- Open hardware design with accessible documentation
+🕒 Timestamp Localization
+- Storage: UTC (`datetime.now(timezone.utc)`)
+- Presentation: Localized to configured timezone (`America/Chicago` by default) with 24‑hour clock.
 ---
-## 🔄 System Architecture
+🔄 System Architecture
 ```mermaid
 flowchart TD
     subgraph Hardware
@@ -153,7 +162,7 @@ flowchart TD
 
     subgraph App
         Poller[Background Poller Thread]
-        Routes[API Routes]
+        Routes[UI + API Blueprints]
         Models[SQLAlchemy Models]
     end
 
@@ -167,68 +176,88 @@ flowchart TD
     Models --> Table
     Routes --> Models
     Alembic --> Table
-    Routes -->|JSON Responses| Client[Web UI / API Consumer]
+    Routes -->|JSON + HTML| Client[Web UI / API Consumer]
 ```
 ---
-## 🔁 Reading Lifecycle
+🔁 Reading Lifecycle
 ```mermaid
 sequenceDiagram
     participant GC as Geiger Counter
     participant Poller as GeigerPoller Thread
     participant DB as Postgres (logexp_readings)
-    participant API as Flask API (/readings)
+    participant API as Flask API (/api/readings.json)
     participant Client as Web UI / Consumer
 
     GC->>Poller: Emit raw data string
     Poller->>Poller: Parse into structured fields
     Poller->>DB: Insert row (UTC timestamp, CPS, CPM, uSv/h, mode)
-    Client->>API: GET /readings
+    Client->>API: GET /api/readings.json
     API->>DB: Query latest readings
     DB-->>API: Return rows
-    API-->>Client: JSON with localized timestamp (Local + GMT)
+    API-->>Client: JSON with localized timestamp
 ```
 ---
-## 📡 Sample JSON Response
+📡 Sample JSON Response
 ```json
 [
   {
     "id": 1,
-    "timestamp": "2025-12-09T08:30:00-06:00 (2025-12-09T14:30:00+00:00 GMT)",
-    "counts_per_second": 42,
-    "counts_per_minute": 2520,
-    "microsieverts_per_hour": 0.15,
+    "timestamp": "2025-12-09T17:30:00Z",
+    "counts_per_second": 0.7,
+    "counts_per_minute": 42,
+    "microsieverts_per_hour": 0.12,
     "mode": "normal"
   },
   {
     "id": 2,
-    "timestamp": "2025-12-09T08:31:00-06:00 (2025-12-09T14:31:00+00:00 GMT)",
-    "counts_per_second": 45,
-    "counts_per_minute": 2700,
-    "microsieverts_per_hour": 0.16,
+    "timestamp": "2025-12-09T17:31:00Z",
+    "counts_per_second": 0.8,
+    "counts_per_minute": 47,
+    "microsieverts_per_hour": 0.14,
     "mode": "normal"
   }
 ]
 ```
 ---
-## 🖥️ CLI Usage
-Start the Poller
+🖥️ CLI Usage
+Start the poller:
 ```bash
 flask geiger-start
 ```
-Stop the Poller
+
+Stop the poller
 ```bash
 flask geiger-stop
 ```
-Restart the Poller
+Seed the database
 ```bash
-flask geiger-restart
+flask seed
 ```
-Database Commands
+Clear and recreate database:
+```bash
+flask clear-db
+```
+Database commands
 ```bash
 flask db migrate -m "Add new field"
 flask db upgrade
 flask db downgrade
 ```
+---
+🧩 Blueprints
+
+- main → UI routes (routes.py)
+  - / → Home page
+  - /poller/status → Poller health check
+- readings → API routes (readings.py)
+  - /readings → JSON of stored readings
+- diagnostics → Hardware diagnostics (diagnostics.py)
+  - /geiger/test → Diagnostic endpoint
+- docs → Documentation page (docs.py)
+  - /docs → Docs page
+- about → About page (about.py)
+  - /about → About page
+
 ---
 ## 🧰 Troubleshooting
 - Stale Alembic revision:
