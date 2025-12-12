@@ -1,23 +1,16 @@
-from importlib import import_module
-from flask import Blueprint
+"""
+DEPRECATED MODULE: logexp/app/blueprints/__init__.py
 
-def register_blueprints(app):
-    """
-    Import and register all blueprints.
-    Each blueprint file must expose one or more Blueprint instances.
-    """
-    blueprint_modules = [
-        "logexp.app.routes",
-        "logexp.app.readings",
-        "logexp.app.diagnostics",
-        "logexp.app.docs",
-        "logexp.app.about",
-    ]
+This file previously auto-imported and registered blueprints from multiple modules.
+All blueprints are now centralized in logexp/app/blueprints.py.
 
-    for module_path in blueprint_modules:
-        module = import_module(module_path)
-        # Only register attributes that are actually Flask Blueprints
-        for attr in dir(module):
-            obj = getattr(module, attr)
-            if isinstance(obj, Blueprint):
-                app.register_blueprint(obj)
+⚠️ Do not use or import this file in the application factory.
+It will be removed in a future release.
+"""
+
+import warnings
+warnings.warn(
+    "logexp/app/blueprints/__init__.py is deprecated. Use logexp/app/blueprints.py instead.",
+    DeprecationWarning,
+    stacklevel=2
+)

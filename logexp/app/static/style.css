@@ -18,10 +18,78 @@ nav {
   left: 0;
   width: 100%;           /* span full width */
   background-color: rgb(204, 204, 204); /* match your page background */
-  padding: 10px;
+  padding: 1px;
   margin: 0;             /* remove bottom margin, handled by body padding */
   z-index: 1000;         /* ensure it stays above other content */
 }
+
+/* Sidebar */
+aside {
+  position: fixed;
+  top: 50px;              /* below the fixed nav bar */
+  left: 0;
+  width: 200px;
+  background-color: #f4f4f4;
+  padding: 15px;
+  height: calc(100% - 50px); /* fill remaining vertical space */
+  overflow-y: auto;
+  border-right: 1px solid #ccc;
+}
+
+aside h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+aside ul {
+  list-style: none;
+  padding: 0;
+}
+
+aside li {
+  margin: 8px 0;
+}
+
+aside a {
+  color: #2c3e50;
+  text-decoration: none;
+}
+
+aside a:hover {
+  text-decoration: underline;
+}
+
+/* Main content area */
+main {
+  margin-left: 220px;     /* leave space for sidebar */
+  padding: 20px;
+  background-color: #fff;
+  min-height: calc(100vh - 100px); /* account for nav + footer */
+  box-sizing: border-box;
+}
+
+/* Pager footer */
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgb(204, 204, 204);
+  padding: 10px;
+  text-align: center;
+  border-top: 1px solid #ccc;
+}
+
+footer a {
+  color: #2c3e50;
+  text-decoration: none;
+  margin: 0 15px;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
 
 /* Push page content down so it doesn't overlap the fixed nav */
 body {

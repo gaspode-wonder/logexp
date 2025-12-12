@@ -4,17 +4,43 @@
   <meta charset="UTF-8">
   <title>{% block title %}LogExp{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
+  <!-- Global Navigation -->
   <nav>
     <a href="{{ url_for('routes_ui.routes_index') }}">Home</a> |
-    <a href="{{ url_for('readings_ui.readings_index') }}">Readings</a> |
+    <a href="{{ url_for('routes_ui.readings_index') }}">Readings</a> |
+    <a href="{{ url_for('routes_ui.settings') }}">Settings</a> |
     <a href="{{ url_for('diagnostics.diagnostics_index') }}">Diagnostics</a> |
     <a href="{{ url_for('docs.docs_index') }}">Docs</a> |
     <a href="{{ url_for('about.about_index') }}">About</a>
   </nav>
 
-  {% block content %}{% endblock %}
+  <!-- Sidebar -->
+  <aside>
+    {% block sidebar %}
+      <h3>Navigation</h3>
+      <ul>
+        <li><a href="{{ url_for('routes_ui.routes_index') }}">Home</a></li>
+        <li><a href="{{ url_for('routes_ui.readings_index') }}">Readings</a></li>
+        <li><a href="{{ url_for('routes_ui.settings') }}">Settings</a></li>
+        <li><a href="{{ url_for('diagnostics.diagnostics_index') }}">Diagnostics</a></li>
+        <li><a href="{{ url_for('docs.docs_index') }}">Docs</a></li>
+        <li><a href="{{ url_for('about.about_index') }}">About</a></li>
+      </ul>
+    {% endblock %}
+  </aside>
+
+  <!-- Main Content -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Pager -->
+  <footer>
+    {% block pager %}
+      <a href="{{ url_for('routes_ui.routes_index') }}" class="prev">← Home</a>
+    {% endblock %}
+  </footer>
 </body>
 </html>

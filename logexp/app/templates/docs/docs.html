@@ -1,0 +1,117 @@
+{% extends "docs/base_docs.html" %}
+
+{% block title %}Documentation - LogExp{% endblock %}
+
+{% block content %}
+  <h1>Documentation Index</h1>
+  <p>Welcome to the LogExp documentation hub. Choose a topic below:</p>
+
+  <ul>
+    <li><a href="{{ url_for('docs.timezone_policy') }}">Timezone Policy</a></li>
+    <!-- Add other doc entries here -->
+  </ul>
+{% endblock %}
+
+{% block content %}
+  <h1>Documentation Index</h1>
+  <p>Welcome to the LogExp documentation hub. Choose a topic below:</p>
+
+  <h2>Quickstart</h2>
+  <ul>
+    <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
+    <li>Configure environment: <code>export DATABASE_URL=...</code></li>
+    <li>Initialize DB: <code>flask db upgrade</code></li>
+    <li>Run app: <code>flask run</code></li>
+  </ul>
+
+  <h2>Endpoints</h2>
+  <ul>
+    <li><code>/readings</code> → Web UI page showing readings table and chart</li>
+    <li><code>/api/readings.json</code> → JSON of stored readings</li>
+    <li><code>/api/poller/status</code> → Poller health check</li>
+    <li><code>/api/poller/start</code> → Start the poller</li>
+    <li><code>/api/poller/stop</code> → Stop the poller</li>
+    <li><code>/api/geiger/test</code> → Diagnostic endpoint</li>
+  </ul>
+
+  <h2>Poller Lifecycle</h2>
+  <p>The Geiger poller starts automatically when the app launches and continues running until explicitly stopped. 
+     Use the API endpoints or CLI commands (<code>flask geiger-stop</code>, <code>flask geiger-start</code>) to control it.</p>
+
+  <h2>Timezone Handling</h2>
+  <p>Readings are stored in UTC in the database. The Web UI renders timestamps in 
+     <code>America/Chicago</code> timezone by default, using a 24‑hour clock format.</p>
+
+  <h2>Troubleshooting</h2>
+  <p>See <code>README.md</code> for detailed troubleshooting steps including Alembic migrations and poller lifecycle management.</p>
+
+  <h2>FAQ</h2>
+  <dl>
+    <dt>❓ Why do I see “cannot join current thread” when stopping the poller?</dt>
+    <dd>This happens if the teardown is called inside the poller thread. It’s safe to ignore; LogExp skips joining in that case.</dd>
+
+    <dt>❓ Alembic migration errors: “stale revision” or “no such table alembic_version”</dt>
+    <dd>Clear the <code>alembic_version</code> table and re‑init migrations. See README for reset commands.</dd>
+
+    <dt>❓ Timezone mismatch in readings</dt>
+    <dd>Ensure <code>LOCAL_TIMEZONE</code> is set correctly in your environment. Defaults to <code>America/Chicago</code> with 24‑hour clock display.</dd>
+
+    <dt>❓ Why does the index page show a 500 error?</dt>
+    <dd>Check that all blueprints are registered and templates reference the correct endpoint namespace (e.g. <code>routes_ui.index</code>).</dd>
+  </dl>
+
+  <h2>Hardware: MightyOhm Geiger Counter</h2>
+  <p>LogExp integrates with the <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">MightyOhm Geiger Counter</a>, 
+     a DIY radiation detector kit designed for hobbyists and researchers.</p>
+  <ul>
+    <li>USB‑serial interface for easy data ingestion</li>
+    <li>Outputs counts per second/minute and microsieverts/hour</li>
+    <li>Open hardware design with accessible documentation</li>
+    <li>Ideal for logging radiation levels in real‑time with LogExp</li>
+  </ul>
+
+  <h2>System Diagram</h2>
+  <pre>
+  [MightyOhm Geiger Counter]
+              │ USB-Serial
+              ▼
+        [LogExp Poller Service]
+              │
+              ▼
+        [Postgres Database]
+              │
+              ▼
+        [Flask API Endpoints]
+              │
+              ▼
+        [Web UI / Clients]
+  </pre>
+
+  <h2>Sample Reading Output</h2>
+  <p>Example JSON payload returned by <code>/api/readings.json</code>:</p>
+  <pre>
+  [
+    {
+      "id": 1,
+      "timestamp": "2025-12-09T17:30:00Z",
+      "counts_per_second": 0.7,
+      "counts_per_minute": 42,
+      "microsieverts_per_hour": 0.12,
+      "mode": "normal"
+    },
+    {
+      "id": 2,
+      "timestamp": "2025-12-09T17:31:00Z",
+      "counts_per_second": 0.8,
+      "counts_per_minute": 47,
+      "microsieverts_per_hour": 0.14,
+      "mode": "normal"
+    }
+  ]
+  </pre>
+{% endblock %}
+
+{% block pager %}
+  <a href="{{ url_for('routes_ui.routes_index') }}" class="prev">← Home</a>
+  <a href="{{ url_for('docs.timezone_policy') }}" class="next">Timezone Policy →</a>
+{% endblock %}

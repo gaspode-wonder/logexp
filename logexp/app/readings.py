@@ -1,20 +1,17 @@
-from flask import Blueprint, render_template, jsonify, current_app
-from logexp.app.models import LogExpReading
+"""
+DEPRECATED MODULE: readings.py
 
-# HTML page blueprint
-bp_ui = Blueprint("readings_ui", __name__)
+This file previously defined the 'readings_ui' and 'readings_api' blueprints.
+All routes have been migrated into logexp/app/blueprints.py for consistency
+and centralized registration.
 
-@bp_ui.route("/readings")
-def readings_index():
-    readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
-    poller = current_app.poller
-    poller_status = "running" if poller and poller._thread.is_alive() else "stopped"
-    return render_template("readings.html", readings=readings, poller_status=poller_status)
-
-# API blueprint
-bp_api = Blueprint("readings_api", __name__, url_prefix="/api")
-
-@bp_api.route("/readings.json")
-def readings_json():
-    readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
-    return jsonify([r.to_dict() for r in readings])
+Do not add new routes here. Please update or create routes only in
+blueprints.py. This file remains temporarily for reference and will be
+removed in a future release.
+"""
+import warnings
+warnings.warn(
+    "readings.py is deprecated. Use logexp/app/blueprints.py instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
