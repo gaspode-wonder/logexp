@@ -47,10 +47,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-  let chart;
+   let chart;
 
   async function refreshReadings() {
-    const response = await fetch("{{ url_for('routes.readings_api') }}");
+    // now points to /api/readings.json
+    const response = await fetch("{{ url_for('readings_api.readings_json') }}");
     const data = await response.json();
 
     // Update table
