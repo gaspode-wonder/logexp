@@ -14,10 +14,21 @@
 
   <h3>Endpoints</h3>
   <ul>
-    <li><code>/readings</code> → JSON of stored readings</li>
-    <li><code>/geiger/test</code> → Diagnostic endpoint</li>
-    <li><code>/poller/status</code> → Poller health check</li>
+    <li><code>/readings</code> → Web UI page showing readings table and chart</li>
+    <li><code>/api/readings.json</code> → JSON of stored readings</li>
+    <li><code>/api/poller/status</code> → Poller health check</li>
+    <li><code>/api/poller/start</code> → Start the poller</li>
+    <li><code>/api/poller/stop</code> → Stop the poller</li>
+    <li><code>/api/geiger/test</code> → Diagnostic endpoint</li>
   </ul>
+
+  <h3>Poller Lifecycle</h3>
+  <p>The Geiger poller now starts automatically when the app launches and continues running until explicitly stopped. 
+     Use the API endpoints or CLI commands (<code>flask geiger-stop</code>, <code>flask geiger-start</code>) to control it.</p>
+
+  <h3>Timezone Handling</h3>
+  <p>Readings are stored in UTC in the database. The Web UI renders timestamps in 
+     <code>America/Chicago</code> timezone by default, using a 24‑hour clock format.</p>
 
   <h3>Troubleshooting</h3>
   <p>See <code>README.md</code> for detailed troubleshooting steps including Alembic migrations and poller lifecycle management.</p>
@@ -31,14 +42,15 @@
     <dd>Clear the <code>alembic_version</code> table and re‑init migrations. See README for reset commands.</dd>
 
     <dt>❓ Timezone mismatch in readings</dt>
-    <dd>Ensure <code>LOCAL_TIMEZONE</code> is set correctly in your environment. Defaults to <code>America/Chicago</code>.</dd>
+    <dd>Ensure <code>LOCAL_TIMEZONE</code> is set correctly in your environment. Defaults to <code>America/Chicago</code> with 24‑hour clock display.</dd>
 
     <dt>❓ Why does the index page show a 500 error?</dt>
-    <dd>Check that all blueprints are registered and templates reference the correct endpoint namespace (e.g. <code>routes.index</code>).</dd>
+    <dd>Check that all blueprints are registered and templates reference the correct endpoint namespace (e.g. <code>routes_ui.index</code>).</dd>
   </dl>
 
   <h3>Hardware: MightyOhm Geiger Counter</h3>
-  <p>LogExp integrates with the <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">MightyOhm Geiger Counter</a>, a DIY radiation detector kit designed for hobbyists and researchers.</p>
+  <p>LogExp integrates with the <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">MightyOhm Geiger Counter</a>, 
+     a DIY radiation detector kit designed for hobbyists and researchers.</p>
   <ul>
     <li>USB‑serial interface for easy data ingestion</li>
     <li>Outputs counts per second/minute and microsieverts/hour</li>
@@ -67,22 +79,24 @@
   </pre>
 
   <h3>Sample Reading Output</h3>
-  <p>Example JSON payload returned by <code>/readings</code>:</p>
+  <p>Example JSON payload returned by <code>/api/readings.json</code>:</p>
   <pre>
   [
     {
       "id": 1,
       "timestamp": "2025-12-09T17:30:00Z",
-      "cpm": 42,
-      "uSv_per_hr": 0.12,
-      "source": "MightyOhm Geiger Counter"
+      "counts_per_second": 0.7,
+      "counts_per_minute": 42,
+      "microsieverts_per_hour": 0.12,
+      "mode": "normal"
     },
     {
       "id": 2,
       "timestamp": "2025-12-09T17:31:00Z",
-      "cpm": 47,
-      "uSv_per_hr": 0.14,
-      "source": "MightyOhm Geiger Counter"
+      "counts_per_second": 0.8,
+      "counts_per_minute": 47,
+      "microsieverts_per_hour": 0.14,
+      "mode": "normal"
     }
   ]
   </pre>

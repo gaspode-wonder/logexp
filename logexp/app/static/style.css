@@ -13,16 +13,32 @@ h2, h3 {
 
 /* Navigation bar */
 nav {
-  margin-bottom: 20px;
+  position: fixed;       /* keep it pinned at the top */
+  top: 0;
+  left: 0;
+  width: 100%;           /* span full width */
+  background-color: rgb(204, 204, 204); /* match your page background */
+  padding: 10px;
+  margin: 0;             /* remove bottom margin, handled by body padding */
+  z-index: 1000;         /* ensure it stays above other content */
 }
+
+/* Push page content down so it doesn't overlap the fixed nav */
+body {
+  margin: 0;
+  padding-top: 50px;     /* adjust to nav height */
+}
+
 nav a {
   text-decoration: none;
   color: #2c3e50;
   margin-right: 10px;
 }
+
 nav a:hover {
   text-decoration: underline;
 }
+
 
 /* Buttons */
 button {
