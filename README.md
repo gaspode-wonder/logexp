@@ -344,5 +344,47 @@ Add a guard in `stop()` to avoid joining the current thread.
 
 - Timezone issues: Ensure `LOCAL_TIMEZONE` is set correctly in your environment.
 ---
+
+## 🛠 Troubleshooting Timezone Issues
+Symptom
+
+    JSON shows timestamps like "2025-12-12T10:53:42Z".
+
+    Frontend chart displays values six hours behind (e.g. 04:53 CST instead of 10:53 CST).
+
+Root Cause
+
+The backend was stamping local Central time and then labeling it as UTC (Z). This happened because datetime.now(timezone.utc) was used while the system clock was set to Central. That call does not convert local time into UTC — it simply tags the local wall‑clock with a UTC tzinfo.
+
+Fix
+
+    Use datetime.now().astimezone(timezone.utc) everywhere a timestamp is created. This converts the system’s local time into the correct UTC instant.
+
+    Ensure the model column is defined with db.DateTime(timezone=True) so tzinfo is preserved.
+
+    JSON serialization should always emit UTC with Z.
+
+Verification
+
+At 10:30 CST:
+
+    Backend should store 2025‑12‑12 16:30:00+00:00.
+
+    API should emit "2025-12-12T16:30:00Z".
+
+    Browser should display 10:30 CST.
+
+Regression Test
+```python
+def test_timestamp_serialization_is_utc():
+    local = datetime(2025, 12, 12, 10, 30).astimezone()  # 10:30 CST
+    reading = LogExpReading(timestamp=local.astimezone(timezone.utc), ...)
+    data = reading.to_dict()
+    assert data["timestamp"].endswith("16:30:00Z")
+```
+
+This way, anyone who sees the “six‑hour offset” bug will immediately know: the backend is mislabeling local time as UTC.
+
+---
 ## 📜 License
 MIT License

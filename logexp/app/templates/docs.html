@@ -100,4 +100,93 @@
     }
   ]
   </pre>
+<section id="troubleshooting">
+  <h2>🛠 Troubleshooting Timezone Issues</h2>
+
+  <h3>Symptom</h3>
+  <ul>
+    <li>JSON shows timestamps like <code>"2025-12-12T10:53:42Z"</code>.</li>
+    <li>Frontend chart displays values six hours behind (e.g. <code>04:53 CST</code> instead of <code>10:53 CST</code>).</li>
+  </ul>
+
+  <h3>Root Cause</h3>
+  <p>
+    The backend was stamping <strong>local Central time</strong> and then labeling it as UTC (<code>Z</code>).
+    This happened because <code>datetime.now(timezone.utc)</code> was used while the system clock was set to Central.
+    That call does not convert local time into UTC — it simply tags the local wall‑clock with a UTC tzinfo.
+  </p>
+
+  <h3>Fix</h3>
+  <ul>
+    <li>Use <code>datetime.now().astimezone(timezone.utc)</code> everywhere a timestamp is created.</li>
+    <li>Ensure the model column is defined with <code>db.DateTime(timezone=True)</code> so tzinfo is preserved.</li>
+    <li>JSON serialization should always emit UTC with <code>Z</code>.</li>
+  </ul>
+
+  <h3>Verification</h3>
+  <p>
+    At <strong>10:30 CST</strong>:
+  </p>
+  <ul>
+    <li>Backend stores <code>2025‑12‑12 16:30:00+00:00</code>.</li>
+    <li>API emits <code>"2025-12-12T16:30:00Z"</code>.</li>
+    <li>Browser parses UTC → converts to Central → shows <code>10:30 CST</code>.</li>
+  </ul>
+
+  <h3>Regression Test</h3>
+  <pre><code class="language-python">
+def test_timestamp_serialization_is_utc():
+    local = datetime(2025, 12, 12, 10, 30).astimezone()  # 10:30 CST
+    reading = LogExpReading(timestamp=local.astimezone(timezone.utc), ...)
+    data = reading.to_dict()
+    assert data["timestamp"].endswith("16:30:00Z")
+  </code></pre>
+</section>
+
+<section id="faq-timezone">
+  <h2>❓ FAQ: Why do my charts show times six hours off?</h2>
+
+  <h3>Symptom</h3>
+  <ul>
+    <li>JSON responses show timestamps like <code>"2025-12-12T10:53:42Z"</code>.</li>
+    <li>Charts display values six hours behind the expected wall‑clock (e.g. <code>04:53 CST</code> instead of <code>10:53 CST</code>).</li>
+  </ul>
+
+  <h3>Cause</h3>
+  <p>
+    The backend was stamping the system’s <strong>local Central time</strong> and then labeling it as UTC (<code>Z</code>).
+    This happened because <code>datetime.now(timezone.utc)</code> was used while the server clock was set to Central.
+    That call does not convert local time into UTC — it simply tags the local wall‑clock with a UTC tzinfo.
+  </p>
+
+  <h3>Fix</h3>
+  <ul>
+    <li>Always use <code>datetime.now().astimezone(timezone.utc)</code> when creating timestamps.</li>
+    <li>Ensure your model column is defined with <code>db.DateTime(timezone=True)</code> so tzinfo is preserved.</li>
+    <li>JSON serialization should always emit UTC with <code>Z</code>.</li>
+  </ul>
+
+  <h3>Verification</h3>
+  <p>
+    At <strong>10:30 CST</strong>:
+  </p>
+  <ul>
+    <li>Backend stores <code>2025‑12‑12 16:30:00+00:00</code>.</li>
+    <li>API emits <code>"2025-12-12T16:30:00Z"</code>.</li>
+    <li>Browser parses UTC → converts to Central → shows <code>10:30 CST</code>.</li>
+  </ul>
+
+  <h3>Correct Poller Code</h3>
+  <pre><code class="language-python">
+reading = LogExpReading(
+    timestamp=datetime.now().astimezone(timezone.utc),  # convert local → UTC
+    counts_per_second=parsed["counts_per_second"],
+    counts_per_minute=parsed["counts_per_minute"],
+    microsieverts_per_hour=parsed["microsieverts_per_hour"],
+    mode=parsed["mode"]
+)
+  </code></pre>
+</section>
+
+
 {% endblock %}
