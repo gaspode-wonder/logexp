@@ -1,4 +1,5 @@
 import threading, time
+from datetime import datetime, timezone
 from logexp.app.geiger import read_geiger, parse_geiger_line
 
 class GeigerPoller:
@@ -32,6 +33,7 @@ class GeigerPoller:
                     raw = read_geiger(self.port, self.baudrate)
                     parsed = parse_geiger_line(raw, threshold=self.threshold)
                     reading = LogExpReading(
+                        timestamp=datetime.now().astimezone(timezone.utc),  # convert local → UTC
                         counts_per_second=parsed["counts_per_second"],
                         counts_per_minute=parsed["counts_per_minute"],
                         microsieverts_per_hour=parsed["microsieverts_per_hour"],

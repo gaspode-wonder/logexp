@@ -12,7 +12,6 @@
     <p id="poller-result"></p>
   </div>
 
-  <!-- Chart container moved ABOVE the table -->
   <h3>Counts per Minute Trend</h3>
   <canvas id="readingsChart" width="600" height="300"></canvas>
 
@@ -31,7 +30,8 @@
       {% for r in readings %}
       <tr>
         <td>{{ r.id }}</td>
-        <td>{{ r.timestamp }}</td>
+        <!-- store raw UTC string from to_dict -->
+        <td data-timestamp="{{ r.timestamp }}"></td>
         <td>{{ r.counts_per_second }}</td>
         <td>{{ r.counts_per_minute }}</td>
         <td>{{ r.microsieverts_per_hour }}</td>
@@ -43,87 +43,82 @@
 
   <p><em>Last Refresh: <span id="last-refresh">Initial load</span></em></p>
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <script>
-   let chart;
+    let chart;
 
-   async function refreshReadings() {
-     const response = await fetch("{{ url_for('readings_api.readings_json') }}");
-     const data = await response.json();
+    function formatTimestamp(tsString) {
+      // Parse UTC string and display in browser local time
+      const ts = new Date(tsString);
+      return ts.toLocaleString("en-US", { hour12: false });
+    }
 
-     // Update table
-     const tbody = document.querySelector("#readings-table tbody");
-     tbody.innerHTML = "";
-     data.forEach(r => {
-       const ts = new Date(r.timestamp);
-       const formatted = ts.toLocaleString("en-US", {
-         timeZone: "America/Chicago",
-         hour12: false
-       });
+    // Format initial table timestamps on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll("#readings-table td[data-timestamp]").forEach(cell => {
+        cell.innerText = formatTimestamp(cell.dataset.timestamp);
+      });
+    });
 
-       const row = `<tr>
-         <td>${r.id}</td>
-         <td>${formatted}</td>
-         <td>${r.counts_per_second}</td>
-         <td>${r.counts_per_minute}</td>
-         <td>${r.microsieverts_per_hour}</td>
-         <td>${r.mode}</td>
-       </tr>`;
-       tbody.insertAdjacentHTML("beforeend", row);
-     });
+    async function refreshReadings() {
+      const response = await fetch("{{ url_for('readings_api.readings_json') }}");
+      const data = await response.json();
 
-     // Update chart
-     const labels = data.map(r =>
-       new Date(r.timestamp).toLocaleString("en-US", {
-         timeZone: "America/Chicago",
-         hour12: false
-       })
-     ).reverse();
-     const values = data.map(r => r.counts_per_minute).reverse();
+      // Update table
+      const tbody = document.querySelector("#readings-table tbody");
+      tbody.innerHTML = "";
+      data.forEach(r => {
+        const formatted = formatTimestamp(r.timestamp);
+        const row = `<tr>
+          <td>${r.id}</td>
+          <td>${formatted}</td>
+          <td>${r.counts_per_second}</td>
+          <td>${r.counts_per_minute}</td>
+          <td>${r.microsieverts_per_hour}</td>
+          <td>${r.mode}</td>
+        </tr>`;
+        tbody.insertAdjacentHTML("beforeend", row);
+      });
 
-     if (!chart) {
-       const ctx = document.getElementById("readingsChart").getContext("2d");
-       chart = new Chart(ctx, {
-         type: "line",
-         data: {
-           labels: labels,
-           datasets: [{
-             label: "Counts per Minute",
-             data: values,
-             borderColor: "blue",
-             backgroundColor: "rgba(0,0,255,0.1)",
-             fill: true,
-             tension: 0.2
-           }]
-         },
-         options: {
-           responsive: true,
-           scales: {
-             x: { title: { display: true, text: "Timestamp" }},
-             y: { title: { display: true, text: "CPM" }}
-           }
-         }
-       });
-     } else {
-       chart.data.labels = labels;
-       chart.data.datasets[0].data = values;
-       chart.update();
-     }
+      // Update chart
+      const labels = data.map(r => formatTimestamp(r.timestamp)).reverse();
+      const values = data.map(r => r.counts_per_minute).reverse();
 
-     // Update last refresh timestamp
-     const now = new Date();
-     document.getElementById("last-refresh").innerText = now.toLocaleString("en-US", {
-       timeZone: "America/Chicago",
-       hour12: false
-     });
-   }
+      if (!chart) {
+        const ctx = document.getElementById("readingsChart").getContext("2d");
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Counts per Minute",
+              data: values,
+              borderColor: "blue",
+              backgroundColor: "rgba(0,0,255,0.1)",
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { title: { display: true, text: "Timestamp" }},
+              y: { title: { display: true, text: "CPM" }}
+            }
+          }
+        });
+      } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = values;
+        chart.update();
+      }
 
-   // auto-refresh every 10 seconds
-   setInterval(refreshReadings, 10000);
+      // Update last refresh timestamp
+      const now = new Date();
+      document.getElementById("last-refresh").innerText = now.toLocaleString("en-US", { hour12: false });
+    }
 
-   // initial load
-   refreshReadings();
+    setInterval(refreshReadings, 10000);
+    refreshReadings();
   </script>
 {% endblock %}

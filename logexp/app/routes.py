@@ -1,5 +1,4 @@
 import os
-import pytz
 from flask import Blueprint, jsonify, request, render_template, current_app, redirect, url_for
 from logexp.app import db
 from logexp.app.models import LogExpReading
@@ -21,7 +20,13 @@ def readings_index():
     readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
     poller = current_app.poller
     poller_status = "running" if poller and poller._thread.is_alive() else "stopped"
-    return render_template("readings.html", readings=readings, poller_status=poller_status)
+    local_timezone = current_app.config["LOCAL_TIMEZONE"]  # <-- add this
+    return render_template(
+        "readings.html",
+        readings=readings,
+        poller_status=poller_status,
+        local_timezone=local_timezone  # <-- pass into template
+    )
 
 @bp_ui.get("/settings")
 def settings():
