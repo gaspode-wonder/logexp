@@ -26,11 +26,12 @@ def create_app(config_object=Config):
 
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
-        if hasattr(app, "poller") and app.poller:
-            try:
-                app.poller.stop()
-            except RuntimeError:
-                app.logger.debug("Poller stop called from within poller thread; skipping join.")
+        if app.config.get("TESTING", False):
+            if hasattr(app, "poller") and app.poller:
+                try:
+                    app.poller.stop()
+                except RuntimeError:
+                    app.logger.debug("Poller stop called from within poller thread; skipping join.")
 
     # error handlers
     @app.errorhandler(404)
