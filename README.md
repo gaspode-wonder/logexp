@@ -257,7 +257,80 @@ flask db downgrade
   - /docs → Docs page
 - about → About page (about.py)
   - /about → About page
+---
+### Timezone Handling
 
+LogExp normalizes all timestamps to **UTC** before storing and emitting them.
+
+- **Backend:**
+  - `LogExpReading.timestamp` is defined with `db.DateTime(timezone=True)`.
+  - Default uses `datetime.now().astimezone(timezone.utc)` to convert the system’s local clock (often Central) into true UTC.
+  - JSON serialization (`to_dict`) always emits ISO 8601 with `Z` suffix (e.g. `"2025-12-12T16:53:42Z"`).
+
+- **Frontend:**
+  - The browser parses UTC (`Z`) and converts to the user’s local timezone automatically.
+  - For consistent Central display, use:
+    ```js
+    new Date(tsString).toLocaleString("en-US", { timeZone: "America/Chicago" });
+    ```
+
+**Important:** Do not stamp rows with local timezones. Always store UTC in the database and emit UTC in the API.
+
+📘 Developer Docs 
+
+## Timestamp and Timezone Policy
+
+LogExp enforces UTC for all readings:
+
+- **Creation:**
+  Readings are stamped with `datetime.now().astimezone(timezone.utc)` to ensure correct conversion from the system’s local clock (Central) into UTC.
+
+- **Database:**
+  `db.DateTime(timezone=True)` preserves tzinfo. This prevents naive datetimes from being mislabeled as UTC.
+
+- **Serialization:**
+  `to_dict()` emits ISO 8601 strings with `Z` (UTC). Example:
+  ```json
+  {
+    "id": 42,
+    "timestamp": "2025-12-12T16:53:42Z",
+    "counts_per_minute": 123
+  }
+
+- Frontend:
+The browser converts UTC into local time. If you want to force Central display regardless of client location:
+```javascript
+new Date(tsString).toLocaleString("en-US", { timeZone: "America/Chicago" });
+```
+
+Why UTC?
+
+Storing UTC avoids ambiguity and ensures consistent behavior across servers, clients, and collaborators in different time zones.
+
+---
+
+## 🧪 Regression Test (pytest style)
+
+Add this to your test suite to catch any future regressions:
+
+```python
+from datetime import datetime, timezone
+from logexp.app.models import LogExpReading
+
+def test_timestamp_serialization_is_utc():
+    # Simulate a reading created at local Central time
+    local = datetime(2025, 12, 12, 10, 30).astimezone()  # 10:30 CST
+    reading = LogExpReading(
+        timestamp=local.astimezone(timezone.utc),
+        counts_per_second=1,
+        counts_per_minute=60,
+        microsieverts_per_hour=0.1,
+        mode="test"
+    )
+    data = reading.to_dict()
+    # JSON should show UTC (16:30Z)
+    assert data["timestamp"].endswith("16:30:00Z")
+```
 ---
 ## 🧰 Troubleshooting
 - Stale Alembic revision:
