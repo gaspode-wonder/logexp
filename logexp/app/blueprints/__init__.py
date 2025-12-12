@@ -1,22 +1,23 @@
 from importlib import import_module
+from flask import Blueprint
 
 def register_blueprints(app):
     """
-    Dynamically import and register all blueprints.
+    Import and register all blueprints.
     Each blueprint file must expose one or more Blueprint instances.
     """
     blueprint_modules = [
-        "logexp.app.routes",       # main UI/navigation
-        "logexp.app.readings",     # readings UI + API
-        "logexp.app.diagnostics",  # diagnostics endpoints
-        "logexp.app.docs",         # docs page
-        "logexp.app.about",        # about page
+        "logexp.app.routes",
+        "logexp.app.readings",
+        "logexp.app.diagnostics",
+        "logexp.app.docs",
+        "logexp.app.about",
     ]
 
     for module_path in blueprint_modules:
         module = import_module(module_path)
-        # register all Blueprint objects defined in the module
+        # Only register attributes that are actually Flask Blueprints
         for attr in dir(module):
             obj = getattr(module, attr)
-            if hasattr(obj, "register") and getattr(obj, "name", None):
+            if isinstance(obj, Blueprint):
                 app.register_blueprint(obj)

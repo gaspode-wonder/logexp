@@ -60,7 +60,7 @@
     data.forEach(r => {
       const row = `<tr>
         <td>${r.id}</td>
-        <td>${r.timestamp}</td>
+        <td>${r.timestamp.strftime("%d %b %Y %H:%M:%S") }</td>
         <td>${r.counts_per_second}</td>
         <td>${r.counts_per_minute}</td>
         <td>${r.microsieverts_per_hour}</td>

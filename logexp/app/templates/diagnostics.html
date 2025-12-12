@@ -29,21 +29,21 @@
   }
 
   async function startPoller() {
-    const response = await fetch("{{ url_for('routes.poller_start') }}", {method: "POST"});
+    const response = await fetch("{{ url_for('routes_api.poller_start') }}", {method: "POST"});
     const data = await response.json();
     updatePollerStatus(data.status);
     document.getElementById("poller-result").innerText = "Poller: " + data.status;
   }
 
   async function stopPoller() {
-    const response = await fetch("{{ url_for('routes.poller_stop') }}", {method: "POST"});
+    const response = await fetch("{{ url_for('routes_api.poller_stop') }}", {method: "POST"});
     const data = await response.json();
     updatePollerStatus(data.status);
     document.getElementById("poller-result").innerText = "Poller: " + data.status;
   }
 
   async function checkPollerStatus() {
-    const response = await fetch("{{ url_for('routes.poller_status') }}");
+    const response = await fetch("{{ url_for('routes_api.poller_status') }}");
     const data = await response.json();
     updatePollerStatus(data.status);
   }

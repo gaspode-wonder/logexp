@@ -8,7 +8,7 @@
 <body>
   <h1>Settings</h1>
 
-  <form method="POST" action="{{ url_for('readings.update_settings') }}">
+  <form method="POST" action="{{ url_for('readings_ui.update_settings') }}">
     <label for="port">Select Geiger Port:</label>
     <select name="port" id="port">
       {% for port in ports %}

@@ -53,3 +53,13 @@ button:hover {
   margin-top: 8px;
   font-style: italic;
 }
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    text-align: center;   /* center horizontally */
+    vertical-align: middle; /* center vertically if needed */
+    padding: 4px;
+  }
