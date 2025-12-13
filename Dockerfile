@@ -1,6 +1,6 @@
 FROM python:3.10 AS base
 
-COPY  . /opt/logexp/
+COPY . /opt/logexp/
 
 WORKDIR /opt/logexp
 
