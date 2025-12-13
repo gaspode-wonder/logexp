@@ -4,6 +4,11 @@ from logexp.app import db
 from logexp.app.models import LogExpReading
 from logexp.app.schemas import ReadingCreate, ReadingResponse
 from logexp.app.geiger import read_geiger, list_serial_ports, try_port
+from datetime import datetime, timedelta
+import matplotlib
+matplotlib.use("Agg")   # must be set before importing pyplot
+import matplotlib.pyplot as plt
+import os
 
 # ---------------- UI BLUEPRINT ----------------
 bp_ui = Blueprint("routes_ui", __name__)
@@ -147,6 +152,8 @@ def info_about():
 # --- Diagnostics Blueprint ---
 bp_diagnostics = Blueprint("diagnostics", __name__, url_prefix="/diagnostics")
 
+
+
 @bp_diagnostics.route("/")
 def diagnostics_index():
     poller = getattr(current_app, "poller", None)
@@ -157,9 +164,75 @@ def diagnostics_index():
 def diagnostics_test():
     return jsonify({"status": "ok"})
 
+# --- Analytics Blueprint ---
+bp_analytics = Blueprint("analytics", __name__, url_prefix="/analytics")
+from datetime import datetime, timedelta
+
+@bp_analytics.route("/", methods=["GET"])
+def analytics_index():
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    metric = request.args.get("metric", "cpm")
+
+    query = LogExpReading.query
+
+    if start_date:
+        try:
+            query = query.filter(LogExpReading.timestamp >= datetime.fromisoformat(start_date))
+        except ValueError:
+            current_app.logger.warning(f"Invalid start_date: {start_date}")
+
+    if end_date:
+        try:
+            query = query.filter(LogExpReading.timestamp <= datetime.fromisoformat(end_date))
+        except ValueError:
+            current_app.logger.warning(f"Invalid end_date: {end_date}")
+
+    readings = query.order_by(LogExpReading.timestamp).all()
+    # chart generation logic unchanged...
+
+
+    chart_url = None
+    if readings:
+        try:
+            timestamps = [r.timestamp for r in readings]
+
+            if metric == "cps":
+                values = [r.counts_per_second for r in readings]
+                ylabel = "Counts per Second (CPS)"
+            elif metric == "usvh":
+                values = [r.microsieverts_per_hour for r in readings]
+                ylabel = "µSv/h"
+            else:
+                values = [r.counts_per_minute for r in readings]
+                ylabel = "Counts per Minute (CPM)"
+
+            plt.figure(figsize=(8,4))
+            plt.plot(timestamps, values, marker="o", linestyle="-", color="blue")
+            plt.title(f"{ylabel} Over Time (Last 24h)")
+            plt.xlabel("Timestamp")
+            plt.ylabel(ylabel)
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+
+            static_path = os.path.join(current_app.root_path, "static", "analytics.png")
+            plt.savefig(static_path)
+            plt.close()
+
+            chart_url = "/static/analytics.png"
+
+        except Exception as e:
+            current_app.logger.error(f"Chart generation failed: {e}")
+            chart_url = None
+
+    return render_template("analytics.html", readings=readings, chart_url=chart_url)
+
+
+
 # ---------------- REGISTER ALL ----------------
 def register_blueprints(app):
     app.register_blueprint(bp_ui)
     app.register_blueprint(bp_api)
     app.register_blueprint(bp_info)        # combined docs + about
     app.register_blueprint(bp_diagnostics)
+    app.register_blueprint(bp_analytics)

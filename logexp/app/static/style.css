@@ -11,6 +11,13 @@
   overflow-y: auto;
   z-index: 1000;
 }
+
+.sidebar-divider {
+  border: 0;
+  border-top: 1px solid #ccc;
+  margin: 1rem 0;
+}
+
 .sidebar-heading {
   font-size: 0.85rem;
   font-weight: bold;

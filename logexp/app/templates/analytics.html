@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - LogExp{% endblock %}
+
+{% block content %}
+  <h1>Analytics Dashboard</h1>
+
+  <form method="GET" action="{{ url_for('analytics.analytics_index') }}">
+  <label for="start_date">Start:</label>
+  <input type="datetime-local" id="start_date" name="start_date">
+
+  <label for="end_date">End:</label>
+  <input type="datetime-local" id="end_date" name="end_date">
+
+  <label for="metric">Metric:</label>
+  <select id="metric" name="metric">
+    <option value="cps">Counts per Second (CPS)</option>
+    <option value="cpm" selected>Counts per Minute (CPM)</option>
+    <option value="usvh">µSv/h</option>
+  </select>
+
+  <button type="submit">Run Query</button>
+</form>
+
+
+  {% if chart_url %}
+    <h2>Visualization</h2>
+    <img src="{{ chart_url }}" alt="Analytics Chart">
+  {% endif %}
+
+  {% if readings %}
+    <h2>Results</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>CPS</th>
+          <th>CPM</th>
+          <th>µSv/h</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in readings %}
+        <tr>
+          <td>{{ r.timestamp }}</td>
+          <td>{{ r.counts_per_second }}</td>
+          <td>{{ r.counts_per_minute }}</td>
+          <td>{{ r.microsieverts_per_hour }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}
