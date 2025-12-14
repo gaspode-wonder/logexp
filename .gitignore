@@ -6,3 +6,4 @@ instance/
 .env
 .DS_Store
 .vscode/
+analytics.png
