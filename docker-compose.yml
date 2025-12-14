@@ -1,0 +1,32 @@
+version: '3'
+services:
+  logexp-web:
+    image: logexp-img
+    networks:
+      - log-net
+    build: ./
+    depends_on:
+      - logexp-db
+    ports:
+      - "7000:5000"
+
+  logexp-db:
+    image: postgres
+    container_name: psql
+    networks:
+      - log-net
+    environment:
+      POSTGRES_DB: logexp_dev
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - db-data:/var/lib/postgresql/
+    restart: unless-stopped
+
+networks:
+  log-net:
+    driver: bridge
+
+volumes:
+  db-data:
+
