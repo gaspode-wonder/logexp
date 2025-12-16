@@ -5,29 +5,45 @@
 {% block content %}
   <h1>Analytics Dashboard</h1>
 
+  <!-- Quick Range Buttons -->
+  <div class="quick-ranges">
+    <form method="GET" action="{{ url_for('analytics.analytics_index') }}">
+      <input type="hidden" name="metric" value="{{ metric }}">
+      <button type="submit" name="range" value="1h">Last 1h</button>
+      <button type="submit" name="range" value="24h">Last 24h</button>
+      <button type="submit" name="range" value="7d">Last 7d</button>
+    </form>
+  </div>
+
+  <!-- Custom Range Form -->
   <form method="GET" action="{{ url_for('analytics.analytics_index') }}">
-  <label for="start_date">Start:</label>
-  <input type="datetime-local" id="start_date" name="start_date">
+    <label for="start_date">Start:</label>
+    <input type="datetime-local" id="start_date" name="start_date"
+           value="{{ start_date|default('', true) }}">
 
-  <label for="end_date">End:</label>
-  <input type="datetime-local" id="end_date" name="end_date">
+    <label for="end_date">End:</label>
+    <input type="datetime-local" id="end_date" name="end_date"
+           value="{{ end_date|default('', true) }}">
 
-  <label for="metric">Metric:</label>
-  <select id="metric" name="metric">
-    <option value="cps">Counts per Second (CPS)</option>
-    <option value="cpm" selected>Counts per Minute (CPM)</option>
-    <option value="usvh">µSv/h</option>
-  </select>
+    <label for="metric">Metric:</label>
+    <select id="metric" name="metric">
+      <option value="cps" {% if metric == 'cps' %}selected{% endif %}>Counts per Second (CPS)</option>
+      <option value="cpm" {% if metric == 'cpm' %}selected{% endif %}>Counts per Minute (CPM)</option>
+      <option value="usvh" {% if metric == 'usvh' %}selected{% endif %}>µSv/h</option>
+    </select>
 
-  <button type="submit">Run Query</button>
-</form>
+    <button type="submit">Run Query</button>
+  </form>
 
-
+  <!-- Chart -->
   {% if chart_url %}
     <h2>Visualization</h2>
     <img src="{{ chart_url }}" alt="Analytics Chart">
+  {% else %}
+    <p>No chart available for the selected range.</p>
   {% endif %}
 
+  <!-- Results Table -->
   {% if readings %}
     <h2>Results</h2>
     <table>
@@ -50,5 +66,7 @@
         {% endfor %}
       </tbody>
     </table>
+  {% else %}
+    <p>No readings found for the selected range.</p>
   {% endif %}
 {% endblock %}
