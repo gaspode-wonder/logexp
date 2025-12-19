@@ -8,3 +8,5 @@ pyserial==3.5
 flask_migrate==4.1.0
 pydantic==2.12.5
 matplotlib==3.10.8
+gunicorn==21.2.0
+
