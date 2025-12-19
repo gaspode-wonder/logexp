@@ -69,4 +69,10 @@
   {% else %}
     <p>No readings found for the selected range.</p>
   {% endif %}
+<form method="GET" action="{{ url_for('analytics.analytics_export') }}">
+  <input type="hidden" name="start_date" value="{{ start_date }}">
+  <input type="hidden" name="end_date" value="{{ end_date }}">
+  <input type="hidden" name="metric" value="{{ metric }}">
+  <button type="submit">Download CSV</button>
+</form>
 {% endblock %}

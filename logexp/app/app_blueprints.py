@@ -1,14 +1,20 @@
 # logexp/app/app_blueprints.py
-from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for
+import os
+import csv
+import io
+import matplotlib
+matplotlib.use("Agg")   # must be set before importing pyplot
+import matplotlib.pyplot as plt
+
+from datetime import datetime, timedelta
+from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for, Response
+
 from logexp.app import db
 from logexp.app.models import LogExpReading
 from logexp.app.schemas import ReadingCreate, ReadingResponse
 from logexp.app.geiger import read_geiger, list_serial_ports, try_port
-from datetime import datetime, timedelta
-import matplotlib
-matplotlib.use("Agg")   # must be set before importing pyplot
-import matplotlib.pyplot as plt
-import os
+
+
 
 # ---------------- UI BLUEPRINT ----------------
 bp_ui = Blueprint("routes_ui", __name__)
@@ -304,6 +310,62 @@ def analytics_index():
 
     return render_template("analytics.html", readings=readings, chart_url=chart_url)
 
+# ---------------- CSV BLUEPRINT ----------------
+
+@bp_analytics.route("/export", methods=["GET"])
+def analytics_export():
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    metric = request.args.get("metric", "cpm")
+    quick_range = request.args.get("range")
+
+    # Default: last 24h if no params
+    if not start_date and not end_date and not quick_range:
+        default_start = datetime.now() - timedelta(hours=24)
+        start_date = default_start.isoformat(timespec="minutes")
+        end_date = datetime.now().isoformat(timespec="minutes")
+
+    # Handle quick ranges
+    if quick_range:
+        now = datetime.now()
+        if quick_range == "1h":
+            start_date = (now - timedelta(hours=1)).isoformat(timespec="minutes")
+        elif quick_range == "24h":
+            start_date = (now - timedelta(hours=24)).isoformat(timespec="minutes")
+        elif quick_range == "7d":
+            start_date = (now - timedelta(days=7)).isoformat(timespec="minutes")
+        end_date = now.isoformat(timespec="minutes")
+
+    # Query DB
+    query = LogExpReading.query
+    if start_date:
+        query = query.filter(LogExpReading.timestamp >= datetime.fromisoformat(start_date))
+    if end_date:
+        query = query.filter(LogExpReading.timestamp <= datetime.fromisoformat(end_date))
+
+    readings = query.order_by(LogExpReading.timestamp).all()
+
+    # Build CSV
+    def generate():
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        writer.writerow(["Timestamp", "CPS", "CPM", "µSv/h"])
+        for r in readings:
+            writer.writerow([
+                r.timestamp,
+                r.counts_per_second,
+                r.counts_per_minute,
+                r.microsieverts_per_hour
+            ])
+
+        yield output.getvalue()
+
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=analytics.csv"}
+    )
 
 
 # ---------------- REGISTER ALL ----------------

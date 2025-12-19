@@ -3,6 +3,20 @@
 {% block content %}
   <h2>Recent Readings</h2>
 
+<p>
+  <a href="{{ url_for('analytics.analytics_export') }}" class="btn btn-primary">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+         class="bi bi-filetype-csv" viewBox="0 0 16 16" style="margin-right: 4px;">
+      <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5z"/>
+      <text x="4" y="12" font-size="6" font-family="monospace" fill="white">CSV</text>
+    </svg>
+    Download CSV
+  </a>
+</p>
+
+
+
+
   <p><strong>Poller Status:</strong> <span id="poller-status">{{ poller_status }}</span></p>
 
   <div id="poller-controls">

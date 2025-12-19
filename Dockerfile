@@ -5,7 +5,7 @@ COPY . /opt/logexp/
 WORKDIR /opt/logexp
 
 RUN pip install -r docker-requirements.txt
-ENV DATABASE_URL='postgresql://user:password@psql/logexp_dev'
+ENV DATABASE_URL='postgresql://jebbaugh@localhost:5432/Experiments'
 RUN flask db init \
     && \
     flask db migrate -m "init" \
