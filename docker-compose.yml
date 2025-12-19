@@ -1,32 +1,46 @@
-version: '3'
+version: "3.9"
+
 services:
-  logexp-web:
-    image: logexp-img
-    networks:
-      - log-net
-    build: ./
-    depends_on:
-      - logexp-db
-    ports:
-      - "7000:5000"
-
-  logexp-db:
-    image: postgres
-    container_name: psql
-    networks:
-      - log-net
+  db:
+    image: postgres:15
+    container_name: logexp_db
     environment:
-      POSTGRES_DB: logexp_dev
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: logexp
+      POSTGRES_PASSWORD: logexp
+      POSTGRES_DB: logexp
     volumes:
-      - db-data:/var/lib/postgresql/
-    restart: unless-stopped
+      - logexp_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logexp -d logexp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-networks:
-  log-net:
-    driver: bridge
+  logexp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: logexp_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Point to Postgres service by name, not localhost
+      DATABASE_URL: "postgresql://logexp:logexp@db:5432/logexp"
+      SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@db:5432/logexp"
+      LOCAL_TIMEZONE: "America/Chicago"
+      START_POLLER: "False"
+      FLASK_APP: "logexp.app"
+      FLASK_ENV: "production"
+    ports:
+      - "5000:5000"
+    healthcheck:
+      # Hit your existing health endpoint
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s 
 
 volumes:
-  db-data:
-
+  logexp_db_data:

@@ -3,6 +3,7 @@ from logexp.app.config import Config
 from logexp.app.poller import GeigerPoller
 from logexp.app.extensions import db, migrate
 from logexp.app.app_blueprints import register_blueprints
+import os
 
 
 def create_app(config_object: type = Config) -> Flask:
@@ -20,10 +21,31 @@ def create_app(config_object: type = Config) -> Flask:
     # Register all blueprints
     register_blueprints(app)
 
-    # Attach poller only if allowed
-    if app.config.get("START_POLLER", True):
+    # ----------------------------------------------------------------------
+    # POLLER-SAFE LOGIC FOR DOCKER + GUNICORN
+    #
+    # Gunicorn uses multiple workers unless configured otherwise.
+    # We enforce workers=1 in gunicorn.conf.py, but we ALSO guard here
+    # so the poller never starts accidentally in:
+    #   - Docker builds
+    #   - Gunicorn preload
+    #   - Multiple workers
+    #   - Environments where START_POLLER=False
+    # ----------------------------------------------------------------------
+
+    start_poller = str(app.config.get("START_POLLER", True)).lower() == "true"
+
+    # Detect if running under Gunicorn
+    running_under_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
+
+    if start_poller and not running_under_gunicorn:
+        app.logger.info("Starting GeigerPoller (safe mode).")
         app.poller = GeigerPoller(app)
         app.poller.start()
+    else:
+        app.logger.info("Poller disabled (START_POLLER=False or running under Gunicorn).")
+
+    # ----------------------------------------------------------------------
 
     # --- Error handlers ---
     @app.errorhandler(404)
@@ -71,12 +93,20 @@ def create_app(config_object: type = Config) -> Flask:
         else:
             print("Poller not running.")
 
-    @app.cli.command("seed")
-    def seed():
-        """Seed the database with sample data (manual only)."""
+    # ----------------------------------------------------------------------
+    # DOCKER-FRIENDLY SEED COMMAND
+    #
+    # This is the command your entrypoint.sh will call:
+    #     flask seed-data
+    #
+    # It is idempotent and safe to run on every container start.
+    # ----------------------------------------------------------------------
+    @app.cli.command("seed-data")
+    def seed_data():
+        """Seed the database with sample data (idempotent)."""
         from logexp.seeds import seed_data
-        seed_data.run(app)  # pass the current app explicitly
-        print("Database seeded.")
+        seed_data.run(app)
+        print("Database seeded (idempotent).")
 
     @app.cli.command("clear-db")
     def clear_db():
@@ -90,6 +120,5 @@ def create_app(config_object: type = Config) -> Flask:
     def inject_globals():
         from datetime import datetime
         return {"current_year": datetime.now().year}
-
 
     return app
