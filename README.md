@@ -1,199 +1,250 @@
-# LogExp
+# LogExp — Radiation Logging & Exploration Platform
 
-![Python](https://img.shields.io/badge/python-3.11-blue.svg)
-![Flask](https://img.shields.io/badge/flask-2.3-lightgrey.svg)
-![Postgres](https://img.shields.io/badge/postgres-15-blue.svg)
-![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
-![License](https://img.shields.io/badge/license-MIT-yellow.svg)
-
-# LogExp  
-A **Flask + Postgres** application for ingesting, storing, and visualizing Geiger counter readings.  
-Includes a background poller, REST API, UI dashboard, and hardware diagnostics.
+LogExp is a radiation logging and visualization platform that integrates a MightyOhm Geiger Counter with a Flask backend, Postgres storage, and a web UI. It supports real‑time polling, analytics, CSV export, diagnostics, and a production‑ready Docker deployment using Gunicorn.
 
 ---
 
-## 🚀 Features
-
-- **USB‑serial ingestion** from supported Geiger counters  
-- **Background poller thread** with API + CLI control  
-- **REST API** for readings, diagnostics, and poller management  
-- **UI dashboard** with charts and tables  
-- **Postgres-backed storage** with timezone‑correct UTC timestamps  
-- **Flask‑Migrate** for schema evolution  
-- **Developer utilities** for seeding, clearing, and resetting the database  
-
----
-
-## 📦 Project Structure
-
-```
-logexp/
-├── wsgi.py
-├── app/
-│   ├── __init__.py          # create_app(), poller lifecycle, CLI
-│   ├── config.py            # environment + DB config
-│   ├── extensions.py        # db, migrate
-│   ├── poller.py            # GeigerPoller thread
-│   ├── blueprints/
-│   │   ├── routes_ui.py
-│   │   ├── readings_api.py
-│   │   ├── diagnostics_api.py
-│   │   ├── poller_api.py
-│   │   └── __init__.py
-│   └── templates/
-│       ├── base.html
-│       ├── index.html
-│       ├── readings.html
-│       ├── docs.html
-│       ├── about.html
-│       └── errors/
-```
-
----
-
-## ⚙️ Setup
+## Quickstart (Development Mode)
 
 ### 1. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 2. Configure environment
+
 ```bash
-export DATABASE_URL="postgresql://loginname@localhost:5432/Experiments"
-export LOCAL_TIMEZONE="America/Chicago"
-export START_POLLER=True
+export SQLALCHEMY_DATABASE_URI=postgresql://logexp:logexp@localhost:5432/logexp
 ```
 
 ### 3. Initialize the database
+
 ```bash
 flask db upgrade
 ```
 
-### 4. Run the app
+### 4. Run the development server
+
 ```bash
 flask run
 ```
 
 ---
 
-## 📡 API Endpoints
+## Production Deployment (Docker + Gunicorn)
+
+LogExp ships with a production‑grade Docker setup:
+
+- Multi‑stage Dockerfile (slim runtime)
+- Gunicorn application server (1 worker, thread‑safe for poller)
+- Automatic Alembic migrations on startup
+- Idempotent database seeding (`flask seed-data`)
+- Poller disabled by default inside Docker (`START_POLLER=False`)
+- Healthchecks for both Postgres and the Flask app
+
+### Start the full stack
+
+```bash
+docker compose up --build
+```
+
+### Stop the stack
+
+```bash
+docker compose down
+```
+
+### Rebuild without cache
+
+```bash
+docker compose build --no-cache
+```
+
+### View logs
+
+```bash
+docker compose logs -f
+```
+
+---
+
+## Environment Variables
+
+| Variable | Purpose | Default |
+|---------|---------|---------|
+| `SQLALCHEMY_DATABASE_URI` | Database connection string | Required |
+| `START_POLLER` | Enable hardware poller | `False` in Docker |
+| `FLASK_ENV` | Flask environment | `production` |
+| `LOCAL_TIMEZONE` | UI timezone | `America/Chicago` |
+
+---
+
+## API Endpoints
 
 ### Readings
-- `GET /api/readings.json` — latest readings as JSON
+
+- `/readings` — Web UI table and chart  
+- `/api/readings.json` — JSON readings  
+- `/api/readings.csv` — CSV export  
 
 ### Poller Control
-- `GET /api/poller/status`
-- `POST /api/poller/start`
-- `POST /api/poller/stop`
+
+- `/api/poller/status`  
+- `/api/poller/start`  
+- `/api/poller/stop`  
 
 ### Diagnostics
-- `GET /api/geiger/test`
+
+- `/api/geiger/test`  
+- `/api/health` — Application healthcheck  
 
 ---
-## 📄 CSV Export Endpoint
 
-LogExp provides a CSV export endpoint for external analysis, spreadsheets, and debugging.
+## Poller Lifecycle
 
-### **GET /api/readings.csv**
+The Geiger poller runs as a background thread and reads from a USB‑serial device.
 
-Returns all stored readings in CSV format with the following columns:
+### In development
 
+Poller starts automatically.
+
+### In Docker
+
+Poller is disabled unless explicitly enabled:
+
+```yaml
+environment:
+  START_POLLER: "True"
 ```
-id,timestamp,counts_per_second,counts_per_minute,microsieverts_per_hour,mode
-```
 
-Example usage:
+### Manual control (CLI)
 
 ```bash
-curl -o readings.csv http://localhost:5000/api/readings.csv
-```
-
-This endpoint is useful for:
-
-- importing data into Excel or Google Sheets  
-- offline analysis  
-- charting in external tools  
-- debugging ingestion or timestamp issues  
-
----
-
-## 🖥️ UI Pages
-
-- `/` — Home  
-- `/readings` — Table + chart  
-- `/docs` — Documentation  
-- `/about` — About  
-
----
-
-## 🧰 CLI Commands
-
-```bash
-flask geiger-start     # Start poller
-flask geiger-stop      # Stop poller
-flask seed             # Seed DB with sample data
-flask clear-db         # Drop + recreate DB
+flask geiger-start
+flask geiger-stop
 ```
 
 ---
 
-## 🕒 Timestamp Policy
+## Database Migrations and Seeding
 
-- All timestamps are stored in **UTC**  
-- API emits ISO 8601 with `Z` suffix  
-- UI converts to local time (default: America/Chicago)  
-
-This ensures consistent behavior across systems and avoids timezone drift.
-
----
-
-# 🗄️ Database Reset & Migration Guide
-
-Use this when upgrading Postgres or resetting your environment.
-
----
-
-## ✅ 1. Verify Flask Is Using the Correct `DATABASE_URL`
+### Run migrations manually
 
 ```bash
-echo $DATABASE_URL
-flask shell -c "import os; print(os.getenv('DATABASE_URL'))"
-```
-
----
-
-## ✅ 2. Recreate the Database Cleanly
-
-```bash
-dropdb -U loginname Experiments
-createdb -U loginname Experiments
-```
-
----
-
-## ✅ 3. Reset Migrations (Optional)
-
-```bash
-rm -rf migrations/
-flask db init
-flask db migrate -m "initial schema for Experiments"
 flask db upgrade
 ```
 
----
+### Seed the database (idempotent)
 
-## 🧪 Testing
-
-Example regression test for timestamp correctness:
-
-```python
-def test_timestamp_is_utc():
-    data = client.get("/api/readings.json").json[0]
-    assert data["timestamp"].endswith("Z")
+```bash
+flask seed-data
 ```
 
 ---
 
-## 📜 License
+## Project Structure
+
+```
+logexp/
+|-- app/
+|   |-- app_blueprints/
+|   |-- templates/
+|   |-- static/
+|   |-- poller.py
+|   |-- config.py
+|   |-- extensions.py
+|   |-- models.py
+|   |-- __init__.py
+|
+|-- seeds/
+|   |-- seed_data.py
+|
+|-- Dockerfile
+|-- docker-compose.yml
+|-- gunicorn.conf.py
+|-- README.md
+```
+
+
+---
+
+## System Overview (ASCII)
+
+```text
+   ┌──────────────────────────────┐
+   │   MightyOhm Geiger Counter   │
+   └───────────────┬──────────────┘
+                   │ USB-Serial
+                   ▼
+        ┌───────────────────────────┐
+        │     LogExp Poller Thread  │
+        │     (optional in Docker)  │
+        └───────────────┬───────────┘
+                        │
+                        ▼
+        ┌───────────────────────────┐
+        │      Postgres Database    │
+        └───────────────┬───────────┘
+                        │
+                        ▼
+        ┌───────────────────────────┐
+        │   Flask API / Gunicorn    │
+        └───────────────┬───────────┘
+                        │
+                        ▼
+        ┌───────────────────────────┐
+        │      Web UI / Clients     │
+        └───────────────────────────┘
+```
+
+---
+
+## System Overview (Mermaid)
+
+```mermaid
+flowchart TD
+
+    A[MightyOhm Geiger Counter] -->|USB-Serial| B[LogExp Poller Thread]
+
+    B --> C[(Postgres Database)]
+    C --> D[Flask API / Gunicorn]
+    D --> E[Web UI / Clients]
+```
+
+---
+
+## Development vs Production Modes
+
+| Mode | Server | Poller | Database | Notes |
+|------|--------|--------|----------|-------|
+| Dev | Flask dev server | Enabled | Local Postgres | Hot reload |
+| Prod | Gunicorn (Docker) | Disabled by default | Docker Postgres | Auto‑migrations and seeding |
+
+---
+
+## Diagnostics
+
+### Test hardware connection
+
+```bash
+curl http://localhost:5000/api/geiger/test
+```
+
+### Check poller status
+
+```bash
+curl http://localhost:5000/api/poller/status
+```
+
+### Check application health
+
+```bash
+curl http://localhost:5000/api/health
+```
+
+---
+
+## License
+
 MIT License

@@ -4,60 +4,91 @@
 
 {% block content %}
   <h1>Documentation Index</h1>
-  <p>Welcome to the LogExp documentation hub. Choose a topic below:</p>
+  <p>Welcome to the LogExp documentation hub. This guide covers setup, architecture, endpoints, and hardware integration.</p>
 
   <h2>Quickstart</h2>
   <ul>
-    <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
-    <li>Configure environment: <code>export DATABASE_URL=...</code></li>
-    <li>Initialize DB: <code>flask db upgrade</code></li>
-    <li>Run app: <code>flask run</code></li>
+    <li>Clone the repository and install dependencies:
+      <pre><code>pip install -r requirements.txt</code></pre>
+    </li>
+
+    <li>Configure your environment:
+      <pre><code>export SQLALCHEMY_DATABASE_URI=postgresql://user:pass@localhost:5432/logexp</code></pre>
+    </li>
+
+    <li>Initialize the database:
+      <pre><code>flask db upgrade</code></pre>
+    </li>
+
+    <li>Run the development server:
+      <pre><code>flask run</code></pre>
+    </li>
+
+    <li>Run the production Docker stack:
+      <pre><code>docker compose up --build</code></pre>
+    </li>
+  </ul>
+
+  <h2>Docker Deployment</h2>
+  <p>LogExp ships with a production‑ready Docker configuration:</p>
+  <ul>
+    <li>Gunicorn application server (1 worker, thread‑safe for poller)</li>
+    <li>Automatic Alembic migrations on startup</li>
+    <li>Idempotent database seeding via <code>flask seed-data</code></li>
+    <li>Poller disabled by default inside containers (<code>START_POLLER=False</code>)</li>
   </ul>
 
   <h2>Endpoints</h2>
   <ul>
-    <li><code>/readings</code> → Web UI page showing readings table and chart</li>
+    <li><code>/readings</code> → Web UI table + chart</li>
     <li><code>/api/readings.json</code> → JSON of stored readings</li>
-    <li><code>/api/poller/status</code> → Poller health check</li>
-    <li><code>/api/poller/start</code> → Start the poller</li>
-    <li><code>/api/poller/stop</code> → Stop the poller</li>
-    <li><code>/api/geiger/test</code> → Diagnostic endpoint</li>
+    <li><code>/api/readings.csv</code> → CSV export (UI + API)</li>
+    <li><code>/api/poller/status</code> → Poller health</li>
+    <li><code>/api/poller/start</code> → Start poller (host mode only)</li>
+    <li><code>/api/poller/stop</code> → Stop poller</li>
+    <li><code>/api/geiger/test</code> → Hardware diagnostic</li>
+    <li><code>/api/health</code> → Application healthcheck</li>
   </ul>
 
   <h2>Poller Lifecycle</h2>
-  <p>The Geiger poller starts automatically when the app launches and continues running until explicitly stopped. 
-     Use the API endpoints or CLI commands (<code>flask geiger-stop</code>, <code>flask geiger-start</code>) to control it.</p>
+  <p>
+    The Geiger poller runs as a background thread and reads from a USB‑serial device.
+    In Docker, the poller is disabled by default to avoid missing hardware devices.
+    Enable it explicitly with:
+  </p>
+  <pre><code>START_POLLER=True</code></pre>
+  <p>
+    Control the poller via API or CLI:
+  </p>
+  <pre><code>flask geiger-start
+flask geiger-stop</code></pre>
 
   <h2>Timezone Handling</h2>
-  <p>Readings are stored in UTC in the database. The Web UI renders timestamps in 
-     <code>America/Chicago</code> timezone by default, using a 24‑hour clock format.</p>
+  <p>
+    All readings are stored in UTC. The UI renders timestamps in
+    <code>America/Chicago</code> by default using a 24‑hour clock.
+  </p>
 
   <h2>Troubleshooting</h2>
-  <p>See <code>README.md</code> for detailed troubleshooting steps including Alembic migrations and poller lifecycle management.</p>
-
-  <h2>FAQ</h2>
-  <dl>
-    <dt>❓ Why do I see “cannot join current thread” when stopping the poller?</dt>
-    <dd>This happens if the teardown is called inside the poller thread. It’s safe to ignore; LogExp skips joining in that case.</dd>
-
-    <dt>❓ Alembic migration errors: “stale revision” or “no such table alembic_version”</dt>
-    <dd>Clear the <code>alembic_version</code> table and re‑init migrations. See README for reset commands.</dd>
-
-    <dt>❓ Timezone mismatch in readings</dt>
-    <dd>Ensure <code>LOCAL_TIMEZONE</code> is set correctly in your environment. Defaults to <code>America/Chicago</code> with 24‑hour clock display.</dd>
-
-    <dt>❓ Why does the index page show a 500 error?</dt>
-    <dd>Check that all blueprints are registered and templates reference the correct endpoint namespace (e.g. <code>routes_ui.index</code>).</dd>
-  </dl>
+  <ul>
+    <li><strong>Poller errors in Docker</strong>: Ensure <code>START_POLLER=False</code> unless USB devices are passed through.</li>
+    <li><strong>Alembic issues</strong>: Reset the <code>alembic_version</code> table and rerun migrations.</li>
+    <li><strong>Port conflicts</strong>: macOS Control Center may occupy port 5000; disable AirPlay Receiver.</li>
+    <li><strong>500 errors on index</strong>: Verify blueprint names and endpoint references.</li>
+  </ul>
 
   <h2>Hardware: MightyOhm Geiger Counter</h2>
-  <p>LogExp integrates with the <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">MightyOhm Geiger Counter</a>, 
-     a DIY radiation detector kit designed for hobbyists and researchers.</p>
+  <p>
+    LogExp integrates with the
+    <a href="https://mightyohm.com/blog/products/geiger-counter/" target="_blank">
+      MightyOhm Geiger Counter
+    </a>, a DIY radiation detector with USB‑serial output.
+  </p>
   <ul>
-    <li>USB‑serial interface for easy data ingestion</li>
-    <li>Outputs counts per second/minute and microsieverts/hour</li>
-    <li>Open hardware design with accessible documentation</li>
-    <li>Ideal for logging radiation levels in real‑time with LogExp</li>
+    <li>USB‑serial interface</li>
+    <li>Counts per second/minute</li>
+    <li>Microsieverts/hour</li>
+    <li>Open hardware design</li>
   </ul>
 
   <h2>System Diagram</h2>
@@ -65,7 +96,7 @@
   [MightyOhm Geiger Counter]
               │ USB-Serial
               ▼
-        [LogExp Poller Service]
+        [LogExp Poller Thread]
               │
               ▼
         [Postgres Database]
@@ -78,7 +109,7 @@
   </pre>
 
   <h2>Sample Reading Output</h2>
-  <p>Example JSON payload returned by <code>/api/readings.json</code>:</p>
+  <p>Example JSON from <code>/api/readings.json</code>:</p>
   <pre>
   [
     {
@@ -87,14 +118,6 @@
       "counts_per_second": 0.7,
       "counts_per_minute": 42,
       "microsieverts_per_hour": 0.12,
-      "mode": "normal"
-    },
-    {
-      "id": 2,
-      "timestamp": "2025-12-09T17:31:00Z",
-      "counts_per_second": 0.8,
-      "counts_per_minute": 47,
-      "microsieverts_per_hour": 0.14,
       "mode": "normal"
     }
   ]
