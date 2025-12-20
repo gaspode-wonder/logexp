@@ -127,7 +127,7 @@ nohup socat ... &
 The PTY creator still eventually entered `SN`.
 
 ## 3.5. LaunchAgent interference (initially)
-A rogue LaunchAgent (`com.jeb.socat-pty.plist`) was respawning socat incorrectly.  
+A rogue LaunchAgent (`com.user.socat-pty.plist`) was respawning socat incorrectly.  
 Removing it fixed the respawn issue but not the PTY instability.
 
 ---
