@@ -1,0 +1,7 @@
+2025/12/19 21:33:29 socat[88401] N PTY is /dev/ttys014
+2025/12/19 21:33:29 socat[88401] N PTY is /dev/ttys017
+2025/12/19 21:33:29 socat[88401] N starting data transfer loop with FDs [6,6] and [8,8]
+2025/12/19 21:36:01 socat[88401] N socat_signal(): handling signal 15
+2025/12/19 21:36:01 socat[88401] W exiting on signal 15
+2025/12/19 21:36:01 socat[88401] N socat_signal(): finishing signal 15
+2025/12/19 21:36:01 socat[88401] N exit(143)

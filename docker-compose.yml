@@ -24,12 +24,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    devices:
+      - "/Users/jebbaugh/.geiger-bridge:/dev/ttyUSB0"
     environment:
       # Point to Postgres service by name, not localhost
       DATABASE_URL: "postgresql://logexp:logexp@db:5432/logexp"
       SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@db:5432/logexp"
       LOCAL_TIMEZONE: "America/Chicago"
-      START_POLLER: "False"
+      START_POLLER: "True"
+      GEIGER_PORT: "/dev/ttyUSB0"
       FLASK_APP: "logexp.app"
       FLASK_ENV: "production"
     ports:
