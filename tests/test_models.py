@@ -37,10 +37,10 @@ def test_to_dict_returns_expected_fields(app):
     }
     assert set(result.keys()) == expected_keys
 
-    # Assert: timestamp is a datetime object localized to US/Central
+    # Assert: timestamp is a datetime object localized to America/Chicago
     assert isinstance(result["timestamp"], datetime)
     assert result["timestamp"].tzinfo is not None
-    assert result["timestamp"].tzinfo.zone == "US/Central"
+    assert result["timestamp"].tzinfo.key == "America/Chicago"
 
     # Assert: numeric fields match
     assert result["counts_per_second"] == 0.15

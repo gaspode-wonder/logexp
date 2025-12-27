@@ -1,5 +1,10 @@
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from logexp.app.extensions import db
+
+
+CENTRAL = ZoneInfo("America/Chicago")
+
 
 class LogExpReading(db.Model):
     __tablename__ = "logexp_readings"
@@ -8,7 +13,7 @@ class LogExpReading(db.Model):
     timestamp = db.Column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now().astimezone(timezone.utc),
-        nullable=False
+        nullable=False,
     )
     counts_per_second = db.Column(db.Integer, nullable=False)
     counts_per_minute = db.Column(db.Integer, nullable=False)
@@ -16,17 +21,26 @@ class LogExpReading(db.Model):
     mode = db.Column(db.String(32), nullable=False)
 
     def to_dict(self):
-        ts_utc = self.timestamp.astimezone(timezone.utc)
+        """
+        Return a pure-Python representation of this reading.
+
+        Ensures timestamp is always timezone-aware and localized to US/Central,
+        even if the underlying model instance was constructed with a naive datetime.
+        """
+        ts = self.timestamp
+
+        # If timestamp is naive, assume it's UTC (safe default)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+
+        # Convert to US/Central for internal consistency
+        ts_central = ts.astimezone(CENTRAL)
 
         return {
             "id": self.id,
-            "timestamp": ts_utc.isoformat(timespec="seconds").replace("+00:00", "Z"),
+            "timestamp": ts_central,
             "counts_per_second": self.counts_per_second,
             "counts_per_minute": self.counts_per_minute,
             "microsieverts_per_hour": self.microsieverts_per_hour,
             "mode": self.mode,
         }
-
-
-
-
