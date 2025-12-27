@@ -5,6 +5,16 @@ from logexp.app.extensions import db, migrate
 from logexp.app.app_blueprints import register_blueprints
 import os
 
+"""
+Application factory and high-level wiring.
+
+Package layout:
+
+- blueprints/: Flask route blueprints
+- services/:  Core business logic and helpers
+- models.py:  Database models
+- extensions.py: Flask extensions (db, migrate, etc.)
+"""
 
 def create_app(config_object: type = Config) -> Flask:
     """Application factory for LogExp."""
