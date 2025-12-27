@@ -29,9 +29,100 @@ flask db upgrade
 ```bash
 flask run
 ```
-
 ---
+## Continuous Integration (CI)
+LogExp uses GitHub Actions to enforce application correctness on every push and pull request.
+The CI pipeline runs:
+-    Python 3.11
+-    Dependency installation from requirements.txt
+-    Full pytest suite
+-    Import‑time validation of all modules
+-    Deterministic, environment‑clean test execution
+The workflow file lives at:
+```
+.github/workflows/application-ci.yml
+```
+A green CI run is required before any changes can be merged into `main`.
+---
+## Branch Protection Rules
+The `main` branch is protected to ensure stability and reproducibility:
+- ✔️ Require pull request
+- ✔️ Require all status checks to pass
+- ✔️ Require Application CI
+- ✔️ Require branches to be up to date before merging
+- ✔️ No direct pushes to main
+This ensures that `main` always reflects a deployable, production‑ready state.
+---
+## Working With Feature Branches
+All development must occur on feature branches:
+```bash
+git checkout -b feature/my-change
+```
+When ready, open a pull request targeting `main`.
+## PR Requirements
+- CI must pass
+- Code must import cleanly
+- Tests must be updated if behavior changes
+- No unpinned or implicit dependencies
+- No environment‑specific assumptions
+Once CI is green and the PR is approved, it can be merged.
+---
+## Running Tests Locally
+Before opening a PR, run the full test suite:
+```bash
+pytest
+```
+If your change introduces new dependencies, update:
+```
+requirements.txt
+```
+and ensure the tests still pass in a clean environment.
+---
+## Dependency Management
+LogExp uses a **fully pinned, CI‑validated dependency set**:
+```
+Flask==3.0.0
+Flask-Migrate==4.0.5
+Flask-SQLAlchemy==3.1.1
+matplotlib>=3.7,<3.11
+psycopg2-binary==2.9.9
+pydantic==2.12.0
+python-dotenv==1.0.1
+pyserial==3.5
+pytest==8.2.1
+pytz==2025.2
+```
+If you add a new import, you must add the corresponding package to `requirements.txt` and verify CI passes.
+---
+## Local Development Environment
+To ensure your environment matches CI:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+pytest
+```
+This mirrors the GitHub Actions environment and prevents “wOrKs On My MaChInE” drift.
+---
+## Pull Request Checklist
+Before submitting a PR:
+- [ ] Tests pass locally
+- [ ] Dependencies updated (if needed)
+- [ ] No stray debug prints or commented code
+- [ ] Code follows existing structure and conventions
+- [ ] CI passes on GitHub
+---
+## Why This Matters
+LogExp is designed to be:
+-    reproducible
+-    deterministic
+-    safe for collaborators
+-    deployable at any time
+-    free of environment drift
 
+The CI + branch protection workflow ensures that every contributor (including future you) works within a stable, predictable system.
+---
 ## Production Deployment (Docker + Gunicorn)
 
 LogExp ships with a production‑grade Docker setup:
