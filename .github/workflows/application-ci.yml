@@ -2,7 +2,9 @@ name: Application CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - develop
   pull_request:
 
 jobs:
