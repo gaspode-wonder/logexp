@@ -2,10 +2,11 @@
 Blueprint package for LogExp.
 
 Each blueprint lives in its own subpackage:
-- analytics
+- ui
 - api
 - settings
 - diagnostics
+- analytics
 - docs
 - about
 
