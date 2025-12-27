@@ -1,15 +1,21 @@
+from __future__ import annotations
+
 import serial
 import serial.tools.list_ports
+from typing import Dict, List
+
 
 def read_geiger(port: str = "/dev/tty.usbserial-AB9R9IYS", baudrate: int = 9600) -> str:
-    """Read one line of data from the Geiger counter."""
+    """Read one line of raw text from the Geiger counter."""
     with serial.Serial(port, baudrate, timeout=2) as ser:
         line = ser.readline().decode("utf-8").strip()
         return line
 
-def list_serial_ports():
+
+def list_serial_ports() -> List[str]:
     """Return a list of available serial ports."""
     return [p.device for p in serial.tools.list_ports.comports()]
+
 
 def try_port(port: str, baudrate: int = 9600) -> str:
     """Attempt to read one line from a given port."""
@@ -20,13 +26,19 @@ def try_port(port: str, baudrate: int = 9600) -> str:
     except Exception as e:
         return f"<error: {e}>"
 
-def parse_geiger_line(line: str, threshold: int = 50) -> dict:
+
+def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, object]:
     """
     Parse Geiger counter output into structured fields.
-    Modes:
-      - SLOW: default averaging over LONG_PERIOD (60s)
-      - FAST: if last 5 counts exceed threshold, averaging over SHORT_PERIOD (5s)
-      - INST: if CPS > 255, report CPS*60 and switch to INST mode
+
+    Supports formats like:
+      - "CPS=15, CPM=900, uSv/h=0.18"
+      - "CPS, 1, CPM, 20, uSv/hr, 0.11, SLOW"
+
+    Mode logic:
+      - INST: CPS > 255 → CPM = CPS*60
+      - FAST: CPS > threshold
+      - SLOW: default
     """
     result = {
         "counts_per_second": 0,
@@ -35,20 +47,19 @@ def parse_geiger_line(line: str, threshold: int = 50) -> dict:
         "mode": "SLOW",
     }
 
+    if not line:
+        return result
+
     try:
         parts = [p.strip() for p in line.replace("=", ",").split(",")]
-        # Example formats: "CPS=15, CPM=900, uSv/h=0.18"
-        # or "CPS, 1, CPM, 20, uSv/hr, 0.11, SLOW"
+
         for i, p in enumerate(parts):
             if p.upper().startswith("CPS"):
-                val = int(parts[i+1]) if i+1 < len(parts) else 0
-                result["counts_per_second"] = val
+                result["counts_per_second"] = int(parts[i + 1]) if i + 1 < len(parts) else 0
             elif p.upper().startswith("CPM"):
-                val = int(parts[i+1]) if i+1 < len(parts) else 0
-                result["counts_per_minute"] = val
+                result["counts_per_minute"] = int(parts[i + 1]) if i + 1 < len(parts) else 0
             elif "USV" in p.upper():
-                val = float(parts[i+1]) if i+1 < len(parts) else 0.0
-                result["microsieverts_per_hour"] = val
+                result["microsieverts_per_hour"] = float(parts[i + 1]) if i + 1 < len(parts) else 0.0
             elif p.upper() in ("SLOW", "FAST", "INST"):
                 result["mode"] = p.upper()
 
@@ -63,7 +74,7 @@ def parse_geiger_line(line: str, threshold: int = 50) -> dict:
             result["mode"] = "SLOW"
 
     except Exception:
-        result["mode"] = "SLOW"  # fallback
+        # Fallback: keep defaults
+        result["mode"] = "SLOW"
 
     return result
-

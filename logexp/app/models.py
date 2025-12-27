@@ -1,12 +1,31 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+
 from logexp.app.extensions import db
 
 
 CENTRAL = ZoneInfo("America/Chicago")
 
 
+class Reading(db.Model):
+    """
+    Legacy model used by older ingestion paths.
+    """
+    id: int
+    cpm: int
+    timestamp: datetime
+
+
 class LogExpReading(db.Model):
+    """
+    Primary reading model for LogExp.
+
+    Stores raw radiation readings and ensures timestamps are always
+    timezone-aware and normalized to US/Central when serialized.
+    """
+
     __tablename__ = "logexp_readings"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -20,7 +39,7 @@ class LogExpReading(db.Model):
     microsieverts_per_hour = db.Column(db.Float, nullable=False)
     mode = db.Column(db.String(32), nullable=False)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """
         Return a pure-Python representation of this reading.
 
