@@ -2,7 +2,7 @@ from flask import Flask, render_template, current_app
 from logexp.app.config import Config
 from logexp.app.poller import GeigerPoller
 from logexp.app.extensions import db, migrate
-from logexp.app.app_blueprints import register_blueprints
+from logexp.app.blueprints import register_blueprints
 import os
 
 """

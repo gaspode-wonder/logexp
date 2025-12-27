@@ -1,16 +1,13 @@
 """
-DEPRECATED MODULE: logexp/app/blueprints/__init__.py
+Blueprint package for LogExp.
 
-This file previously auto-imported and registered blueprints from multiple modules.
-All blueprints are now centralized in logexp/app/blueprints.py.
+Each blueprint lives in its own subpackage:
+- analytics
+- api
+- settings
+- diagnostics
+- docs
+- about
 
-⚠️ Do not use or import this file in the application factory.
-It will be removed in a future release.
+Blueprints are registered centrally in logexp/app/blueprints.py.
 """
-
-import warnings
-warnings.warn(
-    "logexp/app/blueprints/__init__.py is deprecated. Use logexp/app/blueprints.py instead.",
-    DeprecationWarning,
-    stacklevel=2
-)
