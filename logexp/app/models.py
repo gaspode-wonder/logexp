@@ -10,6 +10,7 @@ CENTRAL = ZoneInfo("America/Chicago")
 
 
 class Reading(db.Model):
+    __abstract__ = True
     __allow_unmapped__ = True
     """
     Legacy model used by older ingestion paths.
