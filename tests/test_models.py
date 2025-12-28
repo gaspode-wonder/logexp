@@ -1,14 +1,22 @@
 import pytest
 from datetime import datetime
-import pytz
 from flask import Flask
 from logexp.seeds.seed_data import seed_test_data
 from logexp.app.models import LogExpReading
+from logexp.app.config import load_config
+
 
 @pytest.fixture
 def app():
     app = Flask(__name__)
-    app.config["LOCAL_TIMEZONE"] = "US/Central"
+    
+    # Attach a proper config object
+    app.config_obj = load_config(overrides={
+        "LOCAL_TIMEZONE": "America/Chicago",
+        "TESTING": True,
+        "START_POLLER": False,
+    })
+    
     return app
 
 def test_to_dict_returns_expected_fields(app):

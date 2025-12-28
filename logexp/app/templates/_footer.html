@@ -2,8 +2,8 @@
   <div class="pager">
     {% block pager %}
       <!-- Default pager links -->
-      <a href="{{ url_for('routes_ui.readings_index') }}" class="prev">← Readings</a>
-      <a href="{{ url_for('routes_ui.settings') }}" class="next">Settings →</a>
+      <a href="{{ url_for('ui.readings_index') }}" class="prev">← Readings</a>
+      <a href="{{ url_for('settings.settings_index') }}" class="next">Settings →</a>
     {% endblock %}
   </div>
   <p class="footer-text">

@@ -1,78 +1,137 @@
+<!-- logexp/app/templates/analytics.html -->
+
 {% extends "base.html" %}
 
-{% block title %}Analytics - LogExp{% endblock %}
-
 {% block content %}
-  <h1>Analytics Dashboard</h1>
+<div class="container mt-4">
+  <h1>Analytics</h1>
 
-  <!-- Quick Range Buttons -->
-  <div class="quick-ranges">
-    <form method="GET" action="{{ url_for('analytics.analytics_index') }}">
-      <input type="hidden" name="metric" value="{{ metric }}">
-      <button type="submit" name="range" value="1h">Last 1h</button>
-      <button type="submit" name="range" value="24h">Last 24h</button>
-      <button type="submit" name="range" value="7d">Last 7d</button>
-    </form>
-  </div>
-
-  <!-- Custom Range Form -->
-  <form method="GET" action="{{ url_for('analytics.analytics_index') }}">
-    <label for="start_date">Start:</label>
-    <input type="datetime-local" id="start_date" name="start_date"
-           value="{{ start_date|default('', true) }}">
-
-    <label for="end_date">End:</label>
-    <input type="datetime-local" id="end_date" name="end_date"
-           value="{{ end_date|default('', true) }}">
-
-    <label for="metric">Metric:</label>
-    <select id="metric" name="metric">
-      <option value="cps" {% if metric == 'cps' %}selected{% endif %}>Counts per Second (CPS)</option>
-      <option value="cpm" {% if metric == 'cpm' %}selected{% endif %}>Counts per Minute (CPM)</option>
-      <option value="usvh" {% if metric == 'usvh' %}selected{% endif %}>µSv/h</option>
-    </select>
-
-    <button type="submit">Run Query</button>
+  <!-- Controls -->
+  <form method="GET" action="{{ url_for('analytics.analytics_index') }}" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label for="start_date" class="form-label">Start</label>
+      <input
+        type="datetime-local"
+        id="start_date"
+        name="start_date"
+        class="form-control"
+        value="{{ start_date }}"
+      />
+    </div>
+    <div class="col-md-3">
+      <label for="end_date" class="form-label">End</label>
+      <input
+        type="datetime-local"
+        id="end_date"
+        name="end_date"
+        class="form-control"
+        value="{{ end_date }}"
+      />
+    </div>
+    <div class="col-md-2">
+      <label for="metric" class="form-label">Metric</label>
+      <select id="metric" name="metric" class="form-select">
+        <option value="cpm"  {% if metric == "cpm"  %}selected{% endif %}>CPM</option>
+        <option value="cps"  {% if metric == "cps"  %}selected{% endif %}>CPS</option>
+        <option value="usvh" {% if metric == "usvh" %}selected{% endif %}>µSv/h</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label d-block">Quick range</label>
+      <div class="btn-group" role="group">
+        <button type="submit" name="range" value="1h" class="btn btn-outline-secondary">1h</button>
+        <button type="submit" name="range" value="24h" class="btn btn-outline-secondary">24h</button>
+        <button type="submit" name="range" value="7d" class="btn btn-outline-secondary">7d</button>
+      </div>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary w-100">Update</button>
+    </div>
   </form>
 
-  <!-- Chart -->
-  {% if chart_url %}
-    <h2>Visualization</h2>
-    <img src="{{ chart_url }}" alt="Analytics Chart">
-  {% else %}
-    <p>No chart available for the selected range.</p>
-  {% endif %}
+  <!-- Export -->
+  <div class="mb-3">
+    <a
+      href="{{ url_for('analytics.analytics_export', start_date=start_date, end_date=end_date, metric=metric) }}"
+      class="btn btn-outline-primary"
+    >
+      Export CSV
+    </a>
+  </div>
 
-  <!-- Results Table -->
-  {% if readings %}
-    <h2>Results</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Timestamp</th>
-          <th>CPS</th>
-          <th>CPM</th>
-          <th>µSv/h</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in readings %}
-        <tr>
-          <td>{{ r.timestamp }}</td>
-          <td>{{ r.counts_per_second }}</td>
-          <td>{{ r.counts_per_minute }}</td>
-          <td>{{ r.microsieverts_per_hour }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- No data case -->
+  {% if not readings %}
+    <div class="alert alert-info">
+      No readings available for the selected range.
+    </div>
   {% else %}
-    <p>No readings found for the selected range.</p>
+
+    <!-- Rollup summary -->
+    {% if rollup %}
+      <div class="card mb-4">
+        <div class="card-header">
+          Rollup
+        </div>
+        <div class="card-body">
+          <p class="mb-1"><strong>Count:</strong> {{ rollup.count if rollup.count is defined else rollup["count"] }}</p>
+          <p class="mb-1"><strong>Average CPS:</strong> {{ rollup.avg_cps if rollup.avg_cps is defined else rollup["avg_cps"] }}</p>
+          <p class="mb-1"><strong>First reading:</strong> {{ rollup.first_timestamp if rollup.first_timestamp is defined else rollup["first_timestamp"] }}</p>
+          <p class="mb-0"><strong>Last reading:</strong> {{ rollup.last_timestamp if rollup.last_timestamp is defined else rollup["last_timestamp"] }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Diagnostics -->
+    {% if diagnostics %}
+      <div class="card mb-4">
+        <div class="card-header">
+          Diagnostics
+        </div>
+        <div class="card-body">
+          <p class="mb-1"><strong>Total readings:</strong> {{ diagnostics.count if diagnostics.count is defined else diagnostics["count"] }}</p>
+          {% if diagnostics.first_timestamp or diagnostics["first_timestamp"] %}
+            <p class="mb-1"><strong>First timestamp:</strong> {{ diagnostics.first_timestamp if diagnostics.first_timestamp is defined else diagnostics["first_timestamp"] }}</p>
+            <p class="mb-1"><strong>Last timestamp:</strong> {{ diagnostics.last_timestamp if diagnostics.last_timestamp is defined else diagnostics["last_timestamp"] }}</p>
+            <p class="mb-1"><strong>Min CPS:</strong> {{ diagnostics.min_cps if diagnostics.min_cps is defined else diagnostics["min_cps"] }}</p>
+            <p class="mb-0"><strong>Max CPS:</strong> {{ diagnostics.max_cps if diagnostics.max_cps is defined else diagnostics["max_cps"] }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Raw readings table -->
+    <div class="card">
+      <div class="card-header">
+        Readings
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>CPS</th>
+                <th>CPM</th>
+                <th>µSv/h</th>
+                <th>Mode</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in readings %}
+                <tr>
+                  <td>{{ r.timestamp }}</td>
+                  <td>{{ r.counts_per_second }}</td>
+                  <td>{{ r.counts_per_minute }}</td>
+                  <td>{{ r.microsieverts_per_hour }}</td>
+                  <td>{{ r.mode }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   {% endif %}
-<form method="GET" action="{{ url_for('analytics.analytics_export') }}">
-  <input type="hidden" name="start_date" value="{{ start_date }}">
-  <input type="hidden" name="end_date" value="{{ end_date }}">
-  <input type="hidden" name="metric" value="{{ metric }}">
-  <button type="submit">Download CSV</button>
-</form>
+</div>
 {% endblock %}
