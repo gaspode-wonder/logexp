@@ -166,3 +166,10 @@ db-upgrade: ## Apply database migrations
 	$(ACTIVATE) && \
 		export FLASK_APP=logexp.app:create_app && \
 		flask db upgrade
+
+# ---------------------------------------------------------------------------
+# check-env: Validate required environment variables for parity with CI
+# ---------------------------------------------------------------------------
+check-env:
+	@echo ">>> Checking environment variable parity..."
+	@python scripts/check_env_parity.py
