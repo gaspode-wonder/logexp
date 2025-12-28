@@ -17,11 +17,23 @@ def ingest_reading(parsed: dict) -> LogExpReading:
 
     # Prefer centralized config_obj, fall back to Flask config
     config_obj = getattr(current_app, "config_obj", {})
+    print("CONFIG_OBJ AT APP START:", current_app.config_obj)
+
     flask_config = current_app.config
 
     ingestion_enabled = (
         config_obj.get("INGESTION_ENABLED",
         flask_config.get("INGESTION_ENABLED", True))
+    )
+    print(
+        "INGESTION_ENABLED:",
+        ingestion_enabled,
+        "config_obj:",
+        config_obj.get("INGESTION_ENABLED"),
+        "flask_config:",
+        flask_config.get("INGESTION_ENABLED"),
+        "called from:",
+        __import__('inspect').stack()[1].filename
     )
 
     if not ingestion_enabled:

@@ -52,6 +52,7 @@ def test_ingestion_disabled_skips_write(test_app, db_session):
 
         # DB should remain empty
         assert db_session.query(LogExpReading).count() == 0
+    test_app.config_obj["INGESTION_ENABLED"] = True
 
 
 def test_ingest_reading_rollback_on_error(test_app, db_session, monkeypatch):
