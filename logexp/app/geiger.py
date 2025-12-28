@@ -5,7 +5,7 @@ import serial.tools.list_ports
 from typing import Dict, List
 
 
-def read_geiger(port: str = "/dev/tty.usbserial-AB9R9IYS", baudrate: int = 9600) -> str:
+def read_geiger(port: str, baudrate: int) -> str:
     """Read one line of raw text from the Geiger counter."""
     with serial.Serial(port, baudrate, timeout=2) as ser:
         line = ser.readline().decode("utf-8").strip()
@@ -17,7 +17,7 @@ def list_serial_ports() -> List[str]:
     return [p.device for p in serial.tools.list_ports.comports()]
 
 
-def try_port(port: str, baudrate: int = 9600) -> str:
+def try_port(port: str, baudrate: int) -> str:
     """Attempt to read one line from a given port."""
     try:
         with serial.Serial(port, baudrate, timeout=2) as ser:
