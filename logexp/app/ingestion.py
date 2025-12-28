@@ -38,15 +38,18 @@ def ingest_reading(parsed: dict) -> LogExpReading:
         mode=parsed["mode"],
     )
 
-    session = db.session  # capture the scoped_session proxy
-
     try:
-        session.add(reading)
-        session.commit()
+        session = db.session  # capture the proxy
+        session.add(reading)  # underlying session is fine here
+
+        # IMPORTANT: call commit on the PROXY, not the underlying session
+        db.session.commit()
+
     except Exception as exc:
-        session.rollback()
+        db.session.rollback()  # rollback must also hit the proxy
         current_app.logger.error("Ingestion error: %s", exc)
         raise RuntimeError("Failed to ingest reading") from exc
+
 
     current_app.logger.debug(
         "Ingested reading id=%s cps=%s cpm=%s µSv/h=%s mode=%s",
