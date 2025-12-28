@@ -7,6 +7,11 @@ def diagnostics_index():
     poller_status = "running" if poller and poller._thread.is_alive() else "stopped"
     return render_template("diagnostics.html", poller_status=poller_status)
 
+@bp_diagnostics.get("/")
+def diagnostics_index():
+    config = current_app.config_obj
+    return render_template("diagnostics.html", config=config)
+
 @bp_diagnostics.route("")
 def diagnostics_index_no_slash():
     return diagnostics_index()

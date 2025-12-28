@@ -1,9 +1,13 @@
+import os
+
+
 from flask import Flask, render_template, current_app
-from logexp.app.config import Config
+from logexp.app.config import load_config
 from logexp.app.poller import GeigerPoller
 from logexp.app.extensions import db, migrate
 from logexp.app.blueprints import register_blueprints
-import os
+from logexp.app.logging import configure_logging
+
 
 """
 Application factory and high-level wiring.
@@ -16,13 +20,17 @@ Package layout:
 - extensions.py: Flask extensions (db, migrate, etc.)
 """
 
-def create_app(config_object: type = Config) -> Flask:
-    """Application factory for LogExp."""
+def create_app() -> Flask:
     app = Flask(__name__)
-    app.config.from_object(config_object)
+
+    # configure logging
+    configure_logging(app)
+
+    # Load centralized config
+    app.config_obj = load_config()
 
     # Ensure a DB URI is set (tests may override later)
-    app.config.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///:memory:")
+    app.config["SQLALCHEMY_DATABASE_URI"] = app.config_obj["SQLALCHEMY_DATABASE_URI"]
 
     # Initialize extensions
     db.init_app(app)
@@ -43,7 +51,7 @@ def create_app(config_object: type = Config) -> Flask:
     #   - Environments where START_POLLER=False
     # ----------------------------------------------------------------------
 
-    start_poller = str(app.config.get("START_POLLER", True)).lower() == "true"
+    start_poller = app.config_obj["START_POLLER"]
 
     # Detect if running under Gunicorn
     running_under_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
@@ -74,7 +82,7 @@ def create_app(config_object: type = Config) -> Flask:
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
         """Stop poller cleanly in testing contexts."""
-        if app.config.get("TESTING", False) and getattr(app, "poller", None):
+        if app.config_obj["TESTING"] and getattr(app, "poller", None):
             try:
                 app.poller.stop()
             except RuntimeError:
@@ -89,7 +97,7 @@ def create_app(config_object: type = Config) -> Flask:
         poller = getattr(current_app, "poller", None)
         if poller and not poller._thread.is_alive():
             poller.start()
-            print("Geiger poller started.")
+            current_app.logger.info("Geiger poller started.")
         else:
             print("Poller already running.")
 
@@ -116,7 +124,7 @@ def create_app(config_object: type = Config) -> Flask:
         """Seed the database with sample data (idempotent)."""
         from logexp.seeds import seed_data
         seed_data.run(app)
-        print("Database seeded (idempotent).")
+        current_app.logger.info("Database seeded (idempotent).")
 
     @app.cli.command("clear-db")
     def clear_db():
@@ -124,7 +132,7 @@ def create_app(config_object: type = Config) -> Flask:
         with app.app_context():
             db.drop_all()
             db.create_all()
-            print("Test database cleared and recreated.")
+            current_app.logger.info("Test database cleared and recreated.")
 
     @app.context_processor
     def inject_globals():

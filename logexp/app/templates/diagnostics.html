@@ -22,6 +22,25 @@
     <p id="poller-result"></p>
   </div>
 
+  <h2>Configuration</h2>
+  <table class="table table-striped table-sm">
+      <thead>
+          <tr>
+              <th>Key</th>
+              <th>Value</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for key, value in config|dictsort %}
+          <tr>
+              <td>{{ key }}</td>
+              <td>{{ value }}</td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+
+
   <h3>Geiger Counter Test</h3>
   <p>Click below to run a quick test of the Geiger endpoint:</p>
   <button onclick="runGeigerTest()">Run Geiger Test</button>
