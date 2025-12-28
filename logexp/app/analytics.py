@@ -1,10 +1,12 @@
 # logexp/app/analytics.py
+import logging
 
 from datetime import datetime, timedelta
 from flask import current_app
 from logexp.app.models import LogExpReading
 from logexp.app.extensions import db
 
+logger = logging.getLogger(__name__)
 
 def compute_window():
     """
@@ -49,7 +51,19 @@ def run_analytics():
     config = current_app.config_obj
 
     if not config["ANALYTICS_ENABLED"]:
+        logger.info("Analytics disabled — skipping computation")
         return None
 
     readings = compute_window()
-    return compute_rollup(readings)
+    logger.info(
+        "Analytics window computed",
+        extra={
+            "count": len(readings),
+            "window_seconds": config["ANALYTICS_WINDOW_SECONDS"],
+        },
+    )
+
+    rollup = compute_rollup(readings)
+    logger.info("Analytics rollup", extra=rollup or {})
+
+    return rollup
