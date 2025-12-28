@@ -60,6 +60,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Environment parity check
+        run: python scripts/check_env_parity.py
+
       - name: Run tests
         run: pytest
 
