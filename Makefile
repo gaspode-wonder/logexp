@@ -64,17 +64,8 @@ db-reset: ## Drop + recreate + migrate the development database
 # test-db: Rebuild the test database schema
 # ---------------------------------------------------------------------------
 test-db: ## Rebuild the test database schema
-	@echo ">>> Rebuilding test database..."
-	$(ACTIVATE) && python - << 'EOF'
-from logexp.app import create_app
-from logexp.app.extensions import db
-
-app = create_app("testing")
-with app.app_context():
-	db.drop_all()
-	db.create_all()
-print("Test DB rebuilt.")
-EOF
+	@echo ">>> Rebuilding the test database..."
+	$(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py
 
 # =============================================================================
 # Testing & CI Parity
