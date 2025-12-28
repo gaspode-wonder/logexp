@@ -8,3 +8,5 @@ python-dotenv==1.0.1
 pyserial==3.5
 pytest==8.2.1
 pytz==2025.2
+flake8
+mypy
