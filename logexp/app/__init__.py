@@ -7,6 +7,7 @@ from logexp.app.logging import StructuredFormatter
 import logging
 import os
 
+
 """
 Application factory and high-level wiring.
 
@@ -18,6 +19,7 @@ Package layout:
 - extensions.py: Flask extensions (db, migrate, etc.)
 """
 
+
 def create_app(config_object: type = Config) -> Flask:
     """Application factory for LogExp."""
     app = Flask(__name__)
@@ -25,15 +27,19 @@ def create_app(config_object: type = Config) -> Flask:
     # ------------------------------------------------------------------
     # Structured logging configuration (UTC, deterministic)
     # ------------------------------------------------------------------
-    handler = logging.StreamHandler()
-    handler.setFormatter(StructuredFormatter())
+    formatter = StructuredFormatter()
 
-    # Remove default Flask handlers to avoid duplicate logs
+    # Configure ONLY app.logger
+    # Do NOT touch the root logger — pytest attaches its capture handler there.
     app.logger.handlers.clear()
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
 
-
+    # ------------------------------------------------------------------
+    # Load configuration
+    # ------------------------------------------------------------------
     app.config.from_object(config_object)
 
     # Ensure a DB URI is set (tests may override later)
@@ -48,19 +54,8 @@ def create_app(config_object: type = Config) -> Flask:
 
     # ----------------------------------------------------------------------
     # POLLER-SAFE LOGIC FOR DOCKER + GUNICORN
-    #
-    # Gunicorn uses multiple workers unless configured otherwise.
-    # We enforce workers=1 in gunicorn.conf.py, but we ALSO guard here
-    # so the poller never starts accidentally in:
-    #   - Docker builds
-    #   - Gunicorn preload
-    #   - Multiple workers
-    #   - Environments where START_POLLER=False
     # ----------------------------------------------------------------------
-
     start_poller = str(app.config.get("START_POLLER", True)).lower() == "true"
-
-    # Detect if running under Gunicorn
     running_under_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
 
     if start_poller and not running_under_gunicorn:
@@ -71,8 +66,8 @@ def create_app(config_object: type = Config) -> Flask:
         app.logger.info("Poller disabled (START_POLLER=False or running under Gunicorn).")
 
     # ----------------------------------------------------------------------
-
-    # --- Error handlers ---
+    # Error handlers
+    # ----------------------------------------------------------------------
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template("errors/404.html"), 404
@@ -85,7 +80,9 @@ def create_app(config_object: type = Config) -> Flask:
     def internal_error(error):
         return render_template("errors/500.html"), 500
 
-    # --- Teardown ---
+    # ----------------------------------------------------------------------
+    # Teardown
+    # ----------------------------------------------------------------------
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
         """Stop poller cleanly in testing contexts."""
@@ -97,7 +94,9 @@ def create_app(config_object: type = Config) -> Flask:
                     "Poller stop called from within poller thread; skipping join."
                 )
 
-    # --- CLI commands ---
+    # ----------------------------------------------------------------------
+    # CLI commands
+    # ----------------------------------------------------------------------
     @app.cli.command("geiger-start")
     def geiger_start():
         """Start the Geiger poller manually."""
@@ -118,14 +117,6 @@ def create_app(config_object: type = Config) -> Flask:
         else:
             print("Poller not running.")
 
-    # ----------------------------------------------------------------------
-    # DOCKER-FRIENDLY SEED COMMAND
-    #
-    # This is the command your entrypoint.sh will call:
-    #     flask seed-data
-    #
-    # It is idempotent and safe to run on every container start.
-    # ----------------------------------------------------------------------
     @app.cli.command("seed-data")
     def seed_data():
         """Seed the database with sample data (idempotent)."""
@@ -141,6 +132,9 @@ def create_app(config_object: type = Config) -> Flask:
             db.create_all()
             print("Test database cleared and recreated.")
 
+    # ----------------------------------------------------------------------
+    # Template globals
+    # ----------------------------------------------------------------------
     @app.context_processor
     def inject_globals():
         from datetime import datetime
