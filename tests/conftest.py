@@ -1,7 +1,14 @@
+# tests/conftest.py
+
 import pytest
 from logexp.app import create_app
 from logexp.app.config import load_config
 from logexp.app.extensions import db
+from tests.fixtures.reading_factory import create_reading
+
+@pytest.fixture
+def reading_factory():
+    return create_reading
 
 
 @pytest.fixture(scope="function")
