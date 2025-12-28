@@ -4,38 +4,39 @@ from logexp.app.config import load_config
 from logexp.app.extensions import db
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def test_app():
-    # Create the app normally
+    """
+    Each test gets a completely fresh Flask app, config_obj, and database.
+    No state leaks between tests.
+    """
     app = create_app()
 
-    # Override config for testing
+    # Deterministic test config
     app.config_obj = load_config(overrides={
         "TESTING": True,
         "START_POLLER": False,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "INGESTION_ENABLED": True,   # ensure clean default for each test
     })
 
-    # Apply DB URI to Flask config (SQLAlchemy requires this)
+    # SQLAlchemy requires this on the Flask config
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config_obj["SQLALCHEMY_DATABASE_URI"]
 
     with app.app_context():
         db.create_all()
         yield app
+        db.session.remove()
         db.drop_all()
 
 
 @pytest.fixture(scope="function")
 def db_session(test_app):
+    """
+    Provides a clean SQLAlchemy session tied to the fresh app.
+    """
     with test_app.app_context():
-        # Clean all tables before each test
-        for table in reversed(db.metadata.sorted_tables):
-            db.session.execute(table.delete())
-        db.session.commit()
-
         yield db.session
-
-        # Roll back any uncommitted changes
         db.session.rollback()
 
 

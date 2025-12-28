@@ -7,20 +7,28 @@ PYTHON := python3
 VENV := .venv
 ACTIVATE := . $(VENV)/bin/activate
 
+# =============================================================================
+# Application Development
+# =============================================================================
+
 # ---------------------------------------------------------------------------
 # dev: Run Flask locally with correct environment variables
 # ---------------------------------------------------------------------------
-dev: ## dev: Run Flask locally with correct environment variables
+dev: ## Run Flask locally with correct environment variables
 	@echo ">>> Starting Flask development server..."
 	$(ACTIVATE) && \
 		export FLASK_APP=logexp.app:create_app && \
 		export FLASK_ENV=development && \
 		flask run --reload
 
+# =============================================================================
+# Linting & Formatting
+# =============================================================================
+
 # ---------------------------------------------------------------------------
 # lint: Run flake8 + black + isort
 # ---------------------------------------------------------------------------
-lint: ## lint: Run flake8 + black + isort
+lint: ## Run flake8 + black + isort
 	@echo ">>> Running flake8..."
 	$(ACTIVATE) && flake8 logexp
 
@@ -31,17 +39,51 @@ lint: ## lint: Run flake8 + black + isort
 	$(ACTIVATE) && isort --check-only logexp
 
 # ---------------------------------------------------------------------------
+# format: Auto-format code with black + isort
+# ---------------------------------------------------------------------------
+format: ## Auto-format code
+	@echo ">>> Running black..."
+	$(ACTIVATE) && black logexp
+
+	@echo ">>> Running isort..."
+	$(ACTIVATE) && isort logexp
+
+# =============================================================================
+# Database Management
+# =============================================================================
+
+# ---------------------------------------------------------------------------
 # db-reset: Drop + recreate + migrate the database
 # ---------------------------------------------------------------------------
-db-reset: ## db-reset: Drop + recreate + migrate the database
-	@echo ">>> Resetting database..."
+db-reset: ## Drop + recreate + migrate the development database
+	@echo ">>> Resetting development database..."
 	rm -f logexp/app/data/readings.db
 	$(ACTIVATE) && flask db upgrade
 
 # ---------------------------------------------------------------------------
+# test-db: Rebuild the test database schema
+# ---------------------------------------------------------------------------
+test-db: ## Rebuild the test database schema
+	@echo ">>> Rebuilding test database..."
+	$(ACTIVATE) && python - << 'EOF'
+from logexp.app import create_app
+from logexp.app.extensions import db
+
+app = create_app("testing")
+with app.app_context():
+	db.drop_all()
+	db.create_all()
+print("Test DB rebuilt.")
+EOF
+
+# =============================================================================
+# Testing & CI Parity
+# =============================================================================
+
+# ---------------------------------------------------------------------------
 # ci-local: Mirror GitHub Actions locally
 # ---------------------------------------------------------------------------
-ci-local: ## ci-local: Mirror GitHub Actions locally
+ci-local: ## Mirror GitHub Actions locally
 	@echo ">>> Running CI-local workflow..."
 	$(ACTIVATE) && \
 		pip install --upgrade pip && \
@@ -51,23 +93,17 @@ ci-local: ## ci-local: Mirror GitHub Actions locally
 # ---------------------------------------------------------------------------
 # test-clean: Reproduce CI locally with a fully clean environment
 # ---------------------------------------------------------------------------
-test-clean: ## test-clean: Reproduce CI locally with a fully clean environment
-	@echo ">>> Removing virtual environment..."
-	rm -rf $(VENV)
-
-	@echo ">>> Removing Python bytecode caches..."
+test-clean: ## Clean environment and run tests in a fresh state
+	@echo ">>> Cleaning Python bytecode caches..."
 	find logexp -type d -name "__pycache__" -exec rm -rf {} +
 
 	@echo ">>> Cleaning untracked files (git clean -xdf)..."
 	git clean -xdf
 
-	@echo ">>> Creating fresh virtual environment..."
-	$(PYTHON) -m venv $(VENV)
+	@echo ">>> Rebuilding test database..."
+	$(MAKE) test-db
 
-	@echo ">>> Installing dependencies..."
-	$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt
-
-	@echo ">>> Running pytest in a clean environment..."
+	@echo ">>> Running pytest..."
 	$(ACTIVATE) && pytest -vv
 
 # =============================================================================
@@ -77,7 +113,7 @@ test-clean: ## test-clean: Reproduce CI locally with a fully clean environment
 # ---------------------------------------------------------------------------
 # help: List all available Make targets with descriptions
 # ---------------------------------------------------------------------------
-help:
+help: ## Show this help message
 	@echo ""
 	@echo "Available commands:"
 	@echo ""
@@ -106,16 +142,6 @@ doctor: ## Run environment sanity checks
 
 	@echo ">>> Checking SQLite database..."
 	@test -f logexp/app/data/readings.db && echo "DB exists" || echo "DB missing"
-
-# ---------------------------------------------------------------------------
-# format: Auto-format code with black + isort
-# ---------------------------------------------------------------------------
-format: ## Auto-format code
-	@echo ">>> Running black..."
-	$(ACTIVATE) && black logexp
-
-	@echo ">>> Running isort..."
-	$(ACTIVATE) && isort logexp
 
 # ---------------------------------------------------------------------------
 # shell: Flask shell with app context
