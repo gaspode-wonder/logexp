@@ -38,8 +38,9 @@ def ingest_reading(parsed: dict) -> LogExpReading:
         mode=parsed["mode"],
     )
 
+    session = db.session  # capture the scoped_session proxy
+
     try:
-        session = db.session  # capture the scoped_session proxy
         session.add(reading)
         session.commit()
     except Exception as exc:
