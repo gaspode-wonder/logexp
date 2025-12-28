@@ -12,15 +12,23 @@ def ingest_reading(parsed: dict) -> LogExpReading:
     """
     Persist a single parsed reading and return the model instance.
 
-    Respects the INGESTION_ENABLED flag in the centralized config.
+    Respects the INGESTION_ENABLED flag from either config_obj or Flask config.
     """
-    config = current_app.config
 
-    if not config["INGESTION_ENABLED"]:
+    # Prefer centralized config_obj, fall back to Flask config
+    config_obj = getattr(current_app, "config_obj", {})
+    flask_config = current_app.config
+
+    ingestion_enabled = (
+        config_obj.get("INGESTION_ENABLED",
+        flask_config.get("INGESTION_ENABLED", True))
+    )
+
+    if not ingestion_enabled:
         current_app.logger.debug(
-            "Ingestion disabled by config (INGESTION_ENABLED=False); skipping DB write."
+            "Ingestion disabled by config; skipping DB write."
         )
-        return None  # explicit: nothing was written
+        return None
 
     reading = LogExpReading(
         timestamp=datetime.now().astimezone(timezone.utc),
