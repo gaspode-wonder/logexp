@@ -6,7 +6,7 @@ from logexp.app.config import load_config
 from logexp.app.poller import GeigerPoller
 from logexp.app.extensions import db, migrate
 from logexp.app.blueprints import register_blueprints
-from logexp.app.logging import configure_logging
+from logexp.app.logging_loader import configure_logging
 
 
 """
