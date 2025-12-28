@@ -4,8 +4,8 @@
 {% block sidebar %}
   <h3>Settings Navigation</h3>
   <ul>
-    <li><a href="{{ url_for('routes_ui.routes_index') }}">Home</a></li>
-    <li><a href="{{ url_for('routes_ui.readings_index') }}">Readings</a></li>
+    <li><a href="{{ url_for('ui.index') }}">Home</a></li>
+    <li><a href="{{ url_for('ui.readings_index') }}">Readings</a></li>
     <li><a href="{{ url_for('diagnostics.diagnostics_index') }}">Diagnostics</a></li>
     <li><a href="{{ url_for('docs.docs_index') }}">Docs</a></li>
   </ul>
@@ -15,7 +15,7 @@
   <h1>Device Settings</h1>
   <p>Configure the Geiger counter connection below.</p>
 
-  <form method="post" action="{{ url_for('routes_ui.update_settings') }}">
+  <form method="post" action="{{ url_for('settings.update_settings') }}">
     <label for="port">Serial Port:</label>
     <select name="port" id="port">
       {% for port in ports %}
@@ -39,6 +39,6 @@
 {% endblock %}
 
 {% block pager %}
-  <a href="{{ url_for('routes_ui.routes_index') }}" class="prev">← Home</a>
+  <a href="{{ url_for('ui.index') }}" class="prev">← Home</a>
   <a href="{{ url_for('diagnostics.diagnostics_index') }}" class="next">Diagnostics →</a>
 {% endblock %}
