@@ -1,69 +1,67 @@
-# logexp/app/analytics.py
-import logging
+from __future__ import annotations
 
-from datetime import datetime, timedelta
+import datetime
 from flask import current_app
-from logexp.app.models import LogExpReading
+
 from logexp.app.extensions import db
+from logexp.app.models import LogExpReading
 
-logger = logging.getLogger(__name__)
 
-def compute_window():
+def compute_window(now=None):
     """
-    Return all readings within the configured analytics window.
+    Deterministic analytics window calculation.
+
+    Tests may pass a fixed 'now' to eliminate microsecond drift.
+    Production uses the real current time.
     """
+    if now is None:
+        now = datetime.datetime.now(datetime.timezone.utc)
+
     config = current_app.config_obj
     window_seconds = config["ANALYTICS_WINDOW_SECONDS"]
 
-    cutoff = datetime.utcnow() - timedelta(seconds=window_seconds)
+    cutoff = now - datetime.timedelta(seconds=window_seconds)
 
-    return (
+    rows = (
         db.session.query(LogExpReading)
-        .filter(LogExpReading.timestamp >= cutoff)
-        .order_by(LogExpReading.timestamp.asc())
+        .order_by(LogExpReading.id.asc())
         .all()
     )
 
+    result = []
+    for r in rows:
+        ts = r.timestamp_dt
+        if ts >= cutoff:
+            result.append(r)
 
-def compute_rollup(readings):
-    """
-    Placeholder rollup logic — will be expanded in Step 8C/8D.
-    """
-    if not readings:
-        return None
-
-    # Example: simple average CPS
-    avg_cps = sum(r.counts_per_second for r in readings) / len(readings)
-
-    return {
-        "count": len(readings),
-        "avg_cps": avg_cps,
-        "first_timestamp": readings[0].timestamp,
-        "last_timestamp": readings[-1].timestamp,
-    }
+    return result
 
 
 def run_analytics():
     """
-    Main analytics entrypoint.
-    Called manually or by scheduled tasks — never by ingestion.
+    Legacy/compatibility wrapper used by routes and tests.
+
+    Tests expect:
+    - None when analytics is disabled
+    - None when the window is empty
+    - Summary dict otherwise
     """
     config = current_app.config_obj
 
-    if not config["ANALYTICS_ENABLED"]:
-        logger.info("Analytics disabled — skipping computation")
+    if not config.get("ANALYTICS_ENABLED", True):
         return None
 
     readings = compute_window()
-    logger.info(
-        "Analytics window computed",
-        extra={
-            "count": len(readings),
-            "window_seconds": config["ANALYTICS_WINDOW_SECONDS"],
-        },
-    )
 
-    rollup = compute_rollup(readings)
-    logger.info("Analytics rollup", extra=rollup or {})
+    if not readings:
+        return None
 
-    return rollup
+    cps_values = [r.counts_per_second for r in readings]
+    timestamps = [r.timestamp_dt for r in readings]
+
+    return {
+        "count": len(readings),
+        "avg_cps": sum(cps_values) / len(cps_values),
+        "first_timestamp": min(timestamps),
+        "last_timestamp": max(timestamps),
+    }

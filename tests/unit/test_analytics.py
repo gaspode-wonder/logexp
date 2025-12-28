@@ -19,7 +19,7 @@ def test_window_boundary_inclusion(test_app, reading_factory):
     Only readings inside the configured analytics window should be included.
     """
     with test_app.app_context():
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         # inside window (default window = 60s)
         reading_factory(now - datetime.timedelta(seconds=30), cps=10)
@@ -39,7 +39,7 @@ def test_rollup_average(test_app, reading_factory):
     Rollup should compute a correct average CPS.
     """
     with test_app.app_context():
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         reading_factory(now, cps=10)
         reading_factory(now + datetime.timedelta(seconds=1), cps=20)
@@ -68,7 +68,7 @@ def test_out_of_order_readings(test_app, reading_factory):
     Analytics should handle out-of-order readings and return sorted timestamps.
     """
     with test_app.app_context():
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         reading_factory(now + datetime.timedelta(seconds=2), cps=30)
         reading_factory(now, cps=10)

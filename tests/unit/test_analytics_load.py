@@ -1,5 +1,3 @@
-# tests/unit/test_analytics_load.py
-
 import datetime
 import random
 from logexp.app.analytics import run_analytics, compute_window
@@ -11,7 +9,7 @@ def test_high_volume_readings(test_app, reading_factory):
     Analytics should handle large numbers of readings without errors.
     """
     with test_app.app_context():
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         for i in range(1000):
             ts = now - datetime.timedelta(seconds=random.randint(0, 120))
@@ -30,10 +28,14 @@ def test_randomized_timestamps(test_app, reading_factory):
     Analytics should correctly sort and process out-of-order timestamps.
     """
     with test_app.app_context():
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         timestamps = [
-            now - datetime.timedelta(seconds=random.randint(0, 120))
+            now - datetime.timedelta(
+                seconds=random.randint(
+                    0, test_app.config_obj["ANALYTICS_WINDOW_SECONDS"] - 1
+                )
+            )
             for _ in range(200)
         ]
         random.shuffle(timestamps)
@@ -56,7 +58,7 @@ def test_large_window(test_app, reading_factory):
     with test_app.app_context():
         test_app.config_obj["ANALYTICS_WINDOW_SECONDS"] = 3600  # 1 hour
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         for i in range(300):
             ts = now - datetime.timedelta(seconds=random.randint(0, 3500))
@@ -75,7 +77,7 @@ def test_exact_cutoff_boundary(test_app, reading_factory):
     """
     with test_app.app_context():
         window = test_app.config_obj["ANALYTICS_WINDOW_SECONDS"]
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         inside = now - datetime.timedelta(seconds=window)
         outside = now - datetime.timedelta(seconds=window + 1)
@@ -85,7 +87,7 @@ def test_exact_cutoff_boundary(test_app, reading_factory):
 
         db.session.commit()
 
-        readings = compute_window()
+        readings = compute_window(now=now)
 
         assert len(readings) == 1
         assert readings[0].counts_per_second == 10
@@ -96,7 +98,7 @@ def test_mixed_cps_values(test_app, reading_factory):
     Analytics should compute correct averages even with noisy CPS values.
     """
     with test_app.app_context():
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         values = [1, 5, 10, 50, 100, 200, 500]
         for v in values:

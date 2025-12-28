@@ -1,6 +1,6 @@
 # logexp/app/bp/analytics/routes.py
 
-from datetime import datetime, timedelta
+import datetime
 from flask import (
     render_template,
     request,
@@ -23,7 +23,7 @@ def analytics_index():
 
     # Default: last 24h
     if not start_date and not end_date and not quick_range:
-        default_start = datetime.now() - timedelta(hours=24)
+        default_start = datetime.now() - datetime.timedelta(hours=24)
         start_date = default_start.isoformat(timespec="minutes")
         end_date = datetime.now().isoformat(timespec="minutes")
 
@@ -31,11 +31,11 @@ def analytics_index():
     if quick_range:
         now = datetime.now()
         if quick_range == "1h":
-            start_date = (now - timedelta(hours=1)).isoformat(timespec="minutes")
+            start_date = (now - datetime.timedelta(hours=1)).isoformat(timespec="minutes")
         elif quick_range == "24h":
-            start_date = (now - timedelta(hours=24)).isoformat(timespec="minutes")
+            start_date = (now - datetime.timedelta(hours=24)).isoformat(timespec="minutes")
         elif quick_range == "7d":
-            start_date = (now - timedelta(days=7)).isoformat(timespec="minutes")
+            start_date = (now - datetime.timedelta(days=7)).isoformat(timespec="minutes")
         end_date = now.isoformat(timespec="minutes")
 
     # Run analytics subsystem
