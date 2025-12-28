@@ -39,17 +39,12 @@ def ingest_reading(parsed: dict) -> LogExpReading:
     )
 
     try:
-        session = db.session  # capture the proxy
-        session.add(reading)  # underlying session is fine here
-
-        # IMPORTANT: call commit on the PROXY, not the underlying session
-        db.session.commit()
-
+        db.session.add(reading)
+        db.session.commit()   # call the proxy directly
     except Exception as exc:
-        db.session.rollback()  # rollback must also hit the proxy
+        db.session.rollback()  # also the proxy
         current_app.logger.error("Ingestion error: %s", exc)
         raise RuntimeError("Failed to ingest reading") from exc
-
 
     current_app.logger.debug(
         "Ingested reading id=%s cps=%s cpm=%s µSv/h=%s mode=%s",
