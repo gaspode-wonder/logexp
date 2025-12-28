@@ -25,3 +25,12 @@ jobs:
 
       - name: Run tests
         run: pytest
+
+# CI MUST run in UTC for deterministic analytics and timestamp behavior.
+# Local and production environments use America/Chicago, but CI must not.
+# Do not change TZ or LOCAL_TIMEZONE in this file unless analytics tests are updated.
+env:
+  TZ: UTC
+  ANALYTICS_ENABLED: "true"
+  ANALYTICS_WINDOW: "60"
+  LOCAL_TIMEZONE: "UTC"
