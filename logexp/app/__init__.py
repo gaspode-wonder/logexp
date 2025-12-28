@@ -3,6 +3,8 @@ from logexp.app.config import Config
 from logexp.app.poller import GeigerPoller
 from logexp.app.extensions import db, migrate
 from logexp.app.app_blueprints import register_blueprints
+from logexp.app.logging import StructuredFormatter
+import logging
 import os
 
 """
@@ -19,6 +21,19 @@ Package layout:
 def create_app(config_object: type = Config) -> Flask:
     """Application factory for LogExp."""
     app = Flask(__name__)
+
+    # ------------------------------------------------------------------
+    # Structured logging configuration (UTC, deterministic)
+    # ------------------------------------------------------------------
+    handler = logging.StreamHandler()
+    handler.setFormatter(StructuredFormatter())
+
+    # Remove default Flask handlers to avoid duplicate logs
+    app.logger.handlers.clear()
+    app.logger.addHandler(handler)
+    app.logger.setLevel(logging.INFO)
+
+
     app.config.from_object(config_object)
 
     # Ensure a DB URI is set (tests may override later)
