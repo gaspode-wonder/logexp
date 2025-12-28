@@ -14,7 +14,7 @@ def ingest_reading(parsed: dict) -> LogExpReading:
 
     Respects the INGESTION_ENABLED flag in the centralized config.
     """
-    config = current_app.config_obj
+    config = current_app.config
 
     if not config["INGESTION_ENABLED"]:
         current_app.logger.debug(
@@ -36,7 +36,7 @@ def ingest_reading(parsed: dict) -> LogExpReading:
     except Exception as exc:
         db.session.rollback()
         current_app.logger.error("Ingestion error: %s", exc)
-        raise
+        raise RuntimeError("Failed to ingest reading") from exc
 
     current_app.logger.debug(
         "Ingested reading id=%s cps=%s cpm=%s µSv/h=%s mode=%s",
