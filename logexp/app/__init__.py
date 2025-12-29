@@ -43,6 +43,12 @@ def create_app(config_object: type = Config) -> Flask:
     ingestion_logger.addHandler(handler)
     ingestion_logger.setLevel(logging.INFO)
 
+    # Structured logging for analytics namespace
+    analytics_logger = logging.getLogger("logexp.analytics")
+    analytics_logger.handlers.clear()
+    analytics_logger.addHandler(handler)
+    analytics_logger.setLevel(logging.INFO)
+
     # ------------------------------------------------------------------
     # Load configuration
     # ------------------------------------------------------------------
