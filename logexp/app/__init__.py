@@ -37,6 +37,12 @@ def create_app(config_object: type = Config) -> Flask:
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
 
+    # Structured logging for ingestion namespace
+    ingestion_logger = logging.getLogger("logexp.ingestion")
+    ingestion_logger.handlers.clear()
+    ingestion_logger.addHandler(handler)
+    ingestion_logger.setLevel(logging.INFO)
+
     # ------------------------------------------------------------------
     # Load configuration
     # ------------------------------------------------------------------
