@@ -2,11 +2,13 @@
 
 from logexp.app import create_app
 from logexp.app.extensions import db
-from logexp.app.config import TestConfig
 
 
 def main() -> None:
-    app = create_app(TestConfig)
+    app = create_app({
+        "TESTING": True,
+        "START_POLLER": False,
+    })
 
     with app.app_context():
         db.drop_all()

@@ -1,17 +1,18 @@
 # tests/test_logging_analytics.py
-
 import logging
 from datetime import datetime, timezone
 
 from logexp.app import create_app
-from logexp.app.config import TestConfig
 from logexp.app.extensions import db
 from logexp.app.services.ingestion import ingest_readings
 from logexp.app.services.analytics import run_analytics
 
 
 def test_ingestion_logging_contract(caplog):
-    app = create_app(TestConfig)
+    app = create_app({
+        "TESTING": True,
+        "START_POLLER": False,
+    })
 
     caplog.set_level(logging.INFO)
 
@@ -32,7 +33,10 @@ def test_ingestion_logging_contract(caplog):
 
 
 def test_analytics_logging_contract(caplog):
-    app = create_app(TestConfig)
+    app = create_app({
+        "TESTING": True,
+        "START_POLLER": False,
+    })
 
     caplog.set_level(logging.INFO)
 

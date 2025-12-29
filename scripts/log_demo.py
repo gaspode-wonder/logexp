@@ -1,5 +1,8 @@
 from logexp.app import create_app
-from logexp.app.config import TestConfig
 
-app = create_app(TestConfig)
+app = create_app({
+    "TESTING": True,
+    "START_POLLER": False,
+})
+
 app.logger.info("demo log line")
