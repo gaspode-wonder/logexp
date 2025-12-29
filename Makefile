@@ -161,6 +161,23 @@ db-upgrade: ## Apply database migrations
 # ---------------------------------------------------------------------------
 # check-env: Validate required environment variables for parity with CI
 # ---------------------------------------------------------------------------
-check-env:
+check-env: ## Validate required environment variables for parity with CI
 	@echo ">>> Checking environment variable parity..."
 	@python scripts/check_env_parity.py
+
+# -------------------------------------------------------------------
+# LOGGING UTILITIES
+#
+# log-demo:
+#   Runs a minimal application instance using TestConfig and emits a
+#   single structured JSON log line. This is the fastest way for any
+#   maintainer to verify that:
+#     - StructuredFormatter is wired correctly
+#     - UTC timestamps are being produced
+#     - app.logger is isolated (root logger untouched)
+#     - pytest/caplog compatibility remains intact
+#
+#   Implementation lives in: scripts/log_demo.py
+# -------------------------------------------------------------------
+log-demo:
+	@PYTHONPATH=. python scripts/log_demo.py
