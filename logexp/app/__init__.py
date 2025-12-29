@@ -6,7 +6,10 @@ from logexp.app.app_blueprints import register_blueprints
 from logexp.app.logging import StructuredFormatter
 import logging
 import os
+from logexp.app.logging_setup import configure_logging
 
+# Configure logging immediately when the package is imported
+configure_logging()
 
 """
 Application factory and high-level wiring.
@@ -36,18 +39,6 @@ def create_app(config_object: type = Config) -> Flask:
     handler.setFormatter(formatter)
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
-
-    # Structured logging for ingestion namespace
-    ingestion_logger = logging.getLogger("logexp.ingestion")
-    ingestion_logger.handlers.clear()
-    ingestion_logger.addHandler(handler)
-    ingestion_logger.setLevel(logging.INFO)
-
-    # Structured logging for analytics namespace
-    analytics_logger = logging.getLogger("logexp.analytics")
-    analytics_logger.handlers.clear()
-    analytics_logger.addHandler(handler)
-    analytics_logger.setLevel(logging.INFO)
 
     # ------------------------------------------------------------------
     # Load configuration
