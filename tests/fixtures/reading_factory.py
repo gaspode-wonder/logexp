@@ -17,12 +17,9 @@ def create_reading(
     """
     Test helper to create a LogExpReading and add it to the current session.
 
-    - Accepts timestamp as datetime or ISO8601 string.
-    - Stores timestamp as ISO8601 string in the database.
+    - Accepts timestamp as a datetime or ISO8601 string.
+    - Stores timestamp as a timezone-aware datetime in the database.
     """
-
-    if isinstance(timestamp, datetime):
-        timestamp = timestamp.isoformat()
 
     if cpm is None:
         cpm = cps * 60.0

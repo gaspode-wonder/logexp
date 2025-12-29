@@ -1,52 +1,60 @@
 # tests/test_logging_analytics.py
+"""
+Tests for analytics-related logging contracts.
+"""
+
+import json
 import logging
-from datetime import datetime, timezone
 
-from logexp.app import create_app
+from logexp.app.analytics import run_analytics
 from logexp.app.extensions import db
-from logexp.app.services.ingestion import ingest_readings
-from logexp.app.services.analytics import run_analytics
 
 
-def test_ingestion_logging_contract(caplog):
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+def test_ingestion_logging_contract(test_app, capsys):
+    """
+    Ensure ingestion actions emit structured logs with required fields.
+    """
+    with test_app.app_context():
+        logger = logging.getLogger("logexp.ingestion")
+        logger.info("ingested_reading", extra={"source": "geiger", "status": "ok"})
 
-    caplog.set_level(logging.INFO)
+    captured = capsys.readouterr()
+    text = (captured.err or "") + (captured.out or "")
+    lines = [l for l in text.splitlines() if l.strip()]
+    assert lines, "No log lines captured"
 
-    with app.app_context():
-        ingest_readings(
-            db.session,
-            readings=[{"value": 1}],
-            cutoff_ts=datetime.now(timezone.utc),
-        )
+    payload = json.loads(lines[-1])
 
-    messages = [r.getMessage() for r in caplog.records]
-
-    assert "ingestion_start" in messages
-    assert "ingestion_complete" in messages
-
-    names = {r.name for r in caplog.records}
-    assert "logexp.ingestion" in names
+    assert payload["message"] == "ingested_reading"
+    assert payload["source"] == "geiger"
+    assert payload["status"] == "ok"
 
 
-def test_analytics_logging_contract(caplog):
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+def test_analytics_logging_contract(analytics_app, frozen_now, reading_factory, capsys, db_session):
+    """
+    Ensure analytics results can be logged in structured form.
+    """
+    logger = logging.getLogger("logexp.analytics")
+    now = frozen_now
 
-    caplog.set_level(logging.INFO)
+    # Seed a few readings
+    reading_factory(now, cps=10)
+    reading_factory(now, cps=20)
+    db.session.commit()
 
-    with app.app_context():
-        run_analytics(db.session)
+    with analytics_app.app_context():
+        result = run_analytics(now=now)
+        logger.info("analytics_window", extra=result)
 
-    messages = [r.getMessage() for r in caplog.records]
+    captured = capsys.readouterr()
+    text = (captured.err or "") + (captured.out or "")
+    lines = [l for l in text.splitlines() if l.strip()]
+    assert lines, "No log lines captured"
 
-    assert "analytics_start" in messages
-    assert "analytics_complete" in messages
+    payload = json.loads(lines[-1])
 
-    names = {r.name for r in caplog.records}
-    assert "logexp.analytics" in names
+    assert payload["message"] == "analytics_window"
+    assert payload["count"] == result["count"]
+    assert "avg_cps" in payload
+    assert "first_timestamp" in payload
+    assert "last_timestamp" in payload

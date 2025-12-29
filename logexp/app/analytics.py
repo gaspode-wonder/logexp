@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+from datetime import datetime, timedelta, timezone
 from flask import current_app
 
 from logexp.app.extensions import db
@@ -15,12 +15,12 @@ def compute_window(now=None):
     Production uses the real current time.
     """
     if now is None:
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.now(timezone.utc)
 
     config = current_app.config_obj
     window_seconds = config["ANALYTICS_WINDOW_SECONDS"]
 
-    cutoff = now - datetime.timedelta(seconds=window_seconds)
+    cutoff = now - timedelta(seconds=window_seconds)
 
     rows = (
         db.session.query(LogExpReading)
@@ -37,7 +37,9 @@ def compute_window(now=None):
     return result
 
 
-def run_analytics():
+def run_analytics(now=None):
+    if now is None:
+        now = datetime.now(timezone.utc)
     """
     Legacy/compatibility wrapper used by routes and tests.
 
@@ -51,7 +53,7 @@ def run_analytics():
     if not config.get("ANALYTICS_ENABLED", True):
         return None
 
-    readings = compute_window()
+    readings = compute_window(now=now)
 
     if not readings:
         return None

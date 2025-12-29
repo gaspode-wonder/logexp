@@ -1,21 +1,25 @@
 # tests/test_logging.py
+"""
+Tests for structured logging JSON format.
+"""
+
+import json
 import logging
 
-from logexp.app import create_app
 
+def test_structured_logging_outputs_valid_json(test_app, capsys):
+    with test_app.app_context():
+        logger = logging.getLogger("logexp.app")
+        logger.info("test message", extra={"foo": "bar"})
 
-def test_structured_logging_outputs_valid_json(caplog):
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+    captured = capsys.readouterr()
+    text = (captured.err or "") + (captured.out or "")
+    lines = [l for l in text.splitlines() if l.strip()]
+    assert lines, "No log lines captured"
 
-    caplog.set_level(logging.INFO, logger="logexp.app")
+    payload = json.loads(lines[-1])
 
-    with app.app_context():
-        app.logger.info("test message")
-
-    record = next(r for r in caplog.records if r.getMessage() == "test message")
-
-    assert record.name == "logexp.app"
-    assert record.levelname == "INFO"
+    assert payload["message"] == "test message"
+    assert payload["foo"] == "bar"
+    assert "level" in payload
+    assert "timestamp" in payload

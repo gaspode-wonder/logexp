@@ -1,3 +1,13 @@
+# logexp/app/models.py
+"""
+Database models for LogExp.
+
+This module defines the primary radiation reading model used across
+ingestion, analytics, and API serialization. Timestamps are stored as
+ISO8601 strings for SQLite portability and parsed into timezone-aware
+datetime objects on access.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,8 +21,8 @@ from logexp.app.extensions import db
 
 class Reading(db.Model):
     """
-    Legacy model used by older ingestion paths.
-    Kept abstract so it does not create a table.
+    Legacy abstract base model used by older ingestion paths.
+    Not mapped to a table.
     """
 
     __abstract__ = True
@@ -25,15 +35,18 @@ class Reading(db.Model):
 
 class LogExpReading(db.Model):
     """
-    Primary reading model for LogExp.
+    Primary radiation reading model.
 
-    Timestamps are stored in SQLite as ISO8601 strings with timezone info.
+    Timestamps are stored as ISO8601 strings (UTC) for maximum SQLite
+    compatibility. The timestamp_dt property returns a timezone-aware
+    datetime object for analytics and serialization.
     """
 
     __tablename__ = "logexp_readings"
 
     id = db.Column(db.Integer, primary_key=True)
 
+    # Stored as ISO8601 string (UTC)
     timestamp = db.Column(
         db.String,
         nullable=False,
@@ -57,20 +70,15 @@ class LogExpReading(db.Model):
         ts = self.timestamp
 
         if isinstance(ts, datetime):
-            # Already a datetime; ensure tz-aware
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-            return ts
+            return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
 
         # Stored as ISO8601 string
         ts = datetime.fromisoformat(ts)
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
-        return ts
+        return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         """
-        Serialize with timestamp localized to LOCAL_TIMEZONE.
+        Serialize the reading with timestamp localized to LOCAL_TIMEZONE.
         """
         ts = self.timestamp_dt
 
@@ -78,11 +86,9 @@ class LogExpReading(db.Model):
         local_tz_name = config_obj.get("LOCAL_TIMEZONE", "UTC")
         local_tz = ZoneInfo(local_tz_name)
 
-        ts_local = ts.astimezone(local_tz)
-
         return {
             "id": self.id,
-            "timestamp": ts_local,
+            "timestamp": ts.astimezone(local_tz),
             "counts_per_second": self.counts_per_second,
             "counts_per_minute": self.counts_per_minute,
             "microsieverts_per_hour": self.microsieverts_per_hour,

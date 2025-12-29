@@ -1,10 +1,20 @@
+# tests/unit/test_ingestion.py
+"""
+Unit tests for ingestion behavior and rollback semantics.
+"""
+
 import pytest
+
 from logexp.app.ingestion import ingest_reading
 from logexp.app.models import LogExpReading
 
 
 @pytest.fixture
 def parsed_factory():
+    """
+    Creates a parsed reading dict with optional overrides.
+    Mirrors the ingestion contract.
+    """
     def _make(**overrides):
         base = {
             "counts_per_second": 1.0,
@@ -14,6 +24,7 @@ def parsed_factory():
         }
         base.update(overrides)
         return base
+
     return _make
 
 
@@ -25,13 +36,12 @@ def test_ingest_reading_persists_row(test_app, db_session, parsed_factory):
         assert isinstance(reading, LogExpReading)
 
         stored = db_session.query(LogExpReading).first()
+        assert stored is not None
         assert stored.counts_per_second == 1.0
         assert stored.mode == "test"
 
 
-def test_ingestion_disabled_skips_write(
-    test_app, db_session, parsed_factory, monkeypatch
-):
+def test_ingestion_disabled_skips_write(test_app, db_session, parsed_factory, monkeypatch):
     monkeypatch.setitem(test_app.config_obj, "INGESTION_ENABLED", False)
 
     with test_app.app_context():
@@ -39,7 +49,6 @@ def test_ingestion_disabled_skips_write(
 
         assert reading is None
         assert db_session.query(LogExpReading).count() == 0
-
 
 
 def test_ingest_reading_rollback_on_error(test_app, db_session, monkeypatch, parsed_factory):
