@@ -1,3 +1,5 @@
+# logexp/app/poller.py
+
 from __future__ import annotations
 
 import threading
@@ -10,7 +12,6 @@ from flask import current_app
 
 from logexp.app.geiger import read_geiger, parse_geiger_line
 from logexp.app.extensions import db
-from logexp.app.models import LogExpReading
 from logexp.app.ingestion import ingest_reading
 
 
@@ -93,7 +94,9 @@ class GeigerPoller:
                 self._thread.join(timeout=2)
                 self.app.logger.info("GeigerPoller stopped cleanly.")
             else:
-                self.app.logger.debug("Poller.stop() called from poller thread; skipping join.")
+                self.app.logger.debug(
+                    "Poller.stop() called from poller thread; skipping join."
+                )
 
     # ------------------------------------------------------------------
     def _run(self) -> None:
@@ -115,8 +118,6 @@ class GeigerPoller:
                     raw = read_geiger(port, baud)
                     parsed = parse_geiger_line(raw, threshold=threshold)
 
-                    parsed = parse_geiger_line(raw, threshold=threshold)
-
                     ingest_reading(parsed)
 
                     self.app.logger.debug(
@@ -128,7 +129,7 @@ class GeigerPoller:
                     )
 
                 except Exception as exc:
-                    # ingestion.reading already rolls back on ingestion errors;
+                    # ingest_reading() already rolls back on ingestion errors;
                     # this catch is for read/parse errors and any unexpected failures.
                     db.session.rollback()
                     self.app.logger.error(f"Geiger poll error: {exc}")

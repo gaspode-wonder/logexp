@@ -1,13 +1,19 @@
 # tests/conftest.py
+
 """
 Unified pytest fixtures for LogExp.
 
-This file provides:
-- test_app: full application for routes, ingestion, and integration tests
-- analytics_app: minimal application for analytics-only tests
-- reading_factory: automatically binds to whichever app fixture is active
-- frozen_now: deterministic timestamp fixture
-- db_session: clean DB session per test
+This file provides a single, deterministic application instance for all tests.
+All database operations, analytics queries, ingestion writes, and route tests
+run against the same in‑memory SQLite engine to guarantee consistency.
+
+Fixtures included:
+- frozen_now: deterministic timestamp
+- test_app: unified Flask application for all tests
+- analytics_app: alias of test_app for compatibility with existing tests
+- db_session: clean SQLAlchemy session per test
+- test_client: HTTP client for route tests
+- reading_factory: helper for inserting LogExpReading rows
 """
 
 import pytest
@@ -16,6 +22,7 @@ from datetime import datetime, timezone
 from logexp.app import create_app
 from logexp.app.extensions import db
 from logexp.app.models import LogExpReading
+from logexp.app.logging_loader import configure_logging
 
 
 # ---------------------------------------------------------------------------
@@ -27,35 +34,13 @@ def frozen_now():
 
 
 # ---------------------------------------------------------------------------
-# Minimal analytics-only app
-# ---------------------------------------------------------------------------
-@pytest.fixture
-def analytics_app():
-    """
-    Minimal app context for analytics-only tests.
-    No routes, no ingestion, no poller.
-    """
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-        "ANALYTICS_ENABLED": True,
-        "ANALYTICS_WINDOW_SECONDS": 60,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-    })
-
-    with app.app_context():
-        db.create_all()
-        yield app
-        db.drop_all()
-
-
-# ---------------------------------------------------------------------------
-# Full application for routes, ingestion, and integration tests
+# Unified application fixture (single app for ALL tests)
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def test_app():
     """
-    Full application used by route tests, ingestion tests, and model tests.
+    Full application used by all tests: routes, ingestion, analytics, models.
+    Uses an in‑memory SQLite database and disables the poller.
     """
     app = create_app({
         "TESTING": True,
@@ -63,29 +48,39 @@ def test_app():
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "ANALYTICS_ENABLED": True,
         "INGESTION_ENABLED": True,
+        "ANALYTICS_WINDOW_SECONDS": 60,
     })
 
+    # ⭐ Logging MUST be configured inside the same app context tests will use
     with app.app_context():
+        configure_logging(app)
         db.create_all()
-        yield app
-        db.drop_all()
+
+    return app
 
 
 # ---------------------------------------------------------------------------
-# DB session fixture (works for both apps)
+# Analytics-enabled application fixture (alias of test_app)
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def db_session(request):
+def analytics_app(test_app):
     """
-    Provides a clean SQLAlchemy session tied to whichever app is active.
+    Compatibility fixture required by the analytics test suite.
+    This is intentionally the same object as test_app.
     """
-    app = (
-        request.getfixturevalue("analytics_app")
-        if "analytics_app" in request.fixturenames
-        else request.getfixturevalue("test_app")
-    )
+    return test_app
 
-    with app.app_context():
+
+# ---------------------------------------------------------------------------
+# Database session fixture (single session for ALL tests)
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def db_session(test_app):
+    """
+    Provides a clean SQLAlchemy session tied to test_app.
+    Ensures each test begins with an empty database state.
+    """
+    with test_app.app_context():
         # Clean all tables before each test
         for table in reversed(db.metadata.sorted_tables):
             db.session.execute(table.delete())
@@ -97,7 +92,7 @@ def db_session(request):
 
 
 # ---------------------------------------------------------------------------
-# Test client (only valid for test_app)
+# Test client fixture
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def test_client(test_app):
@@ -105,30 +100,24 @@ def test_client(test_app):
 
 
 # ---------------------------------------------------------------------------
-# Reading factory that binds to the active app
+# Reading factory fixture (uses the SAME db_session)
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def reading_factory(request):
+def reading_factory(db_session):
     """
-    Creates LogExpReading rows bound to whichever app fixture is active.
+    Creates LogExpReading rows using the unified db_session.
+    Does not commit automatically; tests control commit boundaries.
     """
-    # Determine which app this test is using
-    app = (
-        request.getfixturevalue("analytics_app")
-        if "analytics_app" in request.fixturenames
-        else request.getfixturevalue("test_app")
-    )
 
     def _factory(ts, cps=10, mode="test"):
-        with app.app_context():
-            r = LogExpReading(
-                timestamp=ts.isoformat(),
-                counts_per_second=cps,
-                counts_per_minute=cps * 60,
-                microsieverts_per_hour=0.01,
-                mode=mode,
-            )
-            db.session.add(r)
-            return r
+        reading = LogExpReading(
+            timestamp=ts.isoformat(),
+            counts_per_second=cps,
+            counts_per_minute=cps * 60,
+            microsieverts_per_hour=0.01,
+            mode=mode,
+        )
+        db_session.add(reading)
+        return reading
 
     return _factory

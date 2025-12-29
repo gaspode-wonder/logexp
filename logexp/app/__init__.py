@@ -17,32 +17,22 @@ from logexp.app.logging_loader import configure_logging
 def configure_sqlite_timezone_support(app: Flask) -> None:
     """
     Ensures SQLite stores and returns timezone-aware datetimes.
-    Must run AFTER config overrides but BEFORE db.init_app().
+    Must run BEFORE db.init_app().
     """
 
     def adapt_datetime(dt: datetime.datetime) -> str:
         return dt.isoformat()
 
     def convert_datetime(val):
-        # SQLite may give us:
-        # - bytes (ISO string)
-        # - str (ISO string)
-        # - datetime (already parsed)
-        # - None
         if val is None:
             return None
-
         if isinstance(val, datetime.datetime):
             return val
-
         if isinstance(val, bytes):
             val = val.decode()
-
         if isinstance(val, str):
             return datetime.datetime.fromisoformat(val)
-
         raise TypeError(f"Unexpected type for datetime conversion: {type(val)}")
-
 
     sqlite3.register_adapter(datetime.datetime, adapt_datetime)
     sqlite3.register_converter("timestamp", convert_datetime)
@@ -57,35 +47,46 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
 def create_app(overrides: dict | None = None) -> Flask:
     """
     Central application factory.
-    Accepts overrides so tests/dev/prod all use the same initialization path.
+    Deterministic, layered, test‑friendly initialization.
     """
 
     app = Flask(__name__)
+    # ------------------------------------------------------------------
+    # 1. Load layered config (defaults → env → overrides)
+    # ------------------------------------------------------------------
+    config_obj = load_config(overrides=overrides or {})
+    app.config_obj = config_obj
+    app.config.update(config_obj)
 
-    # Load config with optional overrides
-    app.config_obj = load_config(overrides=overrides or {})
-
-    # Apply DB URI to Flask config BEFORE initializing SQLAlchemy
-    app.config["SQLALCHEMY_DATABASE_URI"] = app.config_obj["SQLALCHEMY_DATABASE_URI"]
-
-    # Apply SQLite timezone support BEFORE db.init_app()
+    # ------------------------------------------------------------------
+    # 2. SQLite timezone support BEFORE db.init_app()
+    # ------------------------------------------------------------------
     configure_sqlite_timezone_support(app)
 
-    # Logging
+    # ------------------------------------------------------------------
+    # 3. Logging AFTER config is applied
+    # ------------------------------------------------------------------
     configure_logging(app)
 
-    # Initialize extensions
-    db.init_app(app)
-    migrate.init_app(app, db)
+    # ------------------------------------------------------------------
+    # 4. Initialize extensions inside app context
+    # ------------------------------------------------------------------
+    with app.app_context():
+        db.init_app(app)
+        migrate.init_app(app, db)
 
-    # Register blueprints
+    # ------------------------------------------------------------------
+    # 5. Register blueprints
+    # ------------------------------------------------------------------
     register_blueprints(app)
 
-    # Poller logic (disabled in tests)
-    start_poller = app.config_obj["START_POLLER"]
+    # ------------------------------------------------------------------
+    # 6. Poller logic (disabled in tests)
+    # ------------------------------------------------------------------
+    start_poller = config_obj["START_POLLER"]
     running_under_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
     running_shell = os.environ.get("FLASK_SHELL", "").lower() in ("1", "true", "yes")
-    running_tests = app.config_obj.get("TESTING", False)
+    running_tests = config_obj.get("TESTING", False)
 
     if start_poller and not running_under_gunicorn and not running_shell and not running_tests:
         app.logger.info("Starting GeigerPoller (safe mode).")
@@ -96,7 +97,9 @@ def create_app(overrides: dict | None = None) -> Flask:
             "Poller disabled (START_POLLER=False, running under Gunicorn, shell, or tests)."
         )
 
-    # Error handlers
+    # ------------------------------------------------------------------
+    # 7. Error handlers
+    # ------------------------------------------------------------------
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template("errors/404.html"), 404
@@ -109,10 +112,12 @@ def create_app(overrides: dict | None = None) -> Flask:
     def internal_error(error):
         return render_template("errors/500.html"), 500
 
-    # Teardown
+    # ------------------------------------------------------------------
+    # 8. Teardown: stop poller in tests
+    # ------------------------------------------------------------------
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
-        if app.config_obj["TESTING"] and getattr(app, "poller", None):
+        if config_obj["TESTING"] and getattr(app, "poller", None):
             try:
                 app.poller.stop()
             except RuntimeError:
@@ -120,7 +125,9 @@ def create_app(overrides: dict | None = None) -> Flask:
                     "Poller stop called from within poller thread; skipping join."
                 )
 
-    # CLI commands
+    # ------------------------------------------------------------------
+    # 9. CLI commands
+    # ------------------------------------------------------------------
     @app.cli.command("geiger-start")
     def geiger_start():
         poller = getattr(current_app, "poller", None)
@@ -128,16 +135,16 @@ def create_app(overrides: dict | None = None) -> Flask:
             poller.start()
             current_app.logger.info("Geiger poller started.")
         else:
-            print("Poller already running.")
+            app.logger.debug("Poller already running.")
 
     @app.cli.command("geiger-stop")
     def geiger_stop():
         poller = getattr(current_app, "poller", None)
         if poller and poller._thread.is_alive():
             poller.stop()
-            print("Geiger poller stopped.")
+            app.logger.debug("Geiger poller stopped.")
         else:
-            print("Poller not running.")
+            app.logger.debug("Poller not running.")
 
     @app.cli.command("seed-data")
     def seed_data():

@@ -1,10 +1,14 @@
+# logexp/app/analytics.py
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from flask import current_app
 
 from logexp.app.extensions import db
 from logexp.app.models import LogExpReading
+
+logger = logging.getLogger("logexp.analytics")
 
 
 def compute_window(now=None):

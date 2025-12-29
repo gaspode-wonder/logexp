@@ -1,2 +1,3 @@
-from logexp.app.logging_setup import configure_logging
-configure_logging()
+# logexp/__init__.py
+# This file intentionally left minimal.
+# Application factory lives in logexp/app/__init__.py

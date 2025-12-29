@@ -15,16 +15,10 @@ def ingest_reading(parsed: dict) -> LogExpReading:
     """
 
     config_obj = getattr(current_app, "config_obj", {})
-    print("CONFIG_OBJ AT APP START:", current_app.config_obj)
 
     ingestion_enabled = config_obj.get("INGESTION_ENABLED", True)
 
-    print(
-        "INGESTION_ENABLED:",
-        ingestion_enabled,
-        "called from:",
-        __import__("inspect").stack()[1].filename,
-    )
+    current_app.logger.debug("CONFIG_OBJ AT APP START", extra={"config": current_app.config_obj})
 
     if not ingestion_enabled:
         current_app.logger.debug(

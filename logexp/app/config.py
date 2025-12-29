@@ -23,13 +23,15 @@ from logexp.app.config.defaults import DEFAULTS
 def _env_bool(value: str | None, default: bool) -> bool:
     """
     Convert an environment variable to a boolean.
-    Accepts: "true", "1", "yes" → True
-             "false", "0", "no" → False
-    Falls back to the provided default.
+
+    Accepts:
+        "true", "1", "yes"  → True
+        "false", "0", "no"  → False
+
+    Falls back to the provided default if unset or unrecognized.
     """
     if value is None:
         return default
-
     return value.lower() in ("1", "true", "yes")
 
 
@@ -46,7 +48,7 @@ def load_config(overrides: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """
 
     # ------------------------------------------------------------------
-    # 1. Start with defaults
+    # 1. Start with defaults (single source of truth)
     # ------------------------------------------------------------------
     config = DEFAULTS.copy()
 
@@ -60,17 +62,28 @@ def load_config(overrides: Dict[str, Any] | None = None) -> Dict[str, Any]:
 
         # Database
         "SQLALCHEMY_DATABASE_URI": os.environ.get(
-            "DATABASE_URL", config["SQLALCHEMY_DATABASE_URI"]
+            "DATABASE_URL",
+            config["SQLALCHEMY_DATABASE_URI"],
         ),
 
         # Geiger / Poller
         "GEIGER_PORT": os.environ.get("GEIGER_PORT", config["GEIGER_PORT"]),
-        "GEIGER_BAUDRATE": int(os.environ.get("GEIGER_BAUDRATE", config["GEIGER_BAUDRATE"])),
-        "GEIGER_THRESHOLD": int(os.environ.get("GEIGER_THRESHOLD", config["GEIGER_THRESHOLD"])),
-        "START_POLLER": _env_bool(os.environ.get("START_POLLER"), config["START_POLLER"]),
+        "GEIGER_BAUDRATE": int(
+            os.environ.get("GEIGER_BAUDRATE", config["GEIGER_BAUDRATE"])
+        ),
+        "GEIGER_THRESHOLD": int(
+            os.environ.get("GEIGER_THRESHOLD", config["GEIGER_THRESHOLD"])
+        ),
+        "START_POLLER": _env_bool(
+            os.environ.get("START_POLLER"),
+            config["START_POLLER"],
+        ),
 
         # Timezone
-        "LOCAL_TIMEZONE": os.environ.get("LOCAL_TIMEZONE", config["LOCAL_TIMEZONE"]),
+        "LOCAL_TIMEZONE": os.environ.get(
+            "LOCAL_TIMEZONE",
+            config["LOCAL_TIMEZONE"],
+        ),
 
         # Analytics
         "ANALYTICS_ENABLED": _env_bool(
