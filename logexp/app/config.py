@@ -41,6 +41,13 @@ def load_config(overrides: Dict[str, Any] | None = None) -> Dict[str, Any]:
         "LOCAL_TIMEZONE": os.environ.get(
             "LOCAL_TIMEZONE", "America/Chicago"
         ),
+
+        # ------------------------------------------------------------------
+        # Analytics
+        # ------------------------------------------------------------------
+        "ANALYTICS_WINDOW_SECONDS": int(
+            os.environ.get("ANALYTICS_WINDOW_SECONDS", "60")
+        ),
     }
 
     if overrides:

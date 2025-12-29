@@ -1,9 +1,7 @@
-# logexp/app/services/ingestion.py
-
 import logging
+from logexp.app.extensions import db
 
 logger = logging.getLogger("logexp.ingestion")
-
 
 def ingest_readings(db_session, readings, cutoff_ts):
     """
@@ -40,7 +38,11 @@ def ingest_readings(db_session, readings, cutoff_ts):
                 },
             )
 
-    db_session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
     logger.info(
         "ingestion_complete",

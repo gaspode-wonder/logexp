@@ -1,6 +1,5 @@
 # logexp/app/ingestion.py
-
-from datetime import datetime, timezone
+import datetime
 
 from flask import current_app
 
@@ -12,28 +11,19 @@ def ingest_reading(parsed: dict) -> LogExpReading:
     """
     Persist a single parsed reading and return the model instance.
 
-    Respects the INGESTION_ENABLED flag from either config_obj or Flask config.
+    Respects the INGESTION_ENABLED flag from config_obj.
     """
 
-    # Prefer centralized config_obj, fall back to Flask config
     config_obj = getattr(current_app, "config_obj", {})
     print("CONFIG_OBJ AT APP START:", current_app.config_obj)
 
-    flask_config = current_app.config
+    ingestion_enabled = config_obj.get("INGESTION_ENABLED", True)
 
-    ingestion_enabled = (
-        config_obj.get("INGESTION_ENABLED",
-        flask_config.get("INGESTION_ENABLED", True))
-    )
     print(
         "INGESTION_ENABLED:",
         ingestion_enabled,
-        "config_obj:",
-        config_obj.get("INGESTION_ENABLED"),
-        "flask_config:",
-        flask_config.get("INGESTION_ENABLED"),
         "called from:",
-        __import__('inspect').stack()[1].filename
+        __import__("inspect").stack()[1].filename,
     )
 
     if not ingestion_enabled:
@@ -43,7 +33,7 @@ def ingest_reading(parsed: dict) -> LogExpReading:
         return None
 
     reading = LogExpReading(
-        timestamp=datetime.now().astimezone(timezone.utc),
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
         counts_per_second=parsed["counts_per_second"],
         counts_per_minute=parsed["counts_per_minute"],
         microsieverts_per_hour=parsed["microsieverts_per_hour"],
@@ -52,9 +42,9 @@ def ingest_reading(parsed: dict) -> LogExpReading:
 
     try:
         db.session.add(reading)
-        db.session.commit()   # call the proxy directly
+        db.session.commit()
     except Exception as exc:
-        db.session.rollback()  # also the proxy
+        db.session.rollback()
         current_app.logger.error("Ingestion error: %s", exc)
         raise RuntimeError("Failed to ingest reading") from exc
 

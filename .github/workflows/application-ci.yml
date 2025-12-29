@@ -20,7 +20,7 @@ jobs:
       - name: Install dev dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          pip install -r requirements.txt
 
       - name: Run flake8
         run: flake8 .
@@ -76,5 +76,5 @@ jobs:
 env:
   TZ: UTC
   ANALYTICS_ENABLED: "true"
-  ANALYTICS_WINDOW: "60"
+  ANALYTICS_WINDOW_SECONDS: "60"
   LOCAL_TIMEZONE: "UTC" # CI uses UTC; local/prod use America/Chicago

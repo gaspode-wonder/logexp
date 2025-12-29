@@ -29,14 +29,17 @@ def test_ingest_reading_persists_row(test_app, db_session, parsed_factory):
         assert stored.mode == "test"
 
 
-def test_ingestion_disabled_skips_write(test_app, db_session, parsed_factory):
-    test_app.config_obj["INGESTION_ENABLED"] = False
+def test_ingestion_disabled_skips_write(
+    test_app, db_session, parsed_factory, monkeypatch
+):
+    monkeypatch.setitem(test_app.config_obj, "INGESTION_ENABLED", False)
 
     with test_app.app_context():
         reading = ingest_reading(parsed_factory(mode="disabled"))
 
         assert reading is None
         assert db_session.query(LogExpReading).count() == 0
+
 
 
 def test_ingest_reading_rollback_on_error(test_app, db_session, monkeypatch, parsed_factory):
