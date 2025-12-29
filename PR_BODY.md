@@ -1,99 +1,94 @@
-# 🚧 WIP: Centralized Config System, Poller Hardening, and Ingestion Pipeline Refactor
+# Step 9F: App Init Hardening, Logging Cleanup, and Removal of Legacy Modules
 
-This PR introduces a multi‑stage refactor that centralizes configuration, unifies logging, hardens the Geiger poller lifecycle, and formalizes the ingestion pipeline. These changes are part of the architecture roadmap and prepare the codebase for Step 8 (Analytics Hardening), which will follow in a subsequent PR.
+This PR completes **Step 9F** of the logging + initialization hardening roadmap.  
+It finalizes the transition to a single deterministic logging system, removes legacy modules, and eliminates all stray debug scaffolding.
 
----
+## Summary of Changes
 
-## ✅ Summary of Changes
+### Application Initialization Hardening
+- [x] Consolidated initialization logic in `logexp/app/__init__.py`
+- [x] Removed stray `print()` calls and replaced lifecycle messages with structured logging
+- [x] Ensured ingestion and poller initialization paths are deterministic and test‑safe
+- [x] Cleaned up config object exposure and startup diagnostics
 
-### **Step 4 — Centralized Configuration System**
-- Added `logexp/app/config/` module with:
-  - `defaults.py`, `env.py`, `validators.py`, `loaders.py`
-- Replaced all `os.getenv` and legacy `Config` class usage.
-- `create_app()` now loads a deterministic, validated config object.
-- Test suite now uses `load_config(overrides=...)` for safe, isolated overrides.
-- Diagnostics page now displays the full merged configuration.
-- Added `CONFIG.md` documenting all config keys, defaults, and override mechanisms.
+### Logging System Cleanup
+- [x] Removed legacy modules:
+  - `logexp/app/logging.py`
+  - `logexp/app/logging_setup.py`
+- [x] Finalized `logging_loader.py` as the single source of truth
+- [x] Enabled propagation for `logexp.*` namespace
+- [x] Added datetime serialization to JSON formatter
+- [x] Ensured all logexp loggers emit JSON to stderr (pytest‑capturable)
 
-### **Step 5 — Logging Unification**
-- Added `configure_logging(app)` for consistent, stdout‑only logging.
-- Removed all `print()` calls in favor of structured logging.
-- Standardized log levels across poller, ingestion, and diagnostics.
+### Analytics Logging Contract
+- [x] Restored and validated the analytics logging test
+- [x] Ensured `extra=result` dicts serialize cleanly
+- [x] Verified contract fields: `count`, `avg_cps`, `first_timestamp`, `last_timestamp`
+- [x] Confirmed deterministic behavior under frozen time
 
-### **Step 6 — Poller Lifecycle Hardening**
-- Added lifecycle state flags (`_running`, `_stopping`) to prevent double‑start/stop.
-- Added guards for:
-  - TESTING mode
-  - Gunicorn workers
-  - Docker build layers
-- Ensured clean shutdown and thread‑safe teardown.
-- Added structured lifecycle logging.
+### Debug Scaffolding Removal
+- [x] Removed all stray `print()` statements across the codebase
+- [x] Converted meaningful operational prints to `logger.debug()`
+- [x] Cleaned ingestion debug output
+- [x] Removed temporary test instrumentation
 
-### **Step 7 — Ingestion Pipeline Finalization**
-- Added `logexp/app/ingestion.py` with `ingest_reading(parsed)`:
-  - single write path for all live readings
-  - config‑driven (`INGESTION_ENABLED`)
-  - structured logging
-  - safe rollback behavior
-- Poller now delegates persistence to ingestion helper.
-- Added `test_ingestion.py` covering:
-  - ingestion persistence
-  - ingestion disabled
-  - rollback on commit failure
+### Blueprint & Structure Updates
+- [x] Added `bp/health` blueprint directory
+- [x] Added `tests/__init__.py` for namespace hygiene
+- [x] Cleaned up blueprint registration ordering
 
----
+### Test & Config Updates
+- [x] Updated `pytest.ini` to reflect new logging behavior
+- [x] Cleaned `tests/conftest.py` to remove debug scaffolding
+- [x] Ensured full suite passes (26/26)
 
-## 🧾 Reviewer Checklist
+## Related Steps
 
-### **Architecture & Structure**
-- [ ] Centralized config system (`config_obj`) used consistently
-- [ ] No remaining `os.getenv` or legacy `Config` references
-- [ ] Diagnostics page correctly displays merged config
-- [ ] Logging unified via `configure_logging(app)`
+- **Step 9A:** Environment defaults + CI analytics config  
+- **Step 9B:** Logging namespace isolation  
+- **Step 9C:** JSON handler + stderr routing  
+- **Step 9D:** Flask logger mutation cleanup  
+- **Step 9E:** (Upcoming) Timezone policy documentation  
+- **Step 9F:** _This PR — app init hardening + cleanup_
 
-### **Poller Lifecycle**
-- [ ] Prevents double‑start and double‑stop
-- [ ] Respects TESTING, Gunicorn, and Docker build guards
-- [ ] Clean, thread‑safe shutdown
-- [ ] Delegates DB writes to ingestion helper
+## Reviewer Notes
 
-### **Ingestion Pipeline**
-- [ ] `ingest_reading()` is the single write path
-- [ ] Respects `INGESTION_ENABLED`
-- [ ] Structured ingestion logging
-- [ ] Correct rollback behavior
+This PR is intentionally structured as a **single cohesive unit** because the changes are tightly coupled:
 
-### **Tests**
-- [ ] Test suite uses `load_config(overrides=...)`
-- [ ] Ingestion tests cover persistence, disabled mode, and rollback
-- [ ] No poller threads start during tests
-- [ ] Tests deterministic across macOS, Linux, CI
+- Removing legacy logging modules required updating imports across the app.
+- Hardening app initialization required cleaning ingestion and poller startup paths.
+- Finalizing the JSON logging contract required updating tests and datetime serialization.
+- Removing debug scaffolding required touching several modules.
 
-### **Documentation**
-- [ ] CONFIG.md accurately documents config keys and behavior
-- [ ] PR description matches implementation
-- [ ] No stale references to removed config paths
+All changes are isolated to the `step9F-app-init-hardening` branch and do not affect unrelated subsystems.
 
----
+## Reviewer‑Friendly Diff Summary
 
-## 📌 Status
+### Major deletions
+- `logexp/app/logging.py`
+- `logexp/app/logging_setup.py`
+- All stray debug prints across ingestion, app init, and tests
 
-- [x] Centralized config system  
-- [x] Logging unification  
-- [x] Poller lifecycle hardening  
-- [x] Ingestion pipeline refactor  
-- [ ] Analytics hardening (Step 8) — **coming next**  
+### Major modifications
+- `logexp/app/logging_loader.py`  
+  → datetime serialization, propagation fix, handler isolation  
+- `logexp/app/__init__.py`  
+  → init hardening, removal of debug prints  
+- `logexp/app/ingestion.py`  
+  → cleanup of config debug output  
+- `logexp/app/poller.py`  
+  → structured debug logging  
+- `tests/test_logging_analytics.py`  
+  → restored contract test, removed instrumentation  
+- `tests/conftest.py`  
+  → cleanup of debug scaffolding  
 
-This PR remains **WIP** until Step 8 is completed.
+### Additions
+- `logexp/app/bp/health/`  
+- `tests/__init__.py`
 
----
+## Status
 
-## 🏷️ Suggested Labels
-
-- `refactor`
-- `enhancement`
-- `architecture`
-- `backend`
-- `observability`
-- `testing`
-- `WIP`
+**All tests passing: 26/26**  
+**Branch:** `step9F-app-init-hardening`  
+**Ready for review**
