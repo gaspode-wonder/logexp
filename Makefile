@@ -181,3 +181,9 @@ check-env: ## Validate required environment variables for parity with CI
 # -------------------------------------------------------------------
 log-demo:
 	@PYTHONPATH=. python scripts/log_demo.py
+
+.PHONY: analytics-demo
+
+analytics-demo:
+	PYTHONPATH=. python scripts/analytics_demo.py
+
