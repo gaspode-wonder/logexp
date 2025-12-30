@@ -69,7 +69,7 @@ Final config = defaults → env → overrides.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `ANALYTICS_ENABLED` | bool | `True` | Enables analytics calculations. |
-| `ANALYTICS_WINDOW` | int | `60` | Rolling window size in seconds. |
+| `ANALYTICS_WINDOW_SECONDS` | int | `60` | Rolling window size in seconds. |
 ---
 ### Ingestion
 | Key | Type | Default | Description |

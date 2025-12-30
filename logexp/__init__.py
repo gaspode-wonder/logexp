@@ -1,1 +1,2 @@
-# Marks logexp as a package; no runtime logic here.
+from logexp.app.logging_setup import configure_logging
+configure_logging()

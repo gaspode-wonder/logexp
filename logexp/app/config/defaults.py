@@ -11,7 +11,7 @@ DEFAULTS = {
 
     # Analytics
     "ANALYTICS_ENABLED": True,
-    "ANALYTICS_WINDOW": 60,  # seconds
+    "ANALYTICS_WINDOW_SECONDS": 60,
     "ANALYTICS_SMOOTHING_FACTOR": 0.5,
 
     # Ingestion
