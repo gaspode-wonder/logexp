@@ -64,17 +64,8 @@ db-reset: ## Drop + recreate + migrate the development database
 # test-db: Rebuild the test database schema
 # ---------------------------------------------------------------------------
 test-db: ## Rebuild the test database schema
-	@echo ">>> Rebuilding test database..."
-	$(ACTIVATE) && python - << 'EOF'
-from logexp.app import create_app
-from logexp.app.extensions import db
-
-app = create_app("testing")
-with app.app_context():
-	db.drop_all()
-	db.create_all()
-print("Test DB rebuilt.")
-EOF
+	@echo ">>> Rebuilding the test database..."
+	$(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py
 
 # =============================================================================
 # Testing & CI Parity
@@ -166,3 +157,36 @@ db-upgrade: ## Apply database migrations
 	$(ACTIVATE) && \
 		export FLASK_APP=logexp.app:create_app && \
 		flask db upgrade
+
+# ---------------------------------------------------------------------------
+# check-env: Validate required environment variables for parity with CI
+# ---------------------------------------------------------------------------
+check-env: ## Validate required environment variables for parity with CI
+	@echo ">>> Checking environment variable parity..."
+	@python scripts/check_env_parity.py
+
+# -------------------------------------------------------------------
+# LOGGING UTILITIES
+#
+# log-demo:
+#   Runs a minimal application instance using explicit config overrides
+#   and emits a single structured JSON log line. This is the fastest way
+#   for any maintainer to verify that:
+#     - Structured logging is wired correctly
+#     - UTC timestamps are being produced
+#     - app.logger is isolated (root logger untouched)
+#     - pytest/caplog compatibility remains intact
+#
+#   Implementation lives in: scripts/log_demo.py
+# -------------------------------------------------------------------
+log-demo:
+	@PYTHONPATH=. python scripts/log_demo.py
+
+log-demo:
+	@PYTHONPATH=. python scripts/log_demo.py
+
+.PHONY: analytics-demo
+
+analytics-demo:
+	PYTHONPATH=. python scripts/analytics_demo.py
+

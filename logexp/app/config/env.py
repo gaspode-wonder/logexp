@@ -5,7 +5,7 @@ def coerce_value(key, value):
                "SHOW_DIAGNOSTICS", "SHOW_ANALYTICS"}:
         return value.lower() in {"1", "true", "yes", "on"}
 
-    if key in {"POLL_INTERVAL", "ANALYTICS_WINDOW", "INGESTION_BATCH_SIZE"}:
+    if key in {"POLL_INTERVAL", "ANALYTICS_WINDOW_SECONDS", "INGESTION_BATCH_SIZE"}:
         return int(value)
 
     return value
@@ -23,7 +23,7 @@ def load_env_values():
             "POLL_INTERVAL",
             "GEIGER_DEVICE_PATH",
             "ANALYTICS_ENABLED",
-            "ANALYTICS_WINDOW",
+            "ANALYTICS_WINDOW_SECONDS",
             "INGESTION_ENABLED",
             "INGESTION_BATCH_SIZE",
             "SHOW_DIAGNOSTICS",
