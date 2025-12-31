@@ -1,6 +1,4 @@
-import multiprocessing
-import os
-
+# gunicorn.conf.py
 # Bind inside the container; external port mapping is done by Docker
 bind = "0.0.0.0:5000"
 
