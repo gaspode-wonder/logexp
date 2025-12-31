@@ -1,134 +1,117 @@
-# filename: logexp/app/ingestion.py
-# Step 11C: Schema Enforcement & Validation Integration
-#
-# This module implements batch ingestion of readings with:
-# - payload validation (graceful failure)
-# - timestamp normalization
-# - structured logging
-# - ORM model creation
-# - deterministic commit/rollback behavior
+# filename: logexp/app/services/ingestion.py
+# Step 11D-3: Ingestion pipeline restoration
+
 from __future__ import annotations
 
-from datetime import datetime
-import logging
+from datetime import datetime, timezone
 
+from flask import jsonify, request
+
+from logexp.app.extensions import db
+from logexp.app.logging_setup import get_logger
 from logexp.app.models import LogExpReading
-from logexp.app.timestamps import normalize_timestamp
 from logexp.validation.ingestion_validator import validate_ingestion_payload
 
-logger = logging.getLogger("logexp.ingestion")
+log = get_logger("logexp.ingestion")
 
 
-def ingest_readings(db_session, readings, cutoff_ts: datetime):
+def register_ingestion_routes(bp):
     """
-    Ingest a batch of readings into the database.
-
-    readings: list[dict]
-    cutoff_ts: datetime (UTC)
-
-    Behavior:
-    - Each row is validated via validate_ingestion_payload()
-    - Invalid rows are skipped with structured logging
-    - Timestamps are normalized to UTC-aware datetimes
-    - ORM model instances are created for valid rows
-    - Commit is attempted once at the end
-    - On commit failure, rollback occurs and the exception is re-raised
+    Register the ingestion endpoint on the provided Blueprint.
     """
 
-    logger.info(
-        "ingestion_start",
-        extra={
-            "event": "ingestion_start",
-            "cutoff_ts": cutoff_ts.isoformat(),
-            "total_input_rows": len(readings),
-        },
-    )
+    @bp.route("/ingest", methods=["POST"])
+    def ingest():
+        """
+        Ingest a single reading.
 
-    inserted = 0
-    skipped = 0
+        Steps:
+        1. Parse JSON
+        2. Validate payload
+        3. Normalize timestamp to UTC
+        4. Insert into DB
+        5. Return success
+        """
 
-    for raw in readings:
-        # ------------------------------------------------------------
-        # Step 1: Validate payload structure
-        # ------------------------------------------------------------
-        validated = validate_ingestion_payload(raw)
+        payload = request.get_json(silent=True)
+        if payload is None:
+            log.warning("invalid_json")
+            return jsonify({"error": "invalid JSON"}), 400
+
+        validated = validate_ingestion_payload(payload)
         if validated is None:
-            skipped += 1
-            logger.info(
-                "ingestion_row_skipped",
-                extra={
-                    "event": "ingestion_row_skipped",
-                    "reason": "validation_failed",
-                    "row": raw,
-                },
-            )
-            continue
+            # Validator already logged the reason
+            return jsonify({"error": "invalid payload"}), 400
 
         # ------------------------------------------------------------
-        # Step 2: Normalize timestamp
+        # Normalize timestamp → canonical UTC datetime
         # ------------------------------------------------------------
         try:
-            ts = normalize_timestamp(validated["timestamp"])
-            validated["timestamp"] = ts
-        except Exception as exc:
-            skipped += 1
-            logger.info(
-                "ingestion_row_skipped",
-                extra={
-                    "event": "ingestion_row_skipped",
-                    "reason": f"timestamp_error: {exc}",
-                    "row": raw,
-                },
+            ts = datetime.fromisoformat(validated["timestamp"])
+        except Exception:
+            log.warning(
+                "invalid_timestamp_format", extra={"value": validated["timestamp"]}
             )
-            continue
+            return jsonify({"error": "invalid timestamp"}), 400
+
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        else:
+            ts = ts.astimezone(timezone.utc)
 
         # ------------------------------------------------------------
-        # Step 3: Create ORM model instance
+        # Create model instance (model-level validators run here)
         # ------------------------------------------------------------
-        try:
-            reading = LogExpReading(**validated)
-            db_session.add(reading)
-            inserted += 1
-        except Exception as exc:
-            skipped += 1
-            logger.info(
-                "ingestion_row_skipped",
-                extra={
-                    "event": "ingestion_row_skipped",
-                    "reason": f"model_error: {exc}",
-                    "row": raw,
-                },
-            )
-            continue
-
-    # ------------------------------------------------------------
-    # Step 4: Commit or rollback
-    # ------------------------------------------------------------
-    try:
-        db_session.commit()
-    except Exception as exc:
-        db_session.rollback()
-        logger.error(
-            "ingestion_commit_failed",
-            extra={
-                "event": "ingestion_commit_failed",
-                "reason": str(exc),
-                "cutoff_ts": cutoff_ts.isoformat(),
-            },
+        reading = LogExpReading(
+            timestamp=ts,
+            counts_per_second=float(validated["cps"]),
+            counts_per_minute=float(validated["cpm"]),
+            microsieverts_per_hour=float(validated["usv"]),
+            mode=validated["mode"],
         )
-        raise
 
-    # ------------------------------------------------------------
-    # Step 5: Final structured log
-    # ------------------------------------------------------------
-    logger.info(
-        "ingestion_complete",
-        extra={
-            "event": "ingestion_complete",
-            "inserted": inserted,
-            "skipped": skipped,
-            "cutoff_ts": cutoff_ts.isoformat(),
-        },
-    )
+        db.session.add(reading)
+        db.session.commit()
 
-    return inserted, skipped
+        return jsonify({"status": "ok", "id": reading.id}), 201
+
+
+def ingest_readings(session, *, readings, cutoff_ts):
+    """
+    Legacy ingestion entry point used by analytics/logging tests.
+    """
+
+    log.info("ingestion_start")
+
+    created = []
+
+    for payload in readings:
+        validated = validate_ingestion_payload(payload)
+        if validated is None:
+            continue
+
+        try:
+            ts = datetime.fromisoformat(validated["timestamp"])
+        except Exception:
+            continue
+
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        else:
+            ts = ts.astimezone(timezone.utc)
+
+        reading = LogExpReading(
+            timestamp=ts,
+            counts_per_second=float(validated["cps"]),
+            counts_per_minute=float(validated["cpm"]),
+            microsieverts_per_hour=float(validated["usv"]),
+            mode=validated["mode"],
+        )
+
+        session.add(reading)
+        created.append(reading)
+
+    session.commit()
+
+    log.info("ingestion_complete")
+    return created
