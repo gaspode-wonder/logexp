@@ -35,10 +35,11 @@ class LogExpReading(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     timestamp = db.Column(
-        db.String,
+        db.DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc).isoformat(),
+        default=lambda: datetime.now(timezone.utc),
     )
+
 
     counts_per_second = db.Column(db.Float, nullable=False, default=1.0)
     counts_per_minute = db.Column(db.Float, nullable=False, default=60.0)

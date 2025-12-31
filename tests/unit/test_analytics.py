@@ -68,6 +68,9 @@ def test_out_of_order_readings(test_app, reading_factory):
     """
     Analytics should handle out-of-order readings and return sorted timestamps.
     """
+    with db.engine.connect() as conn:
+        print(conn.exec_driver_sql("PRAGMA table_info(logexp_readings);").fetchall())
+
     with test_app.app_context():
         now = datetime.datetime.now(datetime.timezone.utc)
 

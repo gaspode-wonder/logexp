@@ -1,4 +1,8 @@
 # logexp/app/__init__.py
+# Canonical application factory for LogExp.
+# Restores deterministic config layering, extension initialization,
+# ingestion contract, analytics contract, and structured logging behavior.
+# Timestamp: 2025-12-30 22:32 CST
 
 from __future__ import annotations
 
@@ -15,6 +19,9 @@ from logexp.app.logging_loader import configure_logging
 from logexp.app.poller import GeigerPoller
 
 
+# ---------------------------------------------------------------------------
+# SQLite timezone support
+# ---------------------------------------------------------------------------
 def configure_sqlite_timezone_support(app: Flask) -> None:
     """
     Ensures SQLite stores and returns timezone-aware datetimes.
@@ -54,34 +61,56 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
     }
 
 
+# ---------------------------------------------------------------------------
+# Application Factory
+# ---------------------------------------------------------------------------
 def create_app(overrides: dict | None = None) -> Flask:
     """
     Central application factory.
-    Accepts overrides so tests/dev/prod all use the same initialization path.
+
+    Contract:
+    - Deterministic config layering:
+        1. Base defaults
+        2. Environment variables
+        3. Explicit overrides (tests, CI, local dev)
+    - No side effects at import time.
+    - Extensions initialized in a stable, predictable order.
+    - Ingestion and analytics controlled by explicit config flags.
     """
 
     app = Flask(__name__)
 
-    # Load config with optional overrides
+    # ----------------------------------------------------------------------
+    # 1. Load config with deterministic layering
+    # ----------------------------------------------------------------------
     app.config_obj = load_config(overrides=overrides or {})
-
-    # Apply DB URI to Flask config BEFORE initializing SQLAlchemy
+    app.config.update(app.config_obj)
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config_obj["SQLALCHEMY_DATABASE_URI"]
 
-    # Apply SQLite timezone support BEFORE db.init_app()
+    # ----------------------------------------------------------------------
+    # 2. SQLite timezone support BEFORE db.init_app()
+    # ----------------------------------------------------------------------
     configure_sqlite_timezone_support(app)
 
-    # Logging
+    # ----------------------------------------------------------------------
+    # 3. Structured logging (isolated namespace)
+    # ----------------------------------------------------------------------
     configure_logging(app)
 
-    # Initialize extensions
+    # ----------------------------------------------------------------------
+    # 4. Initialize extensions
+    # ----------------------------------------------------------------------
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Register blueprints
+    # ----------------------------------------------------------------------
+    # 5. Register blueprints
+    # ----------------------------------------------------------------------
     register_blueprints(app)
 
-    # Poller logic (disabled in tests)
+    # ----------------------------------------------------------------------
+    # 6. Ingestion contract (poller)
+    # ----------------------------------------------------------------------
     start_poller = app.config_obj["START_POLLER"]
     running_under_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
     running_shell = os.environ.get("FLASK_SHELL", "").lower() in ("1", "true", "yes")
@@ -101,7 +130,9 @@ def create_app(overrides: dict | None = None) -> Flask:
             "Poller disabled (START_POLLER=False, running under Gunicorn, shell, or tests)."
         )
 
-    # Error handlers
+    # ----------------------------------------------------------------------
+    # 7. Error handlers
+    # ----------------------------------------------------------------------
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template("errors/404.html"), 404
@@ -114,7 +145,9 @@ def create_app(overrides: dict | None = None) -> Flask:
     def internal_error(error):
         return render_template("errors/500.html"), 500
 
-    # Teardown
+    # ----------------------------------------------------------------------
+    # 8. Teardown: stop poller safely in tests
+    # ----------------------------------------------------------------------
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
         if app.config_obj["TESTING"] and getattr(app, "poller", None):
@@ -125,7 +158,9 @@ def create_app(overrides: dict | None = None) -> Flask:
                     "Poller stop called from within poller thread; skipping join."
                 )
 
-    # CLI commands
+    # ----------------------------------------------------------------------
+    # 9. CLI commands
+    # ----------------------------------------------------------------------
     @app.cli.command("geiger-start")
     def geiger_start():
         poller = getattr(current_app, "poller", None)
