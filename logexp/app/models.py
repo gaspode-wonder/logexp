@@ -1,9 +1,10 @@
 # logexp/app/models.py
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from .extensions import db
+from datetime import timezone
 from zoneinfo import ZoneInfo
+
+from .extensions import db
 
 
 class LogExpReading(db.Model):

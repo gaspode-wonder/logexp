@@ -4,13 +4,15 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from flask import request, jsonify
+
+from flask import jsonify, request
+
 from logexp.app.extensions import db
 from logexp.app.logging_setup import get_logger
-from logexp.validation.ingestion_validator import validate_ingestion_payload
 from logexp.app.models import LogExpReading
+from logexp.validation.ingestion_validator import validate_ingestion_payload
 
-log = get_logger("logexp.services.ingestion")
+log = get_logger("logexp.ingestion")
 
 
 def register_ingestion_routes(bp):
@@ -47,7 +49,9 @@ def register_ingestion_routes(bp):
         try:
             ts = datetime.fromisoformat(validated["timestamp"])
         except Exception:
-            log.warning("invalid_timestamp_format", extra={"value": validated["timestamp"]})
+            log.warning(
+                "invalid_timestamp_format", extra={"value": validated["timestamp"]}
+            )
             return jsonify({"error": "invalid timestamp"}), 400
 
         if ts.tzinfo is None:
@@ -70,3 +74,44 @@ def register_ingestion_routes(bp):
         db.session.commit()
 
         return jsonify({"status": "ok", "id": reading.id}), 201
+
+
+def ingest_readings(session, *, readings, cutoff_ts):
+    """
+    Legacy ingestion entry point used by analytics/logging tests.
+    """
+
+    log.info("ingestion_start")
+
+    created = []
+
+    for payload in readings:
+        validated = validate_ingestion_payload(payload)
+        if validated is None:
+            continue
+
+        try:
+            ts = datetime.fromisoformat(validated["timestamp"])
+        except Exception:
+            continue
+
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        else:
+            ts = ts.astimezone(timezone.utc)
+
+        reading = LogExpReading(
+            timestamp=ts,
+            counts_per_second=float(validated["cps"]),
+            counts_per_minute=float(validated["cpm"]),
+            microsieverts_per_hour=float(validated["usv"]),
+            mode=validated["mode"],
+        )
+
+        session.add(reading)
+        created.append(reading)
+
+    session.commit()
+
+    log.info("ingestion_complete")
+    return created
