@@ -1,5 +1,6 @@
 # logexp/app/services/analytics_utils.py
 
+
 def moving_average(values, smoothing_factor):
     """
     Compute an exponential moving average (EMA) over a list of numeric values.

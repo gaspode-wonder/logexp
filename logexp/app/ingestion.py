@@ -27,9 +27,7 @@ def ingest_reading(parsed: dict) -> LogExpReading:
     )
 
     if not ingestion_enabled:
-        current_app.logger.debug(
-            "Ingestion disabled by config; skipping DB write."
-        )
+        current_app.logger.debug("Ingestion disabled by config; skipping DB write.")
         return None
 
     reading = LogExpReading(

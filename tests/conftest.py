@@ -1,14 +1,17 @@
 import pytest
+
 from logexp.app import create_app
 from logexp.app.extensions import db
 
 
 @pytest.fixture(scope="session")
 def test_app():
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "START_POLLER": False,
+        }
+    )
 
     with app.app_context():
         db.create_all()

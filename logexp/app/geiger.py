@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Dict, List
+
 import serial
 import serial.tools.list_ports
-from typing import Dict, List
 
 
 def read_geiger(port: str, baudrate: int) -> str:
@@ -55,11 +56,17 @@ def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, object]:
 
         for i, p in enumerate(parts):
             if p.upper().startswith("CPS"):
-                result["counts_per_second"] = int(parts[i + 1]) if i + 1 < len(parts) else 0
+                result["counts_per_second"] = (
+                    int(parts[i + 1]) if i + 1 < len(parts) else 0
+                )
             elif p.upper().startswith("CPM"):
-                result["counts_per_minute"] = int(parts[i + 1]) if i + 1 < len(parts) else 0
+                result["counts_per_minute"] = (
+                    int(parts[i + 1]) if i + 1 < len(parts) else 0
+                )
             elif "USV" in p.upper():
-                result["microsieverts_per_hour"] = float(parts[i + 1]) if i + 1 < len(parts) else 0.0
+                result["microsieverts_per_hour"] = (
+                    float(parts[i + 1]) if i + 1 < len(parts) else 0.0
+                )
             elif p.upper() in ("SLOW", "FAST", "INST"):
                 result["mode"] = p.upper()
 

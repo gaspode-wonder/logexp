@@ -1,15 +1,19 @@
-from flask import jsonify, request, current_app
+from flask import current_app, jsonify, request
+
 from logexp.app import db
+from logexp.app.geiger import list_serial_ports, read_geiger, try_port
 from logexp.app.models import LogExpReading
 from logexp.app.schemas import ReadingCreate, ReadingResponse
-from logexp.app.geiger import read_geiger, list_serial_ports, try_port
+
 from . import bp_api
+
 
 @bp_api.get("/readings")
 def get_readings():
     readings = LogExpReading.query.order_by(LogExpReading.timestamp.asc()).all()
     responses = [ReadingResponse(**r.to_dict()).model_dump() for r in readings]
     return jsonify(responses)
+
 
 @bp_api.post("/readings")
 def create_reading():
@@ -31,12 +35,14 @@ def create_reading():
     response = ReadingResponse(**reading.to_dict())
     return jsonify(response.model_dump()), 201
 
+
 @bp_api.get("/readings.json")
 def readings_json():
     readings = (
         LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
     )
     return jsonify([r.to_dict() for r in readings])
+
 
 @bp_api.get("/geiger")
 def geiger_live():
@@ -45,6 +51,7 @@ def geiger_live():
         return jsonify({"raw": data}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @bp_api.get("/geiger/test")
 def geiger_test():
@@ -66,11 +73,13 @@ def geiger_test():
 
     return jsonify(results)
 
+
 @bp_api.get("/poller/status")
 def poller_status():
     poller = getattr(current_app, "poller", None)
     status = "running" if poller and poller._thread.is_alive() else "stopped"
     return jsonify({"status": status})
+
 
 @bp_api.post("/poller/start")
 def poller_start():
@@ -80,6 +89,7 @@ def poller_start():
         return jsonify({"status": "started"})
     return jsonify({"status": "already running"})
 
+
 @bp_api.post("/poller/stop")
 def poller_stop():
     poller = getattr(current_app, "poller", None)
@@ -87,6 +97,7 @@ def poller_stop():
         poller.stop()
         return jsonify({"status": "stopped"})
     return jsonify({"status": "not running"})
+
 
 @bp_api.get("/health")
 def health():

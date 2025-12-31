@@ -1,17 +1,15 @@
 # logexp/app/bp/analytics/routes.py
 
 import datetime
-from flask import (
-    render_template,
-    request,
-    Response,
-)
+
+from flask import Response, render_template, request
+
+from logexp.app.analytics import compute_window, run_analytics
+from logexp.app.services.analytics_diagnostics import summarize_readings
+from logexp.app.services.analytics_export import export_readings_to_csv
 
 from . import bp_analytics
 
-from logexp.app.analytics import run_analytics, compute_window
-from logexp.app.services.analytics_diagnostics import summarize_readings
-from logexp.app.services.analytics_export import export_readings_to_csv
 
 @bp_analytics.route("/", methods=["GET"])
 def analytics_index():
@@ -31,11 +29,17 @@ def analytics_index():
     if quick_range:
         now = datetime.now()
         if quick_range == "1h":
-            start_date = (now - datetime.timedelta(hours=1)).isoformat(timespec="minutes")
+            start_date = (now - datetime.timedelta(hours=1)).isoformat(
+                timespec="minutes"
+            )
         elif quick_range == "24h":
-            start_date = (now - datetime.timedelta(hours=24)).isoformat(timespec="minutes")
+            start_date = (now - datetime.timedelta(hours=24)).isoformat(
+                timespec="minutes"
+            )
         elif quick_range == "7d":
-            start_date = (now - datetime.timedelta(days=7)).isoformat(timespec="minutes")
+            start_date = (now - datetime.timedelta(days=7)).isoformat(
+                timespec="minutes"
+            )
         end_date = now.isoformat(timespec="minutes")
 
     # Run analytics subsystem
@@ -52,6 +56,7 @@ def analytics_index():
         end_date=end_date,
         metric=metric,
     )
+
 
 @bp_analytics.route("/export", methods=["GET"])
 def analytics_export():

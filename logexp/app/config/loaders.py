@@ -2,6 +2,7 @@ from .defaults import DEFAULTS
 from .env import load_env_values
 from .validators import validate_config
 
+
 def load_config(overrides=None):
     config = DEFAULTS.copy()
 

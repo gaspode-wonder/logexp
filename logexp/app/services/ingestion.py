@@ -1,7 +1,9 @@
 import logging
+
 from logexp.app.extensions import db
 
 logger = logging.getLogger("logexp.ingestion")
+
 
 def ingest_readings(db_session, readings, cutoff_ts):
     """
