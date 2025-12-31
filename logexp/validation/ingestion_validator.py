@@ -22,11 +22,11 @@ def validate_ingestion_payload(payload: dict) -> dict | None:
     - cps: int or float
     - cpm: int or float
     - usv: int or float
-    - mode: "SLOW" or "FAST"
+    - mode: "SLOW", "FAST", or "INST"
     - timestamp: ISO8601 string
 
     Returns:
-        dict  → valid payload
+        dict  → valid payload (shallow copy)
         None  → invalid payload (graceful failure)
     """
 
@@ -41,9 +41,9 @@ def validate_ingestion_payload(payload: dict) -> dict | None:
             return None
 
     # ------------------------------------------------------------
-    # Validate mode
+    # Validate mode (expanded to include INST)
     # ------------------------------------------------------------
-    if payload["mode"] not in ("SLOW", "FAST"):
+    if payload["mode"] not in ("SLOW", "FAST", "INST"):
         log.warning("invalid_mode", extra={"mode": payload["mode"]})
         return None
 
