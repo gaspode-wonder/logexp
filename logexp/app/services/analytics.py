@@ -1,7 +1,6 @@
 # logexp/app/services/analytics.py
-
-import logging
 from datetime import datetime, timezone
+import logging
 
 logger = logging.getLogger("logexp.analytics")
 

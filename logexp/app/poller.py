@@ -1,3 +1,5 @@
+# filename: logexp/app/poller.py
+
 from __future__ import annotations
 
 import os
@@ -5,18 +7,14 @@ import threading
 import time
 from typing import Optional
 
-from logexp.app.extensions import db
-from logexp.app.geiger import parse_geiger_line, read_geiger
-from logexp.app.ingestion import ingest_reading
-
 
 class GeigerPoller:
     """
     Background thread that continuously reads from the Geiger counter,
     parses the data, and stores readings in the database.
 
-    Configuration is pulled from current_app.config_obj so changes to
-    GEIGER_DEVICE_PATH, POLL_INTERVAL, or thresholds are always respected.
+    All heavy imports (ingestion, geiger, db) are intentionally lazy to avoid
+    circular imports during app initialization.
     """
 
     def __init__(self, app, interval: int = 5) -> None:
@@ -102,8 +100,15 @@ class GeigerPoller:
 
         Reads raw serial data, parses it, stores readings, and sleeps.
         Runs inside the Flask application context.
+
+        Heavy imports are intentionally placed here to avoid circular imports.
         """
         with self.app.app_context():
+            # Lazy imports to avoid circular dependencies
+            from logexp.app.extensions import db
+            from logexp.app.geiger import parse_geiger_line, read_geiger
+            from logexp.app.ingestion import ingest_reading
+
             config = self.app.config_obj
 
             while not self._stop_event.is_set():
@@ -113,8 +118,6 @@ class GeigerPoller:
                     threshold = config["GEIGER_THRESHOLD"]
 
                     raw = read_geiger(port, baud)
-                    parsed = parse_geiger_line(raw, threshold=threshold)
-
                     parsed = parse_geiger_line(raw, threshold=threshold)
 
                     ingest_reading(parsed)
@@ -128,8 +131,6 @@ class GeigerPoller:
                     )
 
                 except Exception as exc:
-                    # ingestion.reading already rolls back on ingestion errors;
-                    # this catch is for read/parse errors and any unexpected failures.
                     db.session.rollback()
                     self.app.logger.error(f"Geiger poll error: {exc}")
 
