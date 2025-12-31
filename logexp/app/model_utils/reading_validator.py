@@ -1,10 +1,10 @@
 # logexp/app/model_utils/reading_validator.py
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
-
 
 ValidMode = Literal["SLOW", "FAST", "INST"]
 
