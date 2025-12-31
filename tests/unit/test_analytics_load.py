@@ -12,7 +12,7 @@ def test_high_volume_readings(test_app, reading_factory):
     with test_app.app_context():
         now = datetime.datetime.now(datetime.timezone.utc)
 
-        for i in range(1000):
+        for _ in range(1000):
             ts = now - datetime.timedelta(seconds=random.randint(0, 120))
             reading_factory(ts, cps=random.randint(1, 100))
 
@@ -62,7 +62,7 @@ def test_large_window(test_app, reading_factory):
 
         now = datetime.datetime.now(datetime.timezone.utc)
 
-        for i in range(300):
+        for _ in range(300):
             ts = now - datetime.timedelta(seconds=random.randint(0, 3500))
             reading_factory(ts, cps=5)
 

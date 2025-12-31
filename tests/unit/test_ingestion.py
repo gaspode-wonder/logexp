@@ -1,7 +1,8 @@
-import pytest
-
+# test/unit/test_ingestion.py
 from logexp.app.ingestion import ingest_reading
 from logexp.app.models import LogExpReading
+
+import pytest
 
 
 @pytest.fixture

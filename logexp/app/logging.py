@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+# logexp/app/logging.py
 import json
 import logging
+from datetime import datetime, timezone
 
 
 class StructuredFormatter(logging.Formatter):
