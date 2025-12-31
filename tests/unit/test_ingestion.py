@@ -1,4 +1,5 @@
 import pytest
+
 from logexp.app.ingestion import ingest_reading
 from logexp.app.models import LogExpReading
 
@@ -14,6 +15,7 @@ def parsed_factory():
         }
         base.update(overrides)
         return base
+
     return _make
 
 
@@ -41,8 +43,9 @@ def test_ingestion_disabled_skips_write(
         assert db_session.query(LogExpReading).count() == 0
 
 
-
-def test_ingest_reading_rollback_on_error(test_app, db_session, monkeypatch, parsed_factory):
+def test_ingest_reading_rollback_on_error(
+    test_app, db_session, monkeypatch, parsed_factory
+):
     def boom():
         raise RuntimeError("forced commit failure")
 

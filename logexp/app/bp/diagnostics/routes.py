@@ -1,5 +1,7 @@
-from flask import render_template, jsonify, current_app
+from flask import current_app, jsonify, render_template
+
 from . import bp_diagnostics
+
 
 # ---------------------------------------------------------------------------
 # Diagnostics Home
@@ -21,10 +23,12 @@ def diagnostics_index():
         config=config,
     )
 
+
 # Support /diagnostics (no trailing slash)
 @bp_diagnostics.route("", methods=["GET"])
 def diagnostics_index_no_slash():
     return diagnostics_index()
+
 
 # ---------------------------------------------------------------------------
 # Diagnostics JSON test endpoint

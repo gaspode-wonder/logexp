@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import datetime
 import os
 import sqlite3
-import datetime
-from flask import Flask, render_template, current_app
 
-from logexp.app.config import load_config
-from logexp.app.poller import GeigerPoller
-from logexp.app.extensions import db, migrate
+from flask import Flask, current_app, render_template
+
 from logexp.app.blueprints import register_blueprints
+from logexp.app.config import load_config
+from logexp.app.extensions import db, migrate
 from logexp.app.logging_loader import configure_logging
+from logexp.app.poller import GeigerPoller
 
 
 def configure_sqlite_timezone_support(app: Flask) -> None:
@@ -42,7 +43,6 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
             return datetime.datetime.fromisoformat(val)
 
         raise TypeError(f"Unexpected type for datetime conversion: {type(val)}")
-
 
     sqlite3.register_adapter(datetime.datetime, adapt_datetime)
     sqlite3.register_converter("timestamp", convert_datetime)
@@ -87,7 +87,12 @@ def create_app(overrides: dict | None = None) -> Flask:
     running_shell = os.environ.get("FLASK_SHELL", "").lower() in ("1", "true", "yes")
     running_tests = app.config_obj.get("TESTING", False)
 
-    if start_poller and not running_under_gunicorn and not running_shell and not running_tests:
+    if (
+        start_poller
+        and not running_under_gunicorn
+        and not running_shell
+        and not running_tests
+    ):
         app.logger.info("Starting GeigerPoller (safe mode).")
         app.poller = GeigerPoller(app)
         app.poller.start()
@@ -142,6 +147,7 @@ def create_app(overrides: dict | None = None) -> Flask:
     @app.cli.command("seed-data")
     def seed_data():
         from logexp.seeds import seed_data
+
         seed_data.run(app)
         current_app.logger.info("Database seeded (idempotent).")
 

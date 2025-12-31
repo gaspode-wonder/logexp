@@ -4,15 +4,17 @@ from datetime import datetime, timezone
 
 from logexp.app import create_app
 from logexp.app.extensions import db
-from logexp.app.services.ingestion import ingest_readings
 from logexp.app.services.analytics import run_analytics
+from logexp.app.services.ingestion import ingest_readings
 
 
 def test_ingestion_logging_contract(caplog):
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "START_POLLER": False,
+        }
+    )
 
     caplog.set_level(logging.INFO)
 
@@ -33,10 +35,12 @@ def test_ingestion_logging_contract(caplog):
 
 
 def test_analytics_logging_contract(caplog):
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "START_POLLER": False,
+        }
+    )
 
     caplog.set_level(logging.INFO)
 

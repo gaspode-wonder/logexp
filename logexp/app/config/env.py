@@ -1,8 +1,14 @@
 import os
 
+
 def coerce_value(key, value):
-    if key in {"START_POLLER", "ANALYTICS_ENABLED", "INGESTION_ENABLED",
-               "SHOW_DIAGNOSTICS", "SHOW_ANALYTICS"}:
+    if key in {
+        "START_POLLER",
+        "ANALYTICS_ENABLED",
+        "INGESTION_ENABLED",
+        "SHOW_DIAGNOSTICS",
+        "SHOW_ANALYTICS",
+    }:
         return value.lower() in {"1", "true", "yes", "on"}
 
     if key in {"POLL_INTERVAL", "ANALYTICS_WINDOW_SECONDS", "INGESTION_BATCH_SIZE"}:

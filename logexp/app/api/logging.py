@@ -1,6 +1,7 @@
 import logging
 import sys
 
+
 def configure_logging(app):
     """Configure unified logging for LogExp."""
 

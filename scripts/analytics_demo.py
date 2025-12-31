@@ -4,10 +4,12 @@ from logexp.app.services.analytics import run_analytics
 
 
 def main():
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "START_POLLER": False,
+        }
+    )
 
     with app.app_context():
         result = run_analytics(db.session)

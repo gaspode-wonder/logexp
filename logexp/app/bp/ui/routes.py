@@ -1,10 +1,14 @@
-from flask import render_template, redirect, url_for, current_app
+from flask import current_app, redirect, render_template, url_for
+
 from logexp.app.models import LogExpReading
+
 from . import bp_ui
+
 
 @bp_ui.route("/")
 def index():
     return redirect(url_for("ui.readings_index"))
+
 
 @bp_ui.route("/readings")
 def readings_index():

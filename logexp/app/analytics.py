@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+
 from flask import current_app
 
 from logexp.app.extensions import db
@@ -22,11 +23,7 @@ def compute_window(now=None):
 
     cutoff = now - datetime.timedelta(seconds=window_seconds)
 
-    rows = (
-        db.session.query(LogExpReading)
-        .order_by(LogExpReading.id.asc())
-        .all()
-    )
+    rows = db.session.query(LogExpReading).order_by(LogExpReading.id.asc()).all()
 
     result = []
     for r in rows:

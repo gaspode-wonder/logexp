@@ -10,6 +10,7 @@ class StructuredFormatter(logging.Formatter):
     Produces logs like:
     {"ts": "...", "level": "...", "msg": "...", "name": "..."}
     """
+
     def format(self, record):
         payload = {
             "ts": datetime.now(timezone.utc).isoformat(),
@@ -22,5 +23,3 @@ class StructuredFormatter(logging.Formatter):
         record.message = json.dumps(payload)
 
         return record.message
-
-

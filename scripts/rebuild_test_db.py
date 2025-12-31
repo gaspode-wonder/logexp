@@ -5,10 +5,12 @@ from logexp.app.extensions import db
 
 
 def main() -> None:
-    app = create_app({
-        "TESTING": True,
-        "START_POLLER": False,
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "START_POLLER": False,
+        }
+    )
 
     with app.app_context():
         db.drop_all()
