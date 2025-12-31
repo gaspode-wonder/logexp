@@ -190,3 +190,34 @@ log-demo:
 analytics-demo:
 	PYTHONPATH=. python scripts/analytics_demo.py
 
+# ==============================================================================
+# Formatting & Linting (Step 10A)
+#
+# These targets provide a consistent, repo‑wide formatting and linting workflow.
+# - `make format`      applies Black and isort to rewrite files in place
+# - `make lint`        runs flake8 with bugbear and import‑order checks
+# - `make check-format` verifies formatting without modifying files
+# - `make check-lint`  runs linting in CI‑style "fail on error" mode
+#
+# All tools are configured for:
+#   - 100‑character line length
+#   - Black‑compatible flake8 rules (E203, W503 ignored)
+#   - Google‑style import ordering via isort + flake8‑import‑order
+#
+# These targets are mechanical and must never change runtime behavior.
+# They exist to ensure deterministic formatting, predictable diffs,
+# and a clean CI pipeline.
+# ==============================================================================
+format:
+	black .
+	isort .
+
+lint:
+	flake8 .
+
+check-format:
+	black --check .
+	isort --check-only .
+
+check-lint:
+	flake8 .
