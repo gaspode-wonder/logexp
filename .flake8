@@ -1,0 +1,15 @@
+[flake8]
+max-line-length = 100
+extend-ignore =
+    E203  # whitespace before ':', conflicts with Black
+    W503  # line break before binary operator, conflicts with Black
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    build,
+    dist
+
+# Plugins
+import-order-style = google
+application-import-names = logexp
