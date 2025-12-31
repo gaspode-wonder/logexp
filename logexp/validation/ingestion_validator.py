@@ -1,0 +1,53 @@
+# filename: logexp/validation/ingestion_validator.py
+
+"""
+Validation for ingestion payloads.
+
+Ensures that incoming readings contain the required fields, are well-typed,
+and safe for ingestion into the database.
+"""
+
+from __future__ import annotations
+
+from logexp.app.logging_setup import get_logger
+
+log = get_logger("logexp.validation.ingestion_validator")
+
+
+def validate_ingestion_payload(payload: dict) -> dict | None:
+    """
+    Validate a single ingestion payload.
+
+    Required keys:
+    - cps: int or float
+    - cpm: int or float
+    - usv: int or float
+    - mode: "SLOW", "FAST", or "INST"
+    - timestamp: ISO8601 string
+
+    Returns:
+        dict  → valid payload (shallow copy)
+        None  → invalid payload (graceful failure)
+    """
+
+    required = ["cps", "cpm", "usv", "mode", "timestamp"]
+
+    # ------------------------------------------------------------
+    # Check required keys and nulls
+    # ------------------------------------------------------------
+    for key in required:
+        if key not in payload or payload[key] is None:
+            log.warning("missing_key", extra={"key": key})
+            return None
+
+    # ------------------------------------------------------------
+    # Validate mode (expanded to include INST)
+    # ------------------------------------------------------------
+    if payload["mode"] not in ("SLOW", "FAST", "INST"):
+        log.warning("invalid_mode", extra={"mode": payload["mode"]})
+        return None
+
+    # ------------------------------------------------------------
+    # Return a shallow copy to avoid mutation
+    # ------------------------------------------------------------
+    return dict(payload)
