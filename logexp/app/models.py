@@ -22,20 +22,18 @@ class LogExpReading(db.Model):
 
         ts = self.timestamp
         if ts.tzinfo is None:
-            # naive → assume UTC first, then convert
             ts = ts.replace(tzinfo=timezone.utc)
 
         localized = ts.astimezone(local_tz)
 
         return {
             "id": self.id,
-            "timestamp": localized,  # <-- datetime object, not string
+            "timestamp": localized,
             "counts_per_second": self.counts_per_second,
             "counts_per_minute": self.counts_per_minute,
             "microsieverts_per_hour": self.microsieverts_per_hour,
             "mode": self.mode,
         }
-
 
     @property
     def timestamp_dt(self):
