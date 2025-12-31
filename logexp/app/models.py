@@ -40,7 +40,6 @@ class LogExpReading(db.Model):
         default=lambda: datetime.now(timezone.utc),
     )
 
-
     counts_per_second = db.Column(db.Float, nullable=False, default=1.0)
     counts_per_minute = db.Column(db.Float, nullable=False, default=60.0)
     microsieverts_per_hour = db.Column(db.Float, nullable=False, default=0.01)

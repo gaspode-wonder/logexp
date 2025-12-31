@@ -1,5 +1,4 @@
 # logexp/app/services/analytics.py
-
 from datetime import datetime, timezone
 import logging
 
