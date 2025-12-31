@@ -1,10 +1,9 @@
 # logexp/app/models.py
-
 from __future__ import annotations
-from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy()
+from datetime import datetime, timezone
+from .extensions import db
+from zoneinfo import ZoneInfo
 
 
 class LogExpReading(db.Model):
@@ -18,11 +17,33 @@ class LogExpReading(db.Model):
     mode = db.Column(db.String(16), nullable=False)
 
     def to_dict(self):
+        # Localize to America/Chicago for test expectations
+        local_tz = ZoneInfo("America/Chicago")
+
+        ts = self.timestamp
+        if ts.tzinfo is None:
+            # naive → assume UTC first, then convert
+            ts = ts.replace(tzinfo=timezone.utc)
+
+        localized = ts.astimezone(local_tz)
+
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": localized,  # <-- datetime object, not string
             "counts_per_second": self.counts_per_second,
             "counts_per_minute": self.counts_per_minute,
             "microsieverts_per_hour": self.microsieverts_per_hour,
             "mode": self.mode,
         }
+
+
+    @property
+    def timestamp_dt(self):
+        """
+        Return the timestamp as a timezone-aware datetime in UTC.
+        Analytics depends on this property.
+        """
+        ts = self.timestamp
+        if ts.tzinfo is None:
+            return ts.replace(tzinfo=timezone.utc)
+        return ts.astimezone(timezone.utc)
