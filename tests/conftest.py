@@ -3,7 +3,7 @@ import pytest
 
 from logexp.app import create_app
 from logexp.app.extensions import db
-from tests.fixtures.reading_factory import reading_factory
+from tests.fixtures.reading_factory import reading_factory  # noqa: F401
 
 
 @pytest.fixture(scope="function")
@@ -24,7 +24,6 @@ def test_app():
         yield app
         db.session.remove()
         db.drop_all()
-
 
 
 @pytest.fixture(scope="function")

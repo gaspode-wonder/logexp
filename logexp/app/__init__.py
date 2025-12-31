@@ -1,13 +1,11 @@
-# logexp/app/__init__.py
+# filename: logexp/app/__init__.py
 # Canonical application factory for LogExp.
 # Restores deterministic config layering, extension initialization,
 # ingestion contract, analytics contract, and structured logging behavior.
-# Timestamp: 2025-12-30 22:32 CST
 
 from __future__ import annotations
 
 import datetime
-import os
 import sqlite3
 
 from flask import Flask, current_app, render_template
@@ -15,8 +13,10 @@ from flask import Flask, current_app, render_template
 from logexp.app.blueprints import register_blueprints
 from logexp.app.config import load_config
 from logexp.app.extensions import db, migrate
-from logexp.app.logging_loader import configure_logging
-from logexp.app.poller import GeigerPoller
+from logexp.app.logging_setup import configure_logging
+
+# NOTE: Poller import removed to avoid circular imports.
+# Poller is now started in wsgi.py.
 
 
 # ---------------------------------------------------------------------------
@@ -32,23 +32,14 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
         return dt.isoformat()
 
     def convert_datetime(val):
-        # SQLite may give us:
-        # - bytes (ISO string)
-        # - str (ISO string)
-        # - datetime (already parsed)
-        # - None
         if val is None:
             return None
-
         if isinstance(val, datetime.datetime):
             return val
-
         if isinstance(val, bytes):
             val = val.decode()
-
         if isinstance(val, str):
             return datetime.datetime.fromisoformat(val)
-
         raise TypeError(f"Unexpected type for datetime conversion: {type(val)}")
 
     sqlite3.register_adapter(datetime.datetime, adapt_datetime)
@@ -69,70 +60,38 @@ def create_app(overrides: dict | None = None) -> Flask:
     Central application factory.
 
     Contract:
-    - Deterministic config layering:
-        1. Base defaults
-        2. Environment variables
-        3. Explicit overrides (tests, CI, local dev)
-    - No side effects at import time.
-    - Extensions initialized in a stable, predictable order.
-    - Ingestion and analytics controlled by explicit config flags.
+    - Deterministic config layering
+    - No side effects at import time
+    - Extensions initialized in a stable, predictable order
+    - Ingestion and analytics controlled by explicit config flags
     """
 
     app = Flask(__name__)
 
-    # ----------------------------------------------------------------------
-    # 1. Load config with deterministic layering
-    # ----------------------------------------------------------------------
+    # 1. Load config
     app.config_obj = load_config(overrides=overrides or {})
     app.config.update(app.config_obj)
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config_obj["SQLALCHEMY_DATABASE_URI"]
 
-    # ----------------------------------------------------------------------
-    # 2. SQLite timezone support BEFORE db.init_app()
-    # ----------------------------------------------------------------------
+    # 2. SQLite timezone support
     configure_sqlite_timezone_support(app)
 
-    # ----------------------------------------------------------------------
-    # 3. Structured logging (isolated namespace)
-    # ----------------------------------------------------------------------
-    configure_logging(app)
+    # 3. Structured logging
+    configure_logging()
 
-    # ----------------------------------------------------------------------
     # 4. Initialize extensions
-    # ----------------------------------------------------------------------
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # ----------------------------------------------------------------------
     # 5. Register blueprints
-    # ----------------------------------------------------------------------
     register_blueprints(app)
 
-    # ----------------------------------------------------------------------
-    # 6. Ingestion contract (poller)
-    # ----------------------------------------------------------------------
-    start_poller = app.config_obj["START_POLLER"]
-    running_under_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
-    running_shell = os.environ.get("FLASK_SHELL", "").lower() in ("1", "true", "yes")
-    running_tests = app.config_obj.get("TESTING", False)
+    # 6. Poller startup REMOVED — now handled in wsgi.py
+    app.logger.info(
+        "Poller startup moved to wsgi.py (START_POLLER, gunicorn, shell, tests respected)."
+    )
 
-    if (
-        start_poller
-        and not running_under_gunicorn
-        and not running_shell
-        and not running_tests
-    ):
-        app.logger.info("Starting GeigerPoller (safe mode).")
-        app.poller = GeigerPoller(app)
-        app.poller.start()
-    else:
-        app.logger.info(
-            "Poller disabled (START_POLLER=False, running under Gunicorn, shell, or tests)."
-        )
-
-    # ----------------------------------------------------------------------
     # 7. Error handlers
-    # ----------------------------------------------------------------------
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template("errors/404.html"), 404
@@ -145,9 +104,7 @@ def create_app(overrides: dict | None = None) -> Flask:
     def internal_error(error):
         return render_template("errors/500.html"), 500
 
-    # ----------------------------------------------------------------------
     # 8. Teardown: stop poller safely in tests
-    # ----------------------------------------------------------------------
     @app.teardown_appcontext
     def shutdown_poller(exception=None):
         if app.config_obj["TESTING"] and getattr(app, "poller", None):
@@ -158,9 +115,7 @@ def create_app(overrides: dict | None = None) -> Flask:
                     "Poller stop called from within poller thread; skipping join."
                 )
 
-    # ----------------------------------------------------------------------
     # 9. CLI commands
-    # ----------------------------------------------------------------------
     @app.cli.command("geiger-start")
     def geiger_start():
         poller = getattr(current_app, "poller", None)
