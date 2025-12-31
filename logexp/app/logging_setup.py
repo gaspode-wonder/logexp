@@ -4,6 +4,7 @@
 # Ensures structured JSON logs are attached before any app or tests run.
 
 import logging
+
 from logexp.app.logging import StructuredFormatter
 
 

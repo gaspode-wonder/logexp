@@ -1,6 +1,7 @@
 import datetime
 import random
-from logexp.app.analytics import run_analytics, compute_window
+
+from logexp.app.analytics import compute_window, run_analytics
 from logexp.app.extensions import db
 
 
@@ -31,7 +32,8 @@ def test_randomized_timestamps(test_app, reading_factory):
         now = datetime.datetime.now(datetime.timezone.utc)
 
         timestamps = [
-            now - datetime.timedelta(
+            now
+            - datetime.timedelta(
                 seconds=random.randint(
                     0, test_app.config_obj["ANALYTICS_WINDOW_SECONDS"] - 1
                 )

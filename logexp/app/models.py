@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict
+from zoneinfo import ZoneInfo
 
 from flask import current_app
-from zoneinfo import ZoneInfo
 
 from logexp.app.extensions import db
 

@@ -1,5 +1,6 @@
 # logexp/app/services/analytics_diagnostics.py
 
+
 def summarize_readings(readings):
     """
     Produce a lightweight diagnostic summary for debugging.

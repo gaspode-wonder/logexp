@@ -1,16 +1,12 @@
 from __future__ import annotations
 
+import os
 import threading
 import time
-import os
-from datetime import datetime, timezone
 from typing import Optional
 
-from flask import current_app
-
-from logexp.app.geiger import read_geiger, parse_geiger_line
 from logexp.app.extensions import db
-from logexp.app.models import LogExpReading
+from logexp.app.geiger import parse_geiger_line, read_geiger
 from logexp.app.ingestion import ingest_reading
 
 
@@ -56,7 +52,9 @@ class GeigerPoller:
 
         # Already running?
         if self._running:
-            self.app.logger.warning("Poller.start() called but poller is already running.")
+            self.app.logger.warning(
+                "Poller.start() called but poller is already running."
+            )
             return
 
         self._running = True
@@ -93,7 +91,9 @@ class GeigerPoller:
                 self._thread.join(timeout=2)
                 self.app.logger.info("GeigerPoller stopped cleanly.")
             else:
-                self.app.logger.debug("Poller.stop() called from poller thread; skipping join.")
+                self.app.logger.debug(
+                    "Poller.stop() called from poller thread; skipping join."
+                )
 
     # ------------------------------------------------------------------
     def _run(self) -> None:

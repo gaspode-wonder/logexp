@@ -1,5 +1,6 @@
 import logging
 
+
 def configure_logging(app):
     """
     Configure application-wide logging.
@@ -9,8 +10,7 @@ def configure_logging(app):
     - Respects Flask's debug level
     """
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+        level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
 
     # Flask's logger should use the same handlers
