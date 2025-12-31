@@ -3,15 +3,11 @@ from __future__ import annotations
 import os
 import threading
 import time
-from datetime import datetime, timezone
 from typing import Optional
-
-from flask import current_app
 
 from logexp.app.extensions import db
 from logexp.app.geiger import parse_geiger_line, read_geiger
 from logexp.app.ingestion import ingest_reading
-from logexp.app.models import LogExpReading
 
 
 class GeigerPoller:
