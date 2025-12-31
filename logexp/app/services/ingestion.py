@@ -1,5 +1,5 @@
-# filename: logexp/app/ingestion.py
-# Step 11C: Schema Enforcement & Validation Integration
+# filename: logexp/app/services/ingestion.py
+# Step 11D-1: Ingestion validation wiring
 #
 # This module implements batch ingestion of readings with:
 # - payload validation (graceful failure)
