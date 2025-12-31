@@ -1,6 +1,6 @@
+from datetime import datetime, timezone
 import json
 import logging
-from datetime import datetime, timezone
 
 
 class StructuredFormatter(logging.Formatter):

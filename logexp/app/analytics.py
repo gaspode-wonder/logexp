@@ -1,3 +1,5 @@
+# logexp/app/analytics.py
+
 from __future__ import annotations
 
 import datetime
@@ -13,17 +15,32 @@ def compute_window(now=None):
     Deterministic analytics window calculation.
 
     Tests may pass a fixed 'now' to eliminate microsecond drift.
-    Production uses the real current time.
+    Production uses the timestamp of the newest reading as the reference point
+    when 'now' is not provided, ensuring deterministic behavior.
     """
+    # If no explicit 'now' is provided, anchor to the newest reading.
     if now is None:
-        now = datetime.datetime.now(datetime.timezone.utc)
+        latest = (
+            db.session.query(LogExpReading)
+            .order_by(LogExpReading.timestamp.desc())
+            .first()
+        )
+        if latest is not None:
+            now = latest.timestamp_dt
+        else:
+            # No readings exist; fallback to real current time.
+            now = datetime.datetime.now(datetime.timezone.utc)
 
     config = current_app.config_obj
     window_seconds = config["ANALYTICS_WINDOW_SECONDS"]
 
     cutoff = now - datetime.timedelta(seconds=window_seconds)
 
-    rows = db.session.query(LogExpReading).order_by(LogExpReading.id.asc()).all()
+    rows = (
+        db.session.query(LogExpReading)
+        .order_by(LogExpReading.id.asc())
+        .all()
+    )
 
     result = []
     for r in rows:
@@ -34,7 +51,7 @@ def compute_window(now=None):
     return result
 
 
-def run_analytics():
+def run_analytics(now=None):
     """
     Legacy/compatibility wrapper used by routes and tests.
 
@@ -48,7 +65,7 @@ def run_analytics():
     if not config.get("ANALYTICS_ENABLED", True):
         return None
 
-    readings = compute_window()
+    readings = compute_window(now=now)
 
     if not readings:
         return None
