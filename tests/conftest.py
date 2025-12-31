@@ -1,3 +1,4 @@
+# tests/conftest.py
 import pytest
 
 from logexp.app import create_app
@@ -10,6 +11,9 @@ def test_app():
         {
             "TESTING": True,
             "START_POLLER": False,
+            "ANALYTICS_ENABLED": True,
+            "ANALYTICS_WINDOW_SECONDS": 60,
+            "LOCAL_TIMEZONE": "UTC",
         }
     )
 

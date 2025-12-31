@@ -1,6 +1,6 @@
 # tests/test_logging_analytics.py
-import logging
 from datetime import datetime, timezone
+import logging
 
 from logexp.app import create_app
 from logexp.app.extensions import db
