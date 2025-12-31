@@ -3,9 +3,10 @@ import pytest
 
 from logexp.app import create_app
 from logexp.app.extensions import db
+from tests.fixtures.reading_factory import reading_factory
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def test_app():
     app = create_app(
         {
@@ -18,9 +19,12 @@ def test_app():
     )
 
     with app.app_context():
+        db.drop_all()
         db.create_all()
         yield app
+        db.session.remove()
         db.drop_all()
+
 
 
 @pytest.fixture(scope="function")
