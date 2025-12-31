@@ -1,12 +1,11 @@
 from datetime import datetime
 
 from flask import Flask
+import pytest
 
 from logexp.app.config import load_config
 from logexp.app.models import LogExpReading
 from logexp.seeds.seed_data import seed_test_data
-
-import pytest
 
 
 @pytest.fixture

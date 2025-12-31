@@ -1,9 +1,8 @@
 # tests/conftest.py
-from logexp.app import create_app
-from logexp.app.extensions import db
-
 import pytest
 
+from logexp.app import create_app
+from logexp.app.extensions import db
 from tests.fixtures.reading_factory import reading_factory  # noqa: F401
 
 

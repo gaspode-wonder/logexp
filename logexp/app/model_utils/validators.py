@@ -2,10 +2,9 @@
 """
 SQLAlchemy model-level validation hooks.
 """
-from logexp.logging import get_logger
-
 from sqlalchemy.orm import validates
 
+from logexp.logging import get_logger
 
 log = get_logger(__name__)
 

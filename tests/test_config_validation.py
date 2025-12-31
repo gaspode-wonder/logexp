@@ -1,7 +1,7 @@
 # filename: tests/test_config_validation.py
-from logexp.validation.config_validator import validate_config
-
 import pytest
+
+from logexp.validation.config_validator import validate_config
 
 
 def test_invalid_window():

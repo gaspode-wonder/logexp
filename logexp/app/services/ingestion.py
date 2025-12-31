@@ -9,13 +9,12 @@
 # - deterministic commit/rollback behavior
 from __future__ import annotations
 
-import logging
 from datetime import datetime
+import logging
 
 from logexp.app.models import LogExpReading
 from logexp.app.timestamps import normalize_timestamp
 from logexp.validation.ingestion_validator import validate_ingestion_payload
-
 
 logger = logging.getLogger("logexp.ingestion")
 
