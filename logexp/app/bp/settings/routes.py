@@ -1,6 +1,9 @@
-from flask import render_template, request, current_app, redirect, url_for
+from flask import current_app, redirect, render_template, request, url_for
+
 from logexp.app.geiger import list_serial_ports
+
 from . import bp_settings
+
 
 @bp_settings.get("/")
 def settings_index():
@@ -13,6 +16,7 @@ def settings_index():
         configured_port=configured_port,
         baudrate=baudrate,
     )
+
 
 @bp_settings.post("/")
 def update_settings():

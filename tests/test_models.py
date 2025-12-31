@@ -1,23 +1,28 @@
-import pytest
 from datetime import datetime
+
+import pytest
 from flask import Flask
-from logexp.seeds.seed_data import seed_test_data
-from logexp.app.models import LogExpReading
+
 from logexp.app.config import load_config
+from logexp.app.models import LogExpReading
+from logexp.seeds.seed_data import seed_test_data
 
 
 @pytest.fixture
 def app():
     app = Flask(__name__)
-    
+
     # Attach a proper config object
-    app.config_obj = load_config(overrides={
-        "LOCAL_TIMEZONE": "America/Chicago",
-        "TESTING": True,
-        "START_POLLER": False,
-    })
-    
+    app.config_obj = load_config(
+        overrides={
+            "LOCAL_TIMEZONE": "America/Chicago",
+            "TESTING": True,
+            "START_POLLER": False,
+        }
+    )
+
     return app
+
 
 def test_to_dict_returns_expected_fields(app):
     # Arrange: create a sample reading
@@ -56,6 +61,7 @@ def test_to_dict_returns_expected_fields(app):
     assert result["microsieverts_per_hour"] == 0.05
     assert result["mode"] == "normal"
 
+
 def test_logexp_reading_model(test_app, db_session):
     seed_test_data(test_app)  # insert row
 
@@ -66,4 +72,3 @@ def test_logexp_reading_model(test_app, db_session):
     assert result.counts_per_minute == 60
     assert result.microsieverts_per_hour == 0.01
     assert result.mode == "test"
-

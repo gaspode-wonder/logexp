@@ -9,9 +9,11 @@ Do not add new routes here. Please update or create routes only in
 blueprints.py. This file remains temporarily for reference and will be
 removed in a future release.
 """
+
 import warnings
+
 warnings.warn(
     "readings.py is deprecated. Use logexp/app/blueprints.py instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )

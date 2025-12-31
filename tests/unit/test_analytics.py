@@ -1,7 +1,8 @@
 # tests/unit/test_analytics.py
 
 import datetime
-from logexp.app.analytics import run_analytics, compute_window
+
+from logexp.app.analytics import compute_window, run_analytics
 from logexp.app.extensions import db
 
 
