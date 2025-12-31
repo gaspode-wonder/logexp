@@ -1,7 +1,8 @@
 # tests/fixtures/reading_factory.py
+from datetime import datetime, timezone
 
 import pytest
-from datetime import datetime, timezone
+
 from logexp.app.extensions import db
 from logexp.app.models import LogExpReading
 
