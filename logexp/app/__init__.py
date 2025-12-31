@@ -84,6 +84,7 @@ def create_app(overrides: dict | None = None) -> Flask:
     # 1. Load config with deterministic layering
     # ----------------------------------------------------------------------
     app.config_obj = load_config(overrides=overrides or {})
+    app.config.update(app.config_obj)
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config_obj["SQLALCHEMY_DATABASE_URI"]
 
     # ----------------------------------------------------------------------

@@ -1,39 +1,45 @@
-from __future__ import annotations
+# tests/fixtures/reading_factory.py
 
-from datetime import datetime
-from typing import Optional
-
+import pytest
+from datetime import datetime, timezone
 from logexp.app.extensions import db
 from logexp.app.models import LogExpReading
 
 
-def create_reading(
-    timestamp,
-    cps: float = 1.0,
-    cpm: Optional[float] = None,
-    microsieverts_per_hour: float = 0.01,
-    mode: str = "test",
-) -> LogExpReading:
+@pytest.fixture
+def reading_factory(db_session):
     """
-    Test helper to create a LogExpReading and add it to the current session.
-
-    - Accepts timestamp as datetime or ISO8601 string.
-    - Stores timestamp as ISO8601 string in the database.
+    Returns a factory function that creates LogExpReading rows
+    bound to the current test database session.
     """
 
-    if isinstance(timestamp, datetime):
-        timestamp = timestamp.isoformat()
+    def _create_reading(
+        timestamp,
+        cps: float = 1.0,
+        cpm=None,
+        microsieverts_per_hour: float = 0.01,
+        mode: str = "test",
+    ):
+        # Normalize timestamp input
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
 
-    if cpm is None:
-        cpm = cps * 60.0
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
 
-    reading = LogExpReading(
-        timestamp=timestamp,
-        counts_per_second=cps,
-        counts_per_minute=cpm,
-        microsieverts_per_hour=microsieverts_per_hour,
-        mode=mode,
-    )
+        # Derive CPM if not provided
+        if cpm is None:
+            cpm = cps * 60.0
 
-    db.session.add(reading)
-    return reading
+        reading = LogExpReading(
+            timestamp=timestamp,
+            counts_per_second=cps,
+            counts_per_minute=cpm,
+            microsieverts_per_hour=microsieverts_per_hour,
+            mode=mode,
+        )
+
+        db.session.add(reading)
+        return reading
+
+    return _create_reading
