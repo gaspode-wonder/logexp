@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo
 
 from .extensions import db
 
+__all__ = ["LogExpReading"]
+
 
 class LogExpReading(db.Model):
     __tablename__ = "logexp_readings"

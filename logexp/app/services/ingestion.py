@@ -1,117 +1,204 @@
 # filename: logexp/app/services/ingestion.py
-# Step 11D-3: Ingestion pipeline restoration
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import logging
+from typing import Any, Iterable, List, Mapping, Sequence
 
-from flask import jsonify, request
+from flask import current_app
+from sqlalchemy.orm import Session
 
 from logexp.app.extensions import db
-from logexp.app.logging_setup import get_logger
 from logexp.app.models import LogExpReading
 from logexp.validation.ingestion_validator import validate_ingestion_payload
 
-log = get_logger("logexp.ingestion")
+log = logging.getLogger("logexp.ingestion")
 
 
-def register_ingestion_routes(bp):
+def _ingest_core(
+    readings: Sequence[Mapping[str, Any]],
+    *,
+    session: Session,
+    validate: bool = True,
+) -> List[LogExpReading]:
     """
-    Register the ingestion endpoint on the provided Blueprint.
+    Shared ingestion core.
+
+    Responsibilities:
+      - log ingestion_start / ingestion_complete
+      - optionally validate payloads (graceful skip)
+      - normalize timestamps
+      - construct LogExpReading models
+      - insert into DB with commit/rollback
+      - return list[LogExpReading]
     """
+    total = len(readings)
+    inserted = 0
+    skipped = 0
 
-    @bp.route("/ingest", methods=["POST"])
-    def ingest():
-        """
-        Ingest a single reading.
+    log.info(
+        "ingestion_start",
+        extra={"event": "ingestion_start", "total_input_rows": total},
+    )
 
-        Steps:
-        1. Parse JSON
-        2. Validate payload
-        3. Normalize timestamp to UTC
-        4. Insert into DB
-        5. Return success
-        """
+    models: List[LogExpReading] = []
 
-        payload = request.get_json(silent=True)
-        if payload is None:
-            log.warning("invalid_json")
-            return jsonify({"error": "invalid JSON"}), 400
-
-        validated = validate_ingestion_payload(payload)
-        if validated is None:
-            # Validator already logged the reason
-            return jsonify({"error": "invalid payload"}), 400
+    for raw in readings:
+        # ------------------------------------------------------------
+        # Step 0: Legacy behavior — inject timestamp if missing
+        # ------------------------------------------------------------
+        raw = dict(raw)
+        if "timestamp" not in raw:
+            raw["timestamp"] = datetime.now(timezone.utc)
 
         # ------------------------------------------------------------
-        # Normalize timestamp → canonical UTC datetime
+        # Step 1: Validate payload structure (optional)
+        # ------------------------------------------------------------
+        if validate:
+            validated = validate_ingestion_payload(raw)
+            if validated is None:
+                skipped += 1
+                log.info(
+                    "ingestion_row_skipped",
+                    extra={
+                        "event": "ingestion_row_skipped",
+                        "reason": "validation_failed",
+                        "row": raw,
+                    },
+                )
+                continue
+        else:
+            validated = raw
+
+        # ------------------------------------------------------------
+        # Step 2: Normalize timestamp
         # ------------------------------------------------------------
         try:
-            ts = datetime.fromisoformat(validated["timestamp"])
-        except Exception:
-            log.warning(
-                "invalid_timestamp_format", extra={"value": validated["timestamp"]}
+            ts = validated["timestamp"]
+            if isinstance(ts, str):
+                ts = datetime.fromisoformat(ts)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            else:
+                ts = ts.astimezone(timezone.utc)
+            validated["timestamp"] = ts
+        except Exception as exc:
+            skipped += 1
+            log.info(
+                "ingestion_row_skipped",
+                extra={
+                    "event": "ingestion_row_skipped",
+                    "reason": f"timestamp_error: {exc}",
+                    "row": raw,
+                },
             )
-            return jsonify({"error": "invalid timestamp"}), 400
-
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
-        else:
-            ts = ts.astimezone(timezone.utc)
-
-        # ------------------------------------------------------------
-        # Create model instance (model-level validators run here)
-        # ------------------------------------------------------------
-        reading = LogExpReading(
-            timestamp=ts,
-            counts_per_second=float(validated["cps"]),
-            counts_per_minute=float(validated["cpm"]),
-            microsieverts_per_hour=float(validated["usv"]),
-            mode=validated["mode"],
-        )
-
-        db.session.add(reading)
-        db.session.commit()
-
-        return jsonify({"status": "ok", "id": reading.id}), 201
-
-
-def ingest_readings(session, *, readings, cutoff_ts):
-    """
-    Legacy ingestion entry point used by analytics/logging tests.
-    """
-
-    log.info("ingestion_start")
-
-    created = []
-
-    for payload in readings:
-        validated = validate_ingestion_payload(payload)
-        if validated is None:
             continue
 
+        # ------------------------------------------------------------
+        # Step 3: Create ORM model instance
+        # ------------------------------------------------------------
         try:
-            ts = datetime.fromisoformat(validated["timestamp"])
-        except Exception:
+            model = LogExpReading(**validated)
+            models.append(model)
+            inserted += 1
+        except Exception as exc:
+            skipped += 1
+            log.info(
+                "ingestion_row_skipped",
+                extra={
+                    "event": "ingestion_row_skipped",
+                    "reason": f"model_error: {exc}",
+                    "row": raw,
+                },
+            )
             continue
 
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
-        else:
-            ts = ts.astimezone(timezone.utc)
-
-        reading = LogExpReading(
-            timestamp=ts,
-            counts_per_second=float(validated["cps"]),
-            counts_per_minute=float(validated["cpm"]),
-            microsieverts_per_hour=float(validated["usv"]),
-            mode=validated["mode"],
+    # ------------------------------------------------------------
+    # Step 4: Commit or rollback
+    # ------------------------------------------------------------
+    try:
+        for m in models:
+            session.add(m)
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        log.error(
+            "ingestion_commit_failed",
+            extra={
+                "event": "ingestion_commit_failed",
+                "reason": str(exc),
+            },
         )
+        raise
 
-        session.add(reading)
-        created.append(reading)
+    # ------------------------------------------------------------
+    # Step 5: Final structured log
+    # ------------------------------------------------------------
+    log.info(
+        "ingestion_complete",
+        extra={
+            "event": "ingestion_complete",
+            "inserted": inserted,
+            "skipped": skipped,
+        },
+    )
 
-    session.commit()
+    return models
 
-    log.info("ingestion_complete")
-    return created
+
+def ingest_readings(
+    session,
+    *,
+    readings,
+    cutoff_ts,
+):
+    """
+    Legacy ingestion API preserved for analytics tests.
+
+    Expected call:
+        ingest_readings(session, readings=[...], cutoff_ts=...)
+
+    Returns:
+        (inserted_count, skipped_count)
+    """
+    readings_list = list(readings)
+    models = _ingest_core(readings_list, session=session, validate=True)
+
+    inserted = len(models)
+    skipped = len(readings_list) - inserted
+
+    return inserted, skipped
+
+
+def ingest_reading(
+    reading: Mapping[str, Any],
+) -> LogExpReading | None:
+    """
+    Public single-reading ingestion API.
+
+    Uses validate=False because parsed readings do not match
+    the analytics ingestion schema.
+    """
+    # Respect ingestion-enabled flag (tests mutate config_obj)
+    if not current_app.config_obj.get("INGESTION_ENABLED", True):
+        return None
+
+    session = db.session
+    models = _ingest_core([reading], session=session, validate=False)
+    return models[0] if models else None
+
+
+def ingest_batch(
+    readings: Iterable[Mapping[str, Any]],
+) -> List[LogExpReading]:
+    """
+    Public batch ingestion API.
+    """
+    # Respect ingestion-enabled flag
+    if not current_app.config_obj.get("INGESTION_ENABLED", True):
+        return []
+
+    session = db.session
+    readings_list = list(readings)
+    return _ingest_core(readings_list, session=session, validate=True)
