@@ -1,4 +1,4 @@
-# logexp/app/services/ingestion.py
+# filename: logexp/app/services/ingestion.py
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from logexp.app.models import LogExpReading
 from logexp.app.timestamps import normalize_timestamp
 from logexp.validation.ingestion_validator import validate_ingestion_payload
 
-logger = logging.getLogger("logexp.ingestion")
+log = logging.getLogger("logexp.ingestion")
 
 
 def _ingest_core(
@@ -38,7 +38,7 @@ def _ingest_core(
     inserted = 0
     skipped = 0
 
-    logger.info(
+    log.info(
         "ingestion_start",
         extra={"event": "ingestion_start", "total_input_rows": total},
     )
@@ -60,7 +60,7 @@ def _ingest_core(
             validated = validate_ingestion_payload(raw)
             if validated is None:
                 skipped += 1
-                logger.info(
+                log.info(
                     "ingestion_row_skipped",
                     extra={
                         "event": "ingestion_row_skipped",
@@ -76,11 +76,17 @@ def _ingest_core(
         # Step 2: Normalize timestamp
         # ------------------------------------------------------------
         try:
-            ts = normalize_timestamp(validated["timestamp"])
+            ts = validated["timestamp"]
+            if isinstance(ts, str):
+                ts = datetime.fromisoformat(ts)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            else:
+                ts = ts.astimezone(timezone.utc)
             validated["timestamp"] = ts
         except Exception as exc:
             skipped += 1
-            logger.info(
+            log.info(
                 "ingestion_row_skipped",
                 extra={
                     "event": "ingestion_row_skipped",
@@ -99,7 +105,7 @@ def _ingest_core(
             inserted += 1
         except Exception as exc:
             skipped += 1
-            logger.info(
+            log.info(
                 "ingestion_row_skipped",
                 extra={
                     "event": "ingestion_row_skipped",
@@ -118,19 +124,18 @@ def _ingest_core(
         session.commit()
     except Exception as exc:
         session.rollback()
-        logger.error(
+        log.error(
             "ingestion_commit_failed",
             extra={
                 "event": "ingestion_commit_failed",
                 "reason": str(exc),
             },
         )
-        raise
 
     # ------------------------------------------------------------
     # Step 5: Final structured log
     # ------------------------------------------------------------
-    logger.info(
+    log.info(
         "ingestion_complete",
         extra={
             "event": "ingestion_complete",
