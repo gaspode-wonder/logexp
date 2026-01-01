@@ -17,6 +17,7 @@ class Poller:
     11E‑3: poll_forever() loop
     11E‑5: real serial frame provider
     11E‑6: diagnostics surface
+    11E‑7: respect POLLING_ENABLED
     """
 
     def __init__(self, config: Dict[str, Any], ingestion: Any) -> None:
@@ -28,6 +29,17 @@ class Poller:
         self.frames_ingested: int = 0
         self.frames_failed: int = 0
         self.frames_skipped: int = 0
+
+    # ------------------------------------------------------------
+    # 11E‑7: Polling enabled flag
+    # ------------------------------------------------------------
+    def is_enabled(self) -> bool:
+        """
+        Return True if polling is enabled according to config.
+
+        Default is True to preserve prior behavior unless explicitly disabled.
+        """
+        return self.config.get("POLLING_ENABLED", True)
 
     # ------------------------------------------------------------
     # 11E‑5: Real serial frame provider
@@ -71,9 +83,13 @@ class Poller:
         return self.read_serial_frame()
 
     # ------------------------------------------------------------
-    # 11E‑2 + 11E‑6: poll_once() with diagnostics updates
+    # 11E‑2 + 11E‑6 + 11E‑7: poll_once() with diagnostics and POLLING_ENABLED
     # ------------------------------------------------------------
     def poll_once(self) -> Optional[Dict[str, Any]]:
+        if not self.is_enabled():
+            logger.info("Polling disabled by config; poll_once() will not poll.")
+            return None
+
         frame = self.get_frame()
 
         if frame is None:
@@ -95,9 +111,13 @@ class Poller:
         return frame
 
     # ------------------------------------------------------------
-    # 11E‑3: poll_forever()
+    # 11E‑3 + 11E‑7: poll_forever() respecting POLLING_ENABLED
     # ------------------------------------------------------------
     def poll_forever(self) -> None:
+        if not self.is_enabled():
+            logger.info("Polling disabled by config; poll_forever() will not poll.")
+            return
+
         max_frames = self.config.get("MAX_FRAMES", 10)
         for _ in range(max_frames):
             self.poll_once()
