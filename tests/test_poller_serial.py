@@ -1,9 +1,5 @@
 # tests/test_poller_serial.py
 
-import types
-
-import pytest
-
 
 class DummyIngestion:
     def __init__(self):
