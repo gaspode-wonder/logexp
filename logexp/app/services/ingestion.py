@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from logexp.app.extensions import db
 from logexp.app.models import LogExpReading
-from logexp.app.timestamps import normalize_timestamp
 from logexp.validation.ingestion_validator import validate_ingestion_payload
 
 log = logging.getLogger("logexp.ingestion")
@@ -131,6 +130,7 @@ def _ingest_core(
                 "reason": str(exc),
             },
         )
+        raise
 
     # ------------------------------------------------------------
     # Step 5: Final structured log
