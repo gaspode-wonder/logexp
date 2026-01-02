@@ -22,6 +22,9 @@
     <p id="poller-result"></p>
   </div>
 
+  <!-- ========================= -->
+  <!-- CONFIGURATION SECTION     -->
+  <!-- ========================= -->
   <h2>Configuration</h2>
   <table class="table table-striped table-sm">
       <thead>
@@ -40,7 +43,35 @@
       </tbody>
   </table>
 
+  <!-- ========================= -->
+  <!-- ANALYTICS SECTION         -->
+  <!-- ========================= -->
+  <h2>Analytics Status</h2>
+  <table class="table table-striped table-sm">
+      <tr><th>Window (minutes)</th><td>{{ analytics.window_minutes }}</td></tr>
+      <tr><th>Window Start</th><td>{{ analytics.window_start }}</td></tr>
+      <tr><th>Window End</th><td>{{ analytics.window_end }}</td></tr>
+      <tr><th>Samples in Window</th><td>{{ analytics.count }}</td></tr>
+      <tr><th>Last Computed</th><td>{{ analytics.last_computed_at }}</td></tr>
+  </table>
 
+  <!-- ========================= -->
+  <!-- DATABASE SECTION          -->
+  <!-- ========================= -->
+  <h2>Database Status</h2>
+  <table class="table table-striped table-sm">
+      <tr><th>URI</th><td>{{ database.uri }}</td></tr>
+      <tr><th>Engine</th><td>{{ database.engine }}</td></tr>
+      <tr><th>Connected</th><td>{{ database.connected }}</td></tr>
+      <tr><th>Readings Count</th><td>{{ database.readings_count }}</td></tr>
+      <tr><th>Last Reading At</th><td>{{ database.last_reading_at }}</td></tr>
+      <tr><th>Migration Revision</th><td>{{ database.migration_revision }}</td></tr>
+      <tr><th>Schema OK</th><td>{{ database.schema_ok }}</td></tr>
+  </table>
+
+  <!-- ========================= -->
+  <!-- GEIGER TEST SECTION       -->
+  <!-- ========================= -->
   <h3>Geiger Counter Test</h3>
   <p>Click below to run a quick test of the Geiger endpoint:</p>
   <button onclick="runGeigerTest()">Run Geiger Test</button>

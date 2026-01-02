@@ -1,6 +1,7 @@
+# logexp/app/bp/about/routes.py
 from flask import render_template
 
-from . import bp_about
+from logexp.app.bp.about import bp_about
 
 
 @bp_about.route("/")

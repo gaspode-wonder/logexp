@@ -1,0 +1,10 @@
+# filename: .pre-commit-config.yaml
+
+repos:
+  - repo: local
+    hooks:
+      - id: architecture-tests
+        name: Run architecture tests
+        entry: pytest tests/architecture -q
+        language: system
+        pass_filenames: false

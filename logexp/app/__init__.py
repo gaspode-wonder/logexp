@@ -86,6 +86,9 @@ def create_app(overrides: dict | None = None) -> Flask:
     # 5. Register blueprints
     register_blueprints(app)
 
+    # DEBUG: inspoect registered routes
+    print(app.url_map)
+
     # 6. Poller startup REMOVED — now handled in wsgi.py
     app.logger.info(
         "Poller startup moved to wsgi.py (START_POLLER, gunicorn, shell, tests respected)."
