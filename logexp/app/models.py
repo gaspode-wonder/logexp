@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from .extensions import db
 
-__all__ = ["LogExpReading"]
+__all__ = ["LogExpReading", "Reading"]
 
 
 class LogExpReading(db.Model):
@@ -48,3 +48,9 @@ class LogExpReading(db.Model):
         if ts.tzinfo is None:
             return ts.replace(tzinfo=timezone.utc)
         return ts.astimezone(timezone.utc)
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatible alias expected by the test suite
+# ---------------------------------------------------------------------------
+Reading = LogExpReading

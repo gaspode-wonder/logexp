@@ -149,3 +149,10 @@ log-demo: ## Emit a single structured log line for debugging logging setup
 
 analytics-demo: ## Run analytics demo script
 	@PYTHONPATH=. python scripts/analytics_demo.py
+
+# Run only architecture-level tests
+test-architecture:
+    pytest tests/architecture -q
+
+test-smart:
+    pytest --lf --ff -q

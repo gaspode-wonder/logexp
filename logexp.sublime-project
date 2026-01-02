@@ -1,0 +1,60 @@
+{
+    "folders": [
+        {
+            "path": ".",
+            "folder_exclude_patterns": [
+                "__pycache__",
+                ".pytest_cache",
+                ".mypy_cache",
+                ".venv",
+                "dist",
+                "build"
+            ],
+            "file_exclude_patterns": [
+                "*.pyc",
+                "*.pyo",
+                "*.so"
+            ]
+        }
+    ],
+
+    "settings": {
+        // Ensure the project always uses the repo venv
+        "python_interpreter": ".venv/bin/python",
+
+        // LSP configuration
+        "LSP": {
+            "LSP-pyright": {
+                "settings": {
+                    "python.analysis.typeCheckingMode": "strict",
+                    "python.analysis.autoImportCompletions": true,
+                    "python.analysis.useLibraryCodeForTypes": true
+                }
+            }
+        },
+
+        // Formatters
+        "format_on_save": true,
+        "black_command": ["black", "-"],
+        "isort_on_save": true
+    },
+
+    // Build systems for Makefile-driven workflow
+    "build_systems": [
+        {
+            "name": "Make",
+            "shell_cmd": "make -j4",
+            "working_dir": "$folder"
+        },
+        {
+            "name": "pytest",
+            "shell_cmd": ".venv/bin/pytest -q",
+            "working_dir": "$folder"
+        },
+        {
+            "name": "mypy",
+            "shell_cmd": ".venv/bin/mypy logexp",
+            "working_dir": "$folder"
+        }
+    ]
+}
