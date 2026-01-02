@@ -1,8 +1,7 @@
 from flask import current_app, redirect, render_template, url_for
 
+from logexp.app.bp.ui import bp_ui
 from logexp.app.models import LogExpReading
-
-from . import bp_ui
 
 
 @bp_ui.route("/")

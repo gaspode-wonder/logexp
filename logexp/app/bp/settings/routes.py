@@ -1,8 +1,7 @@
 from flask import current_app, redirect, render_template, request, url_for
 
+from logexp.app.bp.settings import bp_settings
 from logexp.app.geiger import list_serial_ports
-
-from . import bp_settings
 
 
 @bp_settings.get("/")
