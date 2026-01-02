@@ -5,10 +5,9 @@ import datetime
 from flask import Response, render_template, request
 
 from logexp.app.analytics import compute_window, run_analytics
+from logexp.app.bp.analytics import bp_analytics
 from logexp.app.services.analytics_diagnostics import summarize_readings
 from logexp.app.services.analytics_export import export_readings_to_csv
-
-from . import bp_analytics
 
 
 @bp_analytics.route("/", methods=["GET"])

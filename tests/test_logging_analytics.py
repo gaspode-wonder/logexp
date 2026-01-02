@@ -4,8 +4,8 @@ import logging
 
 from logexp.app import create_app
 from logexp.app.extensions import db
+from logexp.app.ingestion import ingest_readings
 from logexp.app.services.analytics import run_analytics
-from logexp.app.services.ingestion import ingest_readings
 
 
 def test_ingestion_logging_contract(caplog):
@@ -19,6 +19,7 @@ def test_ingestion_logging_contract(caplog):
     caplog.set_level(logging.INFO)
 
     with app.app_context():
+        db.create_all()
         ingest_readings(
             db.session,
             readings=[{"value": 1}],

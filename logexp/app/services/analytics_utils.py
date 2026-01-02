@@ -29,3 +29,20 @@ def extract_field(readings, field):
     Extract a numeric field from a list of ORM objects.
     """
     return [getattr(r, field) for r in readings]
+
+
+def summarize_readings(readings):
+    """
+    Produce a lightweight diagnostic summary for debugging.
+    Not part of the analytics diagnostics contract.
+    """
+    if not readings:
+        return {"count": 0}
+
+    return {
+        "count": len(readings),
+        "first_timestamp": readings[0].timestamp,
+        "last_timestamp": readings[-1].timestamp,
+        "min_cps": min(r.counts_per_second for r in readings),
+        "max_cps": max(r.counts_per_second for r in readings),
+    }

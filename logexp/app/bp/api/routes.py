@@ -1,11 +1,11 @@
+# logexp/app/bp/api/routes.py
 from flask import current_app, jsonify, request
 
 from logexp.app import db
+from logexp.app.bp.api import bp_api
 from logexp.app.geiger import list_serial_ports, read_geiger, try_port
 from logexp.app.models import LogExpReading
 from logexp.app.schemas import ReadingCreate, ReadingResponse
-
-from . import bp_api
 
 
 @bp_api.get("/readings")
@@ -102,3 +102,36 @@ def poller_stop():
 @bp_api.get("/health")
 def health():
     return jsonify({"status": "ok"}), 200
+
+
+@bp_api.get("/diagnostics")
+def diagnostics_api():
+    """
+    Unified diagnostics API endpoint.
+
+    Aggregates config, ingestion, poller, analytics, and database diagnostics
+    into a single JSON payload suitable for the UI and CI smoke tests.
+    """
+    from datetime import datetime, timezone
+
+    from logexp.app.services.analytics_diagnostics import get_analytics_status
+    from logexp.app.services.database_diagnostics import get_database_status
+    from logexp.app.services.ingestion import get_ingestion_status
+    from logexp.app.services.poller import get_poller_status
+
+    config = getattr(current_app, "config_obj", {})
+
+    now = datetime.now(timezone.utc)
+
+    payload = {
+        "config": dict(config),
+        "ingestion": get_ingestion_status(),
+        "poller": get_poller_status(),
+        "analytics": get_analytics_status(),
+        "database": get_database_status(),
+        "meta": {
+            "timestamp": now.isoformat(),
+        },
+    }
+
+    return jsonify(payload), 200
