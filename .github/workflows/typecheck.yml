@@ -1,17 +1,15 @@
 # .github/workflows/typecheck.yml
-name: Typecheck
+name: typecheck
 
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   typecheck:
     runs-on: ubuntu-latest
-
-    env:
-      TZ: UTC
 
     steps:
       - name: Checkout repository
@@ -28,4 +26,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run mypy
-        run: mypy .
+        env:
+          PYTHONPATH: .
+        run: mypy logexp

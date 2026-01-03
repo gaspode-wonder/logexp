@@ -1,5 +1,5 @@
-# .github/workflows/lint.yml
-name: lint
+# .github/workflows/tests.yml
+name: tests
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  lint:
+  tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,5 +25,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run ruff
-        run: ruff check .
+      - name: Run pytest
+        env:
+          PYTHONPATH: .
+          SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
+        run: pytest -q
