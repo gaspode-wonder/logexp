@@ -8,3 +8,13 @@ repos:
         entry: pytest tests/architecture -q
         language: system
         pass_filenames: false
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - flask
+          - flask_sqlalchemy
+          - types-requests
+          - types-python-dateutil

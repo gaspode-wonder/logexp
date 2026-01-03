@@ -1,14 +1,16 @@
-# logexp/app/config.py
+# filename: logexp/app/config.py
 # Canonical configuration schema and loader for LogExp.
 # Provides deterministic layering: defaults → environment → explicit overrides.
-# Timestamp: 2025-12-30 22:48 CST
+
+from __future__ import annotations
 
 import os
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Base Defaults (single source of truth)
 # ---------------------------------------------------------------------------
+
 DEFAULTS: Dict[str, Any] = {
     # Core
     "TESTING": False,
@@ -32,7 +34,8 @@ DEFAULTS: Dict[str, Any] = {
 # ---------------------------------------------------------------------------
 # Environment Variable Mapping
 # ---------------------------------------------------------------------------
-ENV_MAP = {
+
+ENV_MAP: Dict[str, Tuple[str, Callable[[str], Any]]] = {
     "SECRET_KEY": ("SECRET_KEY", str),
     "SQLALCHEMY_DATABASE_URI": ("DATABASE_URL", str),
     "GEIGER_PORT": ("GEIGER_PORT", str),
@@ -48,7 +51,9 @@ ENV_MAP = {
 # ---------------------------------------------------------------------------
 # Config Loader
 # ---------------------------------------------------------------------------
-def load_config(overrides: Dict[str, Any] | None = None) -> Dict[str, Any]:
+
+
+def load_config(overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Load application configuration with deterministic layering:
 
@@ -56,14 +61,14 @@ def load_config(overrides: Dict[str, Any] | None = None) -> Dict[str, Any]:
         2. Environment variables (typed)
         3. Explicit overrides (tests, CI, dev)
 
-    Returns a plain dictionary used by the application factory.
+    Returns:
+        A plain dictionary used by the application factory.
     """
-
-    config = DEFAULTS.copy()
+    config: Dict[str, Any] = DEFAULTS.copy()
 
     # 1. Apply environment variables
     for key, (env_var, caster) in ENV_MAP.items():
-        raw = os.environ.get(env_var)
+        raw: Optional[str] = os.environ.get(env_var)
         if raw is not None:
             try:
                 config[key] = caster(raw)

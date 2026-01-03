@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from typing import Optional
+from typing import Any, Optional
 
 
 class GeigerPoller:
@@ -17,16 +17,16 @@ class GeigerPoller:
     circular imports during app initialization.
     """
 
-    def __init__(self, app, interval: int = 5) -> None:
-        self.app = app
+    def __init__(self, app: Any, interval: int = 5) -> None:
+        self.app: Any = app
         self.interval: int = interval
 
         # Lifecycle state
-        self._running = False
-        self._stopping = False
+        self._running: bool = False
+        self._stopping: bool = False
 
         # Thread control
-        self._stop_event = threading.Event()
+        self._stop_event: threading.Event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
     # ------------------------------------------------------------------
@@ -109,16 +109,16 @@ class GeigerPoller:
             from logexp.app.geiger import parse_geiger_line, read_geiger
             from logexp.app.ingestion import ingest_reading
 
-            config = self.app.config_obj
+            config: dict[str, Any] = self.app.config_obj
 
             while not self._stop_event.is_set():
                 try:
-                    port = config["GEIGER_DEVICE_PATH"]
-                    baud = config["GEIGER_BAUDRATE"]
-                    threshold = config["GEIGER_THRESHOLD"]
+                    port: str = config["GEIGER_DEVICE_PATH"]
+                    baud: int = config["GEIGER_BAUDRATE"]
+                    threshold: int = config["GEIGER_THRESHOLD"]
 
-                    raw = read_geiger(port, baud)
-                    parsed = parse_geiger_line(raw, threshold=threshold)
+                    raw: str = read_geiger(port, baud)
+                    parsed: dict[str, Any] = parse_geiger_line(raw, threshold=threshold)
 
                     ingest_reading(parsed)
 

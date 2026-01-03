@@ -1,3 +1,4 @@
+# filename: logexp/app/readings.py
 """
 DEPRECATED MODULE: readings.py
 
@@ -9,6 +10,8 @@ Do not add new routes here. Please update or create routes only in
 blueprints.py. This file remains temporarily for reference and will be
 removed in a future release.
 """
+
+from __future__ import annotations
 
 import warnings
 

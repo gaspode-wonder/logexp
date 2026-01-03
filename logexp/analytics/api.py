@@ -1,13 +1,20 @@
-# logexp/analytics/api.py
+# filename: logexp/analytics/api.py
+
+from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from typing import Iterable
 
-from .engine import AnalyticsEngine, ReadingSample
+from .engine import AnalyticsEngine, AnalyticsResult
 
 
-def compute_window(samples: List[ReadingSample], window_minutes: int, now: datetime):
+def analyze(
+    samples: Iterable[float], window_minutes: int, now: datetime
+) -> AnalyticsResult:
     """
-    Legacy pure API wrapper around the analytics engine.
+    Typed wrapper around AnalyticsEngine.analyze.
+    Ensures the return type is AnalyticsResult for mypy.
     """
-    return AnalyticsEngine.analyze(samples, window_minutes, now)
+    result = AnalyticsEngine.analyze(samples, window_minutes, now)
+    assert isinstance(result, AnalyticsResult)
+    return result
