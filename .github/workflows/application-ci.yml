@@ -46,7 +46,7 @@ jobs:
               run: python scripts/ci_diagnostics.py
 
             - name: Run database migrations
-              working-directory: ./logexp
+              working-directory: .
               env:
                   FLASK_APP: logexp.app:create_app
                   PYTHONPATH: .
@@ -54,7 +54,7 @@ jobs:
               run: flask db upgrade
 
             - name: Run pytest
-              working-directory: ./logexp
+              working-directory: .
               env:
                   PYTHONPATH: .
                   SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
