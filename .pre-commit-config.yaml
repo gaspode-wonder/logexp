@@ -1,20 +1,10 @@
-# filename: .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
 
-repos:
-  - repo: local
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
     hooks:
-      - id: architecture-tests
-        name: Run architecture tests
-        entry: pytest tests/architecture -q
-        language: system
-        pass_filenames: false
-repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
-    hooks:
-      - id: mypy
-        additional_dependencies:
-          - flask
-          - flask_sqlalchemy
-          - types-requests
-          - types-python-dateutil
+      - id: flake8

@@ -5,10 +5,10 @@
 
 from __future__ import annotations
 
-import os
-import sys
 import datetime
+import os
 import sqlite3
+import sys
 from typing import Any, Dict, Optional, Tuple
 
 from flask import Flask, current_app, render_template
@@ -75,8 +75,17 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
     app.config_obj = load_config(overrides=overrides or {})
     app.config.update(app.config_obj)
 
-    # NOTE: Removed unconditional SQLALCHEMY_DATABASE_URI override to preserve
-    # CI-provided environment variables and maintain deterministic layering.
+    # ----------------------------------------------------------------------
+    # DATABASE FALLBACK
+    # If neither SQLALCHEMY_DATABASE_URI nor SQLALCHEMY_BINDS is effectively
+    # set (URI is missing/empty and BINDS is missing/empty), default to an
+    # in-memory SQLite database. This preserves test and local dev behavior
+    # without overriding explicit configuration.
+    # ----------------------------------------------------------------------
+    has_uri = bool(app.config.get("SQLALCHEMY_DATABASE_URI"))
+    has_binds = bool(app.config.get("SQLALCHEMY_BINDS"))
+    if not has_uri and not has_binds:
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 
     # 2. SQLite timezone support
     configure_sqlite_timezone_support(app)
@@ -118,7 +127,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
 
     @app.teardown_appcontext
     def shutdown_poller(exception: Optional[BaseException] = None) -> None:
-        if app.config_obj["TESTING"] and getattr(app, "poller", None):
+        if app.config_obj.get("TESTING", False) and getattr(app, "poller", None):
             try:
                 app.poller.stop()
             except RuntimeError:
@@ -177,3 +186,6 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
     print("=== End Diagnostics ===\n")
 
     return app
+
+
+__all__ = ["create_app"]

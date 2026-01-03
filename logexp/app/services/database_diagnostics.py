@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from flask import current_app
 from sqlalchemy import text
 
 from logexp.analytics.diagnostics import get_database_status as pure_db_status
 from logexp.app.extensions import db
-from logexp.app.models import Reading
+from logexp.app.models import LogExpReading
 
 
 def get_database_status() -> dict:
@@ -42,9 +42,11 @@ def get_database_status() -> dict:
     # Readings count + last reading timestamp
     # ------------------------------------------------------------
     try:
-        readings_count: Optional[int] = db.session.query(Reading).count()
-        last_row: Optional[Reading] = (
-            db.session.query(Reading).order_by(Reading.timestamp.desc()).first()
+        readings_count: Optional[int] = db.session.query(LogExpReading).count()
+        last_row: Optional[LogExpReading] = (
+            db.session.query(LogExpReading)
+            .order_by(LogExpReading.timestamp.desc())
+            .first()
         )
         last_reading_at = last_row.timestamp if last_row else None
     except Exception:
@@ -65,7 +67,7 @@ def get_database_status() -> dict:
     # Schema check
     # ------------------------------------------------------------
     try:
-        table_name: str = Reading.__tablename__
+        table_name: str = LogExpReading.__tablename__
         db.session.execute(text(f"SELECT * FROM {table_name} LIMIT 1"))
         schema_ok: bool = True
     except Exception:
