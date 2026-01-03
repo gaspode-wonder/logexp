@@ -14,26 +14,15 @@ Frame = Dict[str, Any]
 
 
 class Poller:
-    """
-    Step 11E — Poller implementation.
-
-    Responsibilities:
-      - Deterministic fake-frame provider (test-safe)
-      - Optional real serial frame provider
-      - Diagnostics tracking
-      - Respect POLLING_ENABLED
-      - Deterministic poll_forever() loop
-    """
-
     def __init__(self, config: Dict[str, Any], ingestion: Any) -> None:
         self.config = config
         self.ingestion = ingestion
 
-        # Diagnostics state (11E‑6)
         self.last_frame: Optional[Frame] = None
         self.frames_ingested: int = 0
         self.frames_failed: int = 0
         self.frames_skipped: int = 0
+        self.ingestion_failures: int = 0
 
         logger.debug(
             "poller_initialized",
@@ -43,17 +32,17 @@ class Poller:
             },
         )
 
-    # ------------------------------------------------------------
-    # 11E‑7: Polling enabled flag
-    # ------------------------------------------------------------
     def is_enabled(self) -> bool:
         enabled = bool(self.config.get("POLLING_ENABLED", True))
         logger.debug("poller_enabled_check", extra={"enabled": enabled})
         return enabled
 
-    # ------------------------------------------------------------
-    # 11E‑5: Real serial frame provider
-    # ------------------------------------------------------------
+    def _open_serial(self) -> serial.Serial:
+        port: str = self.config["SERIAL_PORT"]
+        baudrate: int = int(self.config.get("SERIAL_BAUDRATE", 9600))
+        timeout: float = float(self.config.get("SERIAL_TIMEOUT", 1.0))
+        return serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
+
     def read_serial_frame(self) -> Optional[Frame]:
         port: Optional[str] = self.config.get("SERIAL_PORT")
         baudrate: int = int(self.config.get("SERIAL_BAUDRATE", 9600))
@@ -69,7 +58,7 @@ class Poller:
             return None
 
         try:
-            with serial.Serial(port=port, baudrate=baudrate, timeout=timeout) as ser:
+            with self._open_serial() as ser:
                 raw_bytes: bytes = ser.readline()
         except serial.SerialException as exc:
             logger.error(
@@ -97,9 +86,6 @@ class Poller:
 
         return {"raw": raw_text}
 
-    # ------------------------------------------------------------
-    # 11E‑2 + 11E‑5: Deterministic frame provider
-    # ------------------------------------------------------------
     def get_frame(self) -> Optional[Frame]:
         use_fake: bool = bool(self.config.get("USE_FAKE_FRAMES", True))
 
@@ -111,9 +97,6 @@ class Poller:
         logger.debug("serial_frame_requested")
         return self.read_serial_frame()
 
-    # ------------------------------------------------------------
-    # 11E‑2 + 11E‑6 + 11E‑7: poll_once()
-    # ------------------------------------------------------------
     def poll_once(self) -> Optional[Frame]:
         if not self.is_enabled():
             logger.info("polling_disabled_poll_once")
@@ -129,12 +112,13 @@ class Poller:
 
         try:
             self.ingestion.ingest(frame)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.error(
                 "ingestion_error",
                 extra={"frame": frame, "error": str(exc)},
             )
             self.frames_failed += 1
+            self.ingestion_failures += 1
             self.last_frame = frame
             return None
 
@@ -144,9 +128,6 @@ class Poller:
         logger.debug("poll_once_success", extra={"frame": frame})
         return frame
 
-    # ------------------------------------------------------------
-    # 11E‑3 + 11E‑7: poll_forever()
-    # ------------------------------------------------------------
     def poll_forever(self) -> None:
         if not self.is_enabled():
             logger.info("polling_disabled_poll_forever")
@@ -160,9 +141,6 @@ class Poller:
 
         logger.debug("poll_forever_complete")
 
-    # ------------------------------------------------------------
-    # 11E‑6: Diagnostics surface
-    # ------------------------------------------------------------
     def get_diagnostics(self) -> Dict[str, Any]:
         mode = "fake" if self.config.get("USE_FAKE_FRAMES", True) else "serial"
 
@@ -172,6 +150,7 @@ class Poller:
             "frames_ingested": self.frames_ingested,
             "frames_failed": self.frames_failed,
             "frames_skipped": self.frames_skipped,
+            "ingestion_failures": self.ingestion_failures,
             "serial": {
                 "port": self.config.get("SERIAL_PORT"),
                 "baudrate": self.config.get("SERIAL_BAUDRATE", 9600),

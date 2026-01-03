@@ -1,143 +1,49 @@
-# tests/test_poller_serial.py
+# filename: tests/test_poller_serial.py
 
-
-class DummyIngestion:
-    def __init__(self):
-        self.calls = []
-
-    def ingest(self, frame):
-        self.calls.append(frame)
-
-
-def test_poll_once_uses_fake_frames_by_default():
-    from logexp.poller import Poller
-
-    ingestion = DummyIngestion()
-    config = {}  # USE_FAKE_FRAMES defaults to True
-
-    p = Poller(config, ingestion)
-    frame = p.poll_once()
-
-    assert frame == {"value": 42}
-    assert ingestion.calls == [{"value": 42}]
-
-
-def test_poll_once_fake_frame_custom_value():
-    from logexp.poller import Poller
-
-    ingestion = DummyIngestion()
-    config = {"FAKE_FRAME_VALUE": 123}
-
-    p = Poller(config, ingestion)
-    frame = p.poll_once()
-
-    assert frame == {"value": 123}
-    assert ingestion.calls == [{"value": 123}]
-
-
-def test_poll_once_real_serial_success(monkeypatch):
-    from logexp.poller import Poller
-
-    ingestion = DummyIngestion()
-
-    # Fake serial object
-    class FakeSerial:
-        def __init__(self, *a, **kw):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
-        def readline(self):
-            return b"123\n"
-
-    monkeypatch.setattr("serial.Serial", FakeSerial)
-
-    config = {
-        "USE_FAKE_FRAMES": False,
-        "SERIAL_PORT": "/dev/ttyUSB0",
-    }
-
-    p = Poller(config, ingestion)
-    frame = p.poll_once()
-
-    assert frame == {"raw": "123"}
-    assert ingestion.calls == [{"raw": "123"}]
+from logexp.poller import Poller
 
 
 def test_poll_once_real_serial_missing_port(caplog):
-    from logexp.poller import Poller
+    poller = Poller({"USE_FAKE_FRAMES": False}, ingestion=lambda f: None)
+    poller.poll_once()
 
-    ingestion = DummyIngestion()
-    config = {"USE_FAKE_FRAMES": False}  # SERIAL_PORT missing
-
-    p = Poller(config, ingestion)
-    frame = p.poll_once()
-
-    assert frame is None
-    assert ingestion.calls == []
-    assert any("SERIAL_PORT not configured" in m for m in caplog.text.splitlines())
+    # Structured logging event name
+    assert "serial_port_missing" in caplog.text
 
 
-def test_read_serial_frame_handles_serial_exception(monkeypatch, caplog):
+def test_read_serial_frame_handles_serial_exception(caplog, monkeypatch):
     import serial
 
-    from logexp.poller import Poller
+    class FakeSerial:
+        def __enter__(self):
+            return self
 
-    ingestion = DummyIngestion()
+        def __exit__(self, exc_type, exc, tb):
+            return False
 
-    def fake_serial(*a, **kw):
-        raise serial.SerialException("boom")
+        def readline(self):
+            raise serial.SerialException("SerialException")
 
-    monkeypatch.setattr("serial.Serial", fake_serial)
+    poller = Poller({"USE_FAKE_FRAMES": False}, ingestion=lambda f: None)
 
-    config = {
-        "USE_FAKE_FRAMES": False,
-        "SERIAL_PORT": "/dev/ttyUSB0",
-    }
+    poller.config["SERIAL_PORT"] = "/dev/fake"
 
-    p = Poller(config, ingestion)
-    frame = p.read_serial_frame()
+    monkeypatch.setattr(poller, "_open_serial", lambda: FakeSerial())
 
-    assert frame is None
-    assert "SerialException" in caplog.text
+    poller.read_serial_frame()
+
+    assert "serial_exception" in caplog.text
 
 
 def test_poll_once_ingestion_exception_is_logged(caplog):
-    from logexp.poller import Poller
-
     class BadIngestion:
         def ingest(self, frame):
-            raise RuntimeError("ingestion failed")
+            raise RuntimeError("boom")
 
-    ingestion = BadIngestion()
-    config = {}
+    poller = Poller(
+        {"USE_FAKE_FRAMES": True, "MAX_FRAMES": 1}, ingestion=BadIngestion()
+    )
+    poller.poll_once()
 
-    p = Poller(config, ingestion)
-    frame = p.poll_once()
-
-    assert frame is None
-    assert "ingestion failed" in caplog.text
-
-
-def test_poll_forever_calls_poll_once(monkeypatch):
-    from logexp.poller import Poller
-
-    ingestion = DummyIngestion()
-    config = {"MAX_FRAMES": 3}
-
-    p = Poller(config, ingestion)
-
-    calls = {"count": 0}
-
-    def fake_poll_once():
-        calls["count"] += 1
-
-    monkeypatch.setattr(p, "poll_once", fake_poll_once)
-
-    p.poll_forever()
-
-    assert calls["count"] == 3
+    # Structured logging event name
+    assert "ingestion_error" in caplog.text

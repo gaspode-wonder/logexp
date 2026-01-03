@@ -7,9 +7,8 @@ import json
 import logging
 from typing import Any
 
-from logexp.app.logging_setup import get_logger
 
-logger = get_logger("logexp.logging")
+logger = logging.getLogger("logexp.logging")
 
 
 class StructuredFormatter(logging.Formatter):
