@@ -40,6 +40,7 @@ jobs:
       - name: Run database migrations
         env:
           FLASK_APP: logexp.app:create_app
+          SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: flask db upgrade
 
       - name: Run pytest
