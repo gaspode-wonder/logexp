@@ -42,12 +42,15 @@ def _normalize_reading_args(*args: Any, **kwargs: Any) -> Tuple[datetime, float]
       - ingest_reading({"value": ..., ...})   # logging contract
     """
 
+    def _as_dt(ts: Any) -> datetime:
+        if isinstance(ts, datetime):
+            return ts
+        raise TypeError(f"timestamp must be datetime, got {type(ts)!r}")
+
     # Case 1: dict payload (logging contract)
     if len(args) == 1 and isinstance(args[0], dict):
         payload: Dict[str, Any] = args[0]
-        raw_value = payload.get("counts_per_second")
-        if raw_value is None:
-            raw_value = payload.get("value")
+        raw_value = payload.get("counts_per_second") or payload.get("value")
         if raw_value is None:
             raise TypeError("dict payload must include 'counts_per_second' or 'value'")
         value: float = float(raw_value)
@@ -58,20 +61,20 @@ def _normalize_reading_args(*args: Any, **kwargs: Any) -> Tuple[datetime, float]
     if "reading" in kwargs:
         reading = kwargs["reading"]
         if isinstance(reading, tuple) and len(reading) == 2:
-            return reading[0], float(reading[1])
+            return _as_dt(reading[0]), float(reading[1])
         raise TypeError("reading must be a (timestamp, value) tuple")
 
     # Case 3: timestamp=..., value=...
     if "timestamp" in kwargs and "value" in kwargs:
-        return kwargs["timestamp"], float(kwargs["value"])
+        return _as_dt(kwargs["timestamp"]), float(kwargs["value"])
 
     # Case 4: ingest_reading((timestamp, value))
     if len(args) == 1 and isinstance(args[0], tuple) and len(args[0]) == 2:
-        return args[0][0], float(args[0][1])
+        return _as_dt(args[0][0]), float(args[0][1])
 
     # Case 5: ingest_reading(timestamp, value)
     if len(args) == 2:
-        return args[0], float(args[1])
+        return _as_dt(args[0]), float(args[1])
 
     raise TypeError(
         "ingest_reading() expects (timestamp, value), timestamp, value, "
@@ -100,8 +103,8 @@ def ingest_reading(*args: Any, **kwargs: Any) -> Optional[Reading]:
 
     row = Reading(
         timestamp=timestamp,
-        counts_per_second=value,
-        counts_per_minute=value * 60.0,
+        counts_per_second=int(value),
+        counts_per_minute=int(value * 60),
         microsieverts_per_hour=value * 0.005,
         mode=mode,
     )

@@ -27,7 +27,7 @@ DEFAULTS: Dict[str, Any] = {
     "LOCAL_TIMEZONE": "America/Chicago",
     # Analytics
     "ANALYTICS_WINDOW_SECONDS": 60,
-    "ANALYTICS_ENABLED": False,  # future-proof for Step 11E
+    "ANALYTICS_ENABLED": True,
 }
 
 

@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from zoneinfo import ZoneInfo
+
+from flask import current_app
+from sqlalchemy.orm import Mapped, mapped_column
 
 from .extensions import db
 
@@ -11,21 +15,52 @@ from .extensions import db
 class LogExpReading(db.Model):
     __tablename__ = "logexp_readings"
 
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(
+    # --- SQLAlchemy 2.0 typed columns ---
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    timestamp: Mapped[datetime] = mapped_column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
-    counts_per_second = db.Column(db.Integer, nullable=False)
-    counts_per_minute = db.Column(db.Integer, nullable=False)
-    microsieverts_per_hour = db.Column(db.Float, nullable=False)
-    mode = db.Column(db.String(10), nullable=False)
 
+    counts_per_second: Mapped[int] = mapped_column(nullable=False)
+    counts_per_minute: Mapped[int] = mapped_column(nullable=False)
+    microsieverts_per_hour: Mapped[float] = mapped_column(nullable=False)
+    mode: Mapped[str] = mapped_column(db.String(10), nullable=False)
+
+    # --- Typed initializer (kept exactly as you designed it) ---
+    def __init__(
+        self,
+        *,
+        counts_per_second: int,
+        counts_per_minute: int,
+        microsieverts_per_hour: float,
+        mode: str,
+        timestamp: Optional[datetime] = None,
+        id: Optional[int] = None,
+    ) -> None:
+        if id is not None:
+            self.id = id
+
+        if timestamp is not None:
+            self.timestamp = timestamp
+
+        self.counts_per_second = counts_per_second
+        self.counts_per_minute = counts_per_minute
+        self.microsieverts_per_hour = microsieverts_per_hour
+        self.mode = mode
+
+    # --- Serialization ---
     def to_dict(self) -> Dict[str, Any]:
+        tz_name = current_app.config_obj.get("LOCAL_TIMEZONE", "UTC")
+        tz = ZoneInfo(tz_name)
+
+        localized_ts = self.timestamp.astimezone(tz) if self.timestamp else None
+
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": localized_ts,
             "counts_per_second": self.counts_per_second,
             "counts_per_minute": self.counts_per_minute,
             "microsieverts_per_hour": self.microsieverts_per_hour,

@@ -119,7 +119,6 @@ def diagnostics_api() -> Any:
     into a single JSON payload suitable for the UI and CI smoke tests.
     """
     from datetime import datetime, timezone
-    from typing import Any
 
     from logexp.app.services.analytics_diagnostics import get_analytics_status
     from logexp.app.services.database_diagnostics import get_database_status
