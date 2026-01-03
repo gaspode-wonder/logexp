@@ -1,4 +1,3 @@
-# .github/workflows/application-ci.yml
 name: Application CI
 
 on:
@@ -47,4 +46,8 @@ jobs:
         run: flask db upgrade
 
       - name: Run pytest
+        working-directory: ./logexp
+        env:
+          PYTHONPATH: .
+          SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: pytest -vv
