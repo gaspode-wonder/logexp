@@ -1,4 +1,3 @@
-# .github/workflows/application-ci.yml
 name: Application CI
 
 on:
@@ -38,6 +37,44 @@ jobs:
       - name: Environment parity check
         run: python scripts/check_env_parity.py
 
+      - name: CI Diagnostics — Filesystem, Python, Imports, Env
+        run: |
+          echo "### Working Directory"
+          pwd
+
+          echo "### Directory Tree"
+          ls -R .
+
+          echo "### Python sys.path"
+          python - << 'EOF'
+import sys, os
+print("sys.path:")
+for p in sys.path:
+    print("  ", p)
+
+print("\n### Filtered Environment Variables")
+for k in sorted(os.environ):
+    if any(x in k for x in ["SQL", "FLASK", "PYTHON", "TZ", "ANALYTICS"]):
+        print(f"{k}={os.environ[k]}")
+
+print("\n### Import Resolution Test")
+def try_import(name):
+    try:
+        mod = __import__(name)
+        print(f"Imported {name}: {mod.__file__}")
+    except Exception as e:
+        print(f"FAILED to import {name}: {e}")
+
+try_import("logexp")
+try_import("logexp.app")
+
+print("\n### Python Executable")
+print(sys.executable)
+
+print("\n### Current Working Directory (Python)")
+print(os.getcwd())
+EOF
+
       - name: Run database migrations
         working-directory: ./logexp
         env:
@@ -47,4 +84,8 @@ jobs:
         run: flask db upgrade
 
       - name: Run pytest
+        working-directory: ./logexp
+        env:
+          PYTHONPATH: .
+          SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: pytest -vv
