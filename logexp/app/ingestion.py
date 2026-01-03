@@ -16,12 +16,12 @@ This wrapper preserves the legacy API shape:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import logging
 from typing import Any, Iterable, List, Optional
 
+from logexp.app.logging_setup import get_logger
 from logexp.app.services.ingestion import ingest_reading as _ingest_reading
 
-logger: logging.Logger = logging.getLogger("logexp.ingestion")
+logger = get_logger("logexp.ingestion")
 
 
 def ingest_reading(*args: Any, **kwargs: Any) -> Any:

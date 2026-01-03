@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
+from logexp.app.logging_setup import get_logger
+
+logger = get_logger("logexp.analytics")
+
 
 @dataclass
 class ReadingSample:
@@ -41,6 +45,11 @@ class AnalyticsEngine:
         self.window_minutes: int = window_minutes
         self._samples: List[ReadingSample] = []
 
+        logger.debug(
+            "analytics_engine_initialized",
+            extra={"window_minutes": window_minutes},
+        )
+
     @staticmethod
     def _ensure_aware(dt: datetime) -> None:
         """
@@ -56,12 +65,26 @@ class AnalyticsEngine:
         self._ensure_aware(sample.timestamp)
         self._samples.append(sample)
 
+        logger.debug(
+            "analytics_reading_added",
+            extra={
+                "timestamp": sample.timestamp.isoformat(),
+                "value": sample.value,
+                "total_samples": len(self._samples),
+            },
+        )
+
     def add_readings(self, samples: List[ReadingSample]) -> None:
         """
         Add multiple readings to the engine.
         """
         for sample in samples:
             self.add_reading(sample)
+
+        logger.debug(
+            "analytics_bulk_readings_added",
+            extra={"count": len(samples), "total_samples": len(self._samples)},
+        )
 
     def _window_bounds(self, now: datetime) -> Tuple[datetime, datetime]:
         """
@@ -70,6 +93,17 @@ class AnalyticsEngine:
         self._ensure_aware(now)
         window_end: datetime = now
         window_start: datetime = now - timedelta(minutes=self.window_minutes)
+
+        logger.debug(
+            "analytics_window_bounds_computed",
+            extra={
+                "now": now.isoformat(),
+                "window_start": window_start.isoformat(),
+                "window_end": window_end.isoformat(),
+                "window_minutes": self.window_minutes,
+            },
+        )
+
         return window_start, window_end
 
     def get_window(self, now: datetime) -> List[ReadingSample]:
@@ -82,7 +116,21 @@ class AnalyticsEngine:
         """
         window_start, window_end = self._window_bounds(now)
 
-        return [s for s in self._samples if window_start <= s.timestamp <= window_end]
+        window_samples = [
+            s for s in self._samples if window_start <= s.timestamp <= window_end
+        ]
+
+        logger.debug(
+            "analytics_window_samples_retrieved",
+            extra={
+                "requested_now": now.isoformat(),
+                "window_start": window_start.isoformat(),
+                "window_end": window_end.isoformat(),
+                "count": len(window_samples),
+            },
+        )
+
+        return window_samples
 
     def compute_metrics(self, now: datetime) -> AnalyticsResult:
         """
@@ -99,6 +147,14 @@ class AnalyticsEngine:
         window_samples: List[ReadingSample] = self.get_window(now)
 
         if not window_samples:
+            logger.debug(
+                "analytics_metrics_empty_window",
+                extra={
+                    "window_start": window_start.isoformat(),
+                    "window_end": window_end.isoformat(),
+                    "window_minutes": self.window_minutes,
+                },
+            )
             return AnalyticsResult(
                 window_minutes=self.window_minutes,
                 count=0,
@@ -114,6 +170,19 @@ class AnalyticsEngine:
         average: float = sum(values) / count
         minimum: float = min(values)
         maximum: float = max(values)
+
+        logger.debug(
+            "analytics_metrics_computed",
+            extra={
+                "count": count,
+                "average": average,
+                "minimum": minimum,
+                "maximum": maximum,
+                "window_start": window_start.isoformat(),
+                "window_end": window_end.isoformat(),
+                "window_minutes": self.window_minutes,
+            },
+        )
 
         return AnalyticsResult(
             window_minutes=self.window_minutes,

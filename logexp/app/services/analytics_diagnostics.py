@@ -7,11 +7,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from flask import current_app
 
+from logexp.app.logging_setup import get_logger
 from logexp.analytics.diagnostics import (
     get_analytics_status as pure_analytics_status,
 )
 from logexp.analytics.engine import AnalyticsEngine, ReadingSample
 from logexp.app.models import LogExpReading
+
+logger = get_logger("logexp.analytics")
 
 
 def _get_window_params(
@@ -33,6 +36,17 @@ def _get_window_params(
     window_end: datetime = now
     window_start: datetime = now - timedelta(minutes=window_minutes)
 
+    logger.debug(
+        "analytics_diag_window_params",
+        extra={
+            "now": now.isoformat(),
+            "window_seconds": window_seconds,
+            "window_minutes": window_minutes,
+            "window_start": window_start.isoformat(),
+            "window_end": window_end.isoformat(),
+        },
+    )
+
     return window_minutes, window_start, window_end
 
 
@@ -45,6 +59,14 @@ def _load_samples(window_start: datetime) -> List[ReadingSample]:
         LogExpReading.query.filter(LogExpReading.timestamp >= window_start)
         .order_by(LogExpReading.timestamp.asc())
         .all()
+    )
+
+    logger.debug(
+        "analytics_diag_samples_loaded",
+        extra={
+            "window_start": window_start.isoformat(),
+            "row_count": len(rows),
+        },
     )
 
     return [
@@ -61,6 +83,7 @@ def summarize_readings(readings: List[LogExpReading]) -> Dict[str, Any]:
     from the database; it operates only on the provided readings list.
     """
     if not readings:
+        logger.debug("analytics_diag_summarize_empty")
         return {
             "window_minutes": 0,
             "count": 0,
@@ -71,21 +94,39 @@ def summarize_readings(readings: List[LogExpReading]) -> Dict[str, Any]:
             "maximum": None,
         }
 
-    # Determine window boundaries from the readings themselves
     timestamps = [r.timestamp_dt for r in readings]
     window_start = min(timestamps)
     window_end = max(timestamps)
+
+    logger.debug(
+        "analytics_diag_summarize_bounds",
+        extra={
+            "window_start": window_start.isoformat(),
+            "window_end": window_end.isoformat(),
+            "count": len(readings),
+        },
+    )
 
     samples = [
         ReadingSample(timestamp=r.timestamp_dt, value=float(r.counts_per_second))
         for r in readings
     ]
 
-    # Compute metrics using the pure analytics engine
     window_minutes = max(1, int((window_end - window_start).total_seconds() // 60))
     engine = AnalyticsEngine(window_minutes=window_minutes)
     engine.add_readings(samples)
     result = engine.compute_metrics(now=window_end)
+
+    logger.debug(
+        "analytics_diag_summarize_metrics",
+        extra={
+            "window_minutes": result.window_minutes,
+            "count": result.count,
+            "average": result.average,
+            "minimum": result.minimum,
+            "maximum": result.maximum,
+        },
+    )
 
     return {
         "window_minutes": result.window_minutes,
@@ -111,11 +152,26 @@ def get_analytics_status(now: Optional[datetime] = None) -> Dict[str, Any]:
     if now is None:
         now = datetime.now(timezone.utc)
 
+    logger.debug(
+        "analytics_diag_status_requested",
+        extra={"now": now.isoformat()},
+    )
+
     window_minutes, window_start, _ = _get_window_params(now=now)
     samples: List[ReadingSample] = _load_samples(window_start=window_start)
 
-    return pure_analytics_status(
+    payload = pure_analytics_status(
         window_minutes=window_minutes,
         samples=samples,
         now=now,
     )
+
+    logger.debug(
+        "analytics_diag_status_completed",
+        extra={
+            "window_minutes": window_minutes,
+            "sample_count": len(samples),
+        },
+    )
+
+    return payload

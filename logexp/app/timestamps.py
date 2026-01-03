@@ -19,6 +19,10 @@ import datetime
 from typing import Union
 from zoneinfo import ZoneInfo
 
+from logexp.app.logging_setup import get_logger
+
+logger = get_logger("logexp.timestamps")
+
 UTC: ZoneInfo = ZoneInfo("UTC")
 
 
@@ -37,24 +41,35 @@ def normalize_timestamp(value: Union[str, datetime.datetime]) -> datetime.dateti
     - ValueError for invalid formats
     - TypeError for unsupported types
     """
+    logger.debug(
+        "normalize_timestamp_called",
+        extra={"type": str(type(value)), "value_preview": str(value)[:50]},
+    )
 
-    # Already a datetime
     if isinstance(value, datetime.datetime):
         dt: datetime.datetime = value
+        logger.debug("normalize_timestamp_datetime_input")
 
-    # Parse ISO8601 string
     elif isinstance(value, str):
         try:
             dt = datetime.datetime.fromisoformat(value)
+            logger.debug("normalize_timestamp_string_parsed")
         except Exception as exc:
+            logger.error(
+                "normalize_timestamp_invalid_string",
+                extra={"value": value, "error": str(exc)},
+            )
             raise ValueError(f"Invalid timestamp string: {value}") from exc
 
     else:
         raise TypeError(f"Unsupported timestamp type: {type(value)}")
 
-    # Attach UTC if naive
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=UTC)
+        utc_dt = dt.replace(tzinfo=UTC)
+        logger.debug("normalize_timestamp_naive_attached_utc")
+        return utc_dt
 
-    # Convert aware timestamps to UTC
-    return dt.astimezone(UTC)
+    utc_dt = dt.astimezone(UTC)
+    logger.debug("normalize_timestamp_converted_to_utc")
+
+    return utc_dt

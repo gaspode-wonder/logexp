@@ -6,7 +6,12 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from logexp.app.logging_setup import get_logger
+
 from .engine import AnalyticsEngine, AnalyticsResult, ReadingSample
+
+logger = get_logger("logexp.analytics")
+
 
 # ---------------------------------------------------------------------------
 # Pure Analytics Diagnostics
@@ -26,10 +31,40 @@ def get_analytics_status(
     - No config imports
     - Deterministic and JSON‑safe
     """
+    logger.debug(
+        "analytics_diagnostics_requested",
+        extra={
+            "window_minutes": window_minutes,
+            "sample_count": len(samples),
+            "now": now.isoformat(),
+        },
+    )
+
     engine = AnalyticsEngine(window_minutes=window_minutes)
+    logger.debug(
+        "analytics_diagnostics_engine_created",
+        extra={"window_minutes": window_minutes},
+    )
+
     engine.add_readings(samples)
+    logger.debug(
+        "analytics_diagnostics_samples_added",
+        extra={"count": len(samples)},
+    )
 
     result: AnalyticsResult = engine.compute_metrics(now=now)
+
+    logger.debug(
+        "analytics_diagnostics_metrics_computed",
+        extra={
+            "count": result.count,
+            "average": result.average,
+            "minimum": result.minimum,
+            "maximum": result.maximum,
+            "window_start": result.window_start.isoformat(),
+            "window_end": result.window_end.isoformat(),
+        },
+    )
 
     payload: Dict[str, Any] = asdict(result)
     payload["window_start"] = result.window_start.isoformat()
@@ -59,6 +94,21 @@ def get_database_status(
     The service layer (Flask-aware) gathers DB information and passes it here.
     This function simply formats it into a JSON‑safe payload.
     """
+    logger.debug(
+        "database_diagnostics_requested",
+        extra={
+            "uri": uri,
+            "engine": engine,
+            "connected": connected,
+            "readings_count": readings_count,
+            "last_reading_at": (
+                last_reading_at.isoformat() if last_reading_at else None
+            ),
+            "migration_revision": migration_revision,
+            "schema_ok": schema_ok,
+        },
+    )
+
     return {
         "uri": uri,
         "engine": engine,

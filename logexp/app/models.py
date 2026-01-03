@@ -9,7 +9,10 @@ from zoneinfo import ZoneInfo
 from flask import current_app
 from sqlalchemy.orm import Mapped, mapped_column
 
+from logexp.app.logging_setup import get_logger
 from .extensions import db
+
+logger = get_logger("logexp.models")
 
 
 class LogExpReading(db.Model):
@@ -29,7 +32,7 @@ class LogExpReading(db.Model):
     microsieverts_per_hour: Mapped[float] = mapped_column(nullable=False)
     mode: Mapped[str] = mapped_column(db.String(10), nullable=False)
 
-    # --- Typed initializer (kept exactly as you designed it) ---
+    # --- Typed initializer ---
     def __init__(
         self,
         *,
@@ -40,6 +43,18 @@ class LogExpReading(db.Model):
         timestamp: Optional[datetime] = None,
         id: Optional[int] = None,
     ) -> None:
+        logger.debug(
+            "logexp_reading_init",
+            extra={
+                "cps": counts_per_second,
+                "cpm": counts_per_minute,
+                "usv": microsieverts_per_hour,
+                "mode": mode,
+                "timestamp_provided": timestamp is not None,
+                "id_provided": id is not None,
+            },
+        )
+
         if id is not None:
             self.id = id
 
@@ -57,6 +72,15 @@ class LogExpReading(db.Model):
         tz = ZoneInfo(tz_name)
 
         localized_ts = self.timestamp.astimezone(tz) if self.timestamp else None
+
+        logger.debug(
+            "logexp_reading_serialize",
+            extra={
+                "id": self.id,
+                "timezone": tz_name,
+                "has_timestamp": self.timestamp is not None,
+            },
+        )
 
         return {
             "id": self.id,

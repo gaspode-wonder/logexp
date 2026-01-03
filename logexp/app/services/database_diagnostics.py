@@ -7,9 +7,12 @@ from typing import Optional
 from flask import current_app
 from sqlalchemy import text
 
+from logexp.app.logging_setup import get_logger
 from logexp.analytics.diagnostics import get_database_status as pure_db_status
 from logexp.app.extensions import db
 from logexp.app.models import LogExpReading
+
+logger = get_logger("logexp.database")
 
 
 def get_database_status() -> dict:
@@ -29,14 +32,24 @@ def get_database_status() -> dict:
     uri: str = config["SQLALCHEMY_DATABASE_URI"]
     engine: str = db.engine.name
 
+    logger.debug(
+        "db_diag_start",
+        extra={"uri": uri, "engine": engine},
+    )
+
     # ------------------------------------------------------------
     # Connection test
     # ------------------------------------------------------------
     try:
         db.session.execute(text("SELECT 1"))
         connected: bool = True
-    except Exception:
+        logger.debug("db_diag_connection_ok")
+    except Exception as exc:
         connected = False
+        logger.error(
+            "db_diag_connection_failed",
+            extra={"error": str(exc)},
+        )
 
     # ------------------------------------------------------------
     # Readings count + last reading timestamp
@@ -49,9 +62,23 @@ def get_database_status() -> dict:
             .first()
         )
         last_reading_at = last_row.timestamp if last_row else None
-    except Exception:
+
+        logger.debug(
+            "db_diag_readings_ok",
+            extra={
+                "readings_count": readings_count,
+                "last_reading_at": (
+                    last_reading_at.isoformat() if last_reading_at else None
+                ),
+            },
+        )
+    except Exception as exc:
         readings_count = None
         last_reading_at = None
+        logger.error(
+            "db_diag_readings_failed",
+            extra={"error": str(exc)},
+        )
 
     # ------------------------------------------------------------
     # Alembic migration revision
@@ -60,8 +87,17 @@ def get_database_status() -> dict:
         migration_revision: Optional[str] = db.session.execute(
             text("SELECT version_num FROM alembic_version")
         ).scalar()
-    except Exception:
+
+        logger.debug(
+            "db_diag_migration_ok",
+            extra={"migration_revision": migration_revision},
+        )
+    except Exception as exc:
         migration_revision = None
+        logger.error(
+            "db_diag_migration_failed",
+            extra={"error": str(exc)},
+        )
 
     # ------------------------------------------------------------
     # Schema check
@@ -70,13 +106,22 @@ def get_database_status() -> dict:
         table_name: str = LogExpReading.__tablename__
         db.session.execute(text(f"SELECT * FROM {table_name} LIMIT 1"))
         schema_ok: bool = True
-    except Exception:
+
+        logger.debug(
+            "db_diag_schema_ok",
+            extra={"table": table_name},
+        )
+    except Exception as exc:
         schema_ok = False
+        logger.error(
+            "db_diag_schema_failed",
+            extra={"error": str(exc)},
+        )
 
     # ------------------------------------------------------------
     # Delegate to pure diagnostics
     # ------------------------------------------------------------
-    return pure_db_status(
+    payload = pure_db_status(
         uri=uri,
         engine=engine,
         connected=connected,
@@ -85,3 +130,10 @@ def get_database_status() -> dict:
         migration_revision=migration_revision,
         schema_ok=schema_ok,
     )
+
+    logger.debug(
+        "db_diag_complete",
+        extra={"payload": payload},
+    )
+
+    return payload

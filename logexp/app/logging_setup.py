@@ -10,6 +10,9 @@ from typing import List
 
 from logexp.app.logging import StructuredFormatter
 
+# Dedicated logger for setup events
+_setup_logger = logging.getLogger("logexp.logging.setup")
+
 
 def configure_logging() -> None:
     """
@@ -19,6 +22,8 @@ def configure_logging() -> None:
     - Clears existing handlers to prevent duplicates
     - Applies consistent INFO-level logging across the app
     """
+    _setup_logger.debug("logging_setup_start")
+
     handler: logging.Handler = logging.StreamHandler()
     handler.setFormatter(StructuredFormatter())
 
@@ -27,6 +32,18 @@ def configure_logging() -> None:
         "logexp.ingestion",
         "logexp.analytics",
         "logexp.validation",
+        "logexp.poller",
+        "logexp.diagnostics",
+        "logexp.api",
+        "logexp.extensions",
+        "logexp.models",
+        "logexp.schemas",
+        "logexp.timestamps",
+        "logexp.geiger",
+        "logexp.blueprints",
+        "logexp.logging",
+        "logexp.logging.setup",
+        "logexp.readings.deprecated",
     ]
 
     for ns in namespaces:
@@ -35,6 +52,10 @@ def configure_logging() -> None:
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         logger.propagate = True
+
+        _setup_logger.debug("logging_namespace_configured", extra={"namespace": ns})
+
+    _setup_logger.debug("logging_setup_complete")
 
 
 def get_logger(name: str) -> logging.Logger:

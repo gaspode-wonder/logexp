@@ -7,6 +7,10 @@ import json
 import logging
 from typing import Any
 
+from logexp.app.logging_setup import get_logger
+
+logger = get_logger("logexp.logging")
+
 
 class StructuredFormatter(logging.Formatter):
     """
@@ -16,6 +20,10 @@ class StructuredFormatter(logging.Formatter):
         {"ts": "...", "level": "...", "msg": "...", "name": "..."}
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        logger.debug("structured_formatter_initialized")
+
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
             "ts": datetime.now(timezone.utc).isoformat(),
@@ -24,7 +32,5 @@ class StructuredFormatter(logging.Formatter):
             "msg": record.getMessage(),
         }
 
-        # Write JSON to record.message, not record.msg
         record.message = json.dumps(payload)
-
         return record.message

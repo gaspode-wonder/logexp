@@ -31,6 +31,7 @@ def validate_config(cfg: dict) -> dict:
     Raises:
         ValueError for invalid window or timezone
     """
+    log.debug("config_validation_start", extra={"keys": list(cfg.keys())})
 
     # ------------------------------------------------------------
     # Required keys
@@ -46,6 +47,10 @@ def validate_config(cfg: dict) -> dict:
     # ------------------------------------------------------------
     window = cfg["ANALYTICS_WINDOW"]
     if not isinstance(window, int) or window <= 0:
+        log.error(
+            "invalid_analytics_window",
+            extra={"value": window},
+        )
         raise ValueError("ANALYTICS_WINDOW must be a positive integer")
 
     # ------------------------------------------------------------
@@ -54,13 +59,23 @@ def validate_config(cfg: dict) -> dict:
     tz = cfg["LOCAL_TIMEZONE"]
     try:
         ZoneInfo(tz)
-    except Exception:
+    except Exception as exc:
+        log.error(
+            "invalid_timezone",
+            extra={"value": tz, "error": str(exc)},
+        )
         raise ValueError(f"Invalid timezone: {tz}")
 
     # ------------------------------------------------------------
     # INGESTION_ENABLED must be boolean
     # ------------------------------------------------------------
-    if not isinstance(cfg["INGESTION_ENABLED"], bool):
+    ingestion_enabled = cfg["INGESTION_ENABLED"]
+    if not isinstance(ingestion_enabled, bool):
+        log.error(
+            "invalid_ingestion_enabled",
+            extra={"value": ingestion_enabled},
+        )
         raise ValueError("INGESTION_ENABLED must be a boolean")
 
+    log.debug("config_validation_success")
     return cfg
