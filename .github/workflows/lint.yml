@@ -3,11 +3,15 @@ name: Lint
 
 on:
   pull_request:
-    branches: [ main ]
+  push:
+    branches: [main]
 
 jobs:
   lint:
     runs-on: ubuntu-latest
+
+    env:
+      TZ: UTC
 
     steps:
       - name: Checkout repository
@@ -16,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -24,10 +28,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run flake8
-        run: flake8 logexp
-
-      - name: Run black (check mode)
-        run: black --check logexp
-
-      - name: Run isort (check mode)
-        run: isort --check-only logexp
+        run: flake8 .

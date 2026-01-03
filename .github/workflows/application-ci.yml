@@ -19,6 +19,7 @@ jobs:
       ANALYTICS_ENABLED: "true"
       ANALYTICS_WINDOW_SECONDS: "60"
       LOCAL_TIMEZONE: "UTC"
+      SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
 
     steps:
       - name: Checkout repository
@@ -40,7 +41,6 @@ jobs:
       - name: Run database migrations
         env:
           FLASK_APP: logexp.app:create_app
-          SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: flask db upgrade
 
       - name: Run pytest
