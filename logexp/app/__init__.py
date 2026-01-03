@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import os
+import sys
 import datetime
 import sqlite3
 from typing import Any, Dict, Optional, Tuple
@@ -16,10 +18,10 @@ from logexp.app.config import load_config
 from logexp.app.extensions import db, migrate
 from logexp.app.logging_setup import configure_logging
 
-
 # ---------------------------------------------------------------------------
 # SQLite timezone support
 # ---------------------------------------------------------------------------
+
 
 def configure_sqlite_timezone_support(app: Flask) -> None:
     """
@@ -54,6 +56,7 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
 # ---------------------------------------------------------------------------
 # Application Factory
 # ---------------------------------------------------------------------------
+
 
 def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
     """
@@ -158,5 +161,19 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
             db.drop_all()
             db.create_all()
             current_app.logger.info("Test database cleared and recreated.")
+
+    # ----------------------------------------------------------------------
+    # 10. Startup Diagnostics Banner
+    # ----------------------------------------------------------------------
+
+    print("\n=== LogExp Startup Diagnostics ===")
+    print("CWD:", os.getcwd())
+    print("Python:", sys.executable)
+    print("Version:", sys.version)
+    print("Filtered ENV:")
+    for k, v in os.environ.items():
+        if any(x in k for x in ["SQL", "FLASK", "PYTHON", "TZ", "ANALYTICS"]):
+            print(f"  {k}={v}")
+    print("=== End Diagnostics ===\n")
 
     return app

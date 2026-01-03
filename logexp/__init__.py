@@ -11,6 +11,5 @@ from __future__ import annotations
 
 from logexp.app.logging_setup import configure_logging
 
-
 # Configure logging at import time (tests, CLI, app factory)
 configure_logging()
