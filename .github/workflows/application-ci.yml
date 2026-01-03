@@ -41,7 +41,7 @@ jobs:
       - name: Run database migrations
         env:
           FLASK_APP: logexp.app:create_app
-          PYTHONPATH .
+          PYTHONPATH: .
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: flask db upgrade
 
