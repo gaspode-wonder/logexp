@@ -21,7 +21,6 @@ from logexp.app.logging_setup import configure_logging
 # SQLite timezone support
 # ---------------------------------------------------------------------------
 
-
 def configure_sqlite_timezone_support(app: Flask) -> None:
     """
     Ensures SQLite stores and returns timezone-aware datetimes.
@@ -56,7 +55,6 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
 # Application Factory
 # ---------------------------------------------------------------------------
 
-
 def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
     """
     Central application factory.
@@ -70,10 +68,12 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
 
     app = Flask(__name__)
 
-    # 1. Load config
+    # 1. Load config (single source of truth)
     app.config_obj = load_config(overrides=overrides or {})
     app.config.update(app.config_obj)
-    app.config["SQLALCHEMY_DATABASE_URI"] = app.config_obj["SQLALCHEMY_DATABASE_URI"]
+
+    # NOTE: Removed unconditional SQLALCHEMY_DATABASE_URI override to preserve
+    # CI-provided environment variables and maintain deterministic layering.
 
     # 2. SQLite timezone support
     configure_sqlite_timezone_support(app)
