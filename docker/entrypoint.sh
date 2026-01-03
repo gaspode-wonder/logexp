@@ -1,18 +1,42 @@
 #!/bin/sh
 set -e
 
-echo "$(date +"%Y-%m-%d %H:%M:%S") | Starting LogExp entrypoint..."
+timestamp() {
+  date +"%Y-%m-%d %H:%M:%S"
+}
 
-if [ -z "$SQLALCHEMY_DATABASE_URI" ]; then
-  echo "$(date +"%Y-%m-%d %H:%M:%S") | ERROR: SQLALCHEMY_DATABASE_URI is not set"
+echo "$(timestamp) | Starting LogExp entrypoint..."
+
+# ---------------------------------------------------------------------------
+# Validate required environment variables
+# ---------------------------------------------------------------------------
+
+if [ -z "$DATABASE_URL" ]; then
+  echo "$(timestamp) | ERROR: DATABASE_URL is not set"
   exit 1
 fi
 
-echo "$(date +"%Y-%m-%d %H:%M:%S") | Running flask db upgrade..."
+echo "$(timestamp) | DATABASE_URL detected"
+
+# ---------------------------------------------------------------------------
+# Run database migrations
+# ---------------------------------------------------------------------------
+
+echo "$(timestamp) | Running flask db upgrade..."
 flask db upgrade
 
-echo "$(date +"%Y-%m-%d %H:%M:%S") | Seeding data (if needed)..."
-flask seed-data || echo "Seed command failed or not defined; continuing."
+# ---------------------------------------------------------------------------
+# Seed data (idempotent)
+# ---------------------------------------------------------------------------
 
-echo "$(date +"%Y-%m-%d %H:%M:%S") | Starting application: $*"
+echo "$(timestamp) | Seeding data (if needed)..."
+if ! flask seed-data; then
+  echo "$(timestamp) | Seed command failed or not defined; continuing."
+fi
+
+# ---------------------------------------------------------------------------
+# Start application
+# ---------------------------------------------------------------------------
+
+echo "$(timestamp) | Starting application: $*"
 exec "$@"

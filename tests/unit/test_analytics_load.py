@@ -1,8 +1,8 @@
 import datetime
 import random
 
-from logexp.app.analytics import compute_window, run_analytics
 from logexp.app.extensions import db
+from logexp.app.services.analytics import compute_window, run_analytics
 
 
 def test_high_volume_readings(test_app, reading_factory):

@@ -8,9 +8,15 @@ python-dotenv==1.0.1
 pyserial==3.5
 pytest==8.2.1
 pytz==2025.2
+
+# Type checking
 mypy
+
+# Formatting
 black
-isort
-flake8
-flake8-bugbear
+
+# Testing utilities
 freezegun
+
+# Linting (replaces flake8, isort, bugbear, pyupgrade, autoflake, etc.)
+ruff==0.6.9

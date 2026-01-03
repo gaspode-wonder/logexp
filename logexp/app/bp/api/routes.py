@@ -1,4 +1,7 @@
 # logexp/app/bp/api/routes.py
+
+from typing import Any
+
 from flask import current_app, jsonify, request
 
 from logexp.app import db
@@ -9,14 +12,14 @@ from logexp.app.schemas import ReadingCreate, ReadingResponse
 
 
 @bp_api.get("/readings")
-def get_readings():
+def get_readings() -> Any:
     readings = LogExpReading.query.order_by(LogExpReading.timestamp.asc()).all()
     responses = [ReadingResponse(**r.to_dict()).model_dump() for r in readings]
     return jsonify(responses)
 
 
 @bp_api.post("/readings")
-def create_reading():
+def create_reading() -> Any:
     payload = request.get_json(force=True, silent=True) or {}
     try:
         validated = ReadingCreate(**payload)
@@ -37,7 +40,7 @@ def create_reading():
 
 
 @bp_api.get("/readings.json")
-def readings_json():
+def readings_json() -> Any:
     readings = (
         LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
     )
@@ -45,17 +48,20 @@ def readings_json():
 
 
 @bp_api.get("/geiger")
-def geiger_live():
+def geiger_live() -> Any:
     try:
-        data = read_geiger(current_app.config["GEIGER_PORT"])
+        data = read_geiger(
+            current_app.config["GEIGER_PORT"],
+            current_app.config["GEIGER_BAUDRATE"],
+        )
         return jsonify({"raw": data}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @bp_api.get("/geiger/test")
-def geiger_test():
-    results = {}
+def geiger_test() -> Any:
+    results: dict[str, Any] = {}
     ports = list_serial_ports()
     baudrate = current_app.config["GEIGER_BAUDRATE"]
     configured_port = current_app.config["GEIGER_PORT"]
@@ -75,14 +81,14 @@ def geiger_test():
 
 
 @bp_api.get("/poller/status")
-def poller_status():
+def poller_status() -> Any:
     poller = getattr(current_app, "poller", None)
     status = "running" if poller and poller._thread.is_alive() else "stopped"
     return jsonify({"status": status})
 
 
 @bp_api.post("/poller/start")
-def poller_start():
+def poller_start() -> Any:
     poller = getattr(current_app, "poller", None)
     if poller and not poller._thread.is_alive():
         poller.start()
@@ -91,7 +97,7 @@ def poller_start():
 
 
 @bp_api.post("/poller/stop")
-def poller_stop():
+def poller_stop() -> Any:
     poller = getattr(current_app, "poller", None)
     if poller and poller._thread.is_alive():
         poller.stop()
@@ -100,12 +106,12 @@ def poller_stop():
 
 
 @bp_api.get("/health")
-def health():
+def health() -> Any:
     return jsonify({"status": "ok"}), 200
 
 
 @bp_api.get("/diagnostics")
-def diagnostics_api():
+def diagnostics_api() -> Any:
     """
     Unified diagnostics API endpoint.
 

@@ -1,9 +1,9 @@
-# logexp/app/services/ingestion.py
+# filename: logexp/app/services/ingestion.py
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from flask import current_app
 
@@ -16,6 +16,9 @@ from logexp.app.models import LogExpReading as Reading
 
 
 def _ensure_aware(ts: datetime) -> datetime:
+    """
+    Ensure a datetime is timezone-aware in UTC.
+    """
     if ts.tzinfo is None or ts.tzinfo.utcoffset(ts) is None:
         return ts.replace(tzinfo=timezone.utc)
     return ts
@@ -26,7 +29,7 @@ def _ensure_aware(ts: datetime) -> datetime:
 # ---------------------------------------------------------------------------
 
 
-def _normalize_reading_args(*args: Any, **kwargs: Any) -> tuple[datetime, float]:
+def _normalize_reading_args(*args: Any, **kwargs: Any) -> Tuple[datetime, float]:
     """
     Normalize all legacy calling patterns into (timestamp, value).
 
@@ -39,36 +42,39 @@ def _normalize_reading_args(*args: Any, **kwargs: Any) -> tuple[datetime, float]
       - ingest_reading({"value": ..., ...})   # logging contract
     """
 
+    def _as_dt(ts: Any) -> datetime:
+        if isinstance(ts, datetime):
+            return ts
+        raise TypeError(f"timestamp must be datetime, got {type(ts)!r}")
+
     # Case 1: dict payload (logging contract)
     if len(args) == 1 and isinstance(args[0], dict):
-        payload = args[0]
-        raw_value = payload.get("counts_per_second")
-        if raw_value is None:
-            raw_value = payload.get("value")
+        payload: Dict[str, Any] = args[0]
+        raw_value = payload.get("counts_per_second") or payload.get("value")
         if raw_value is None:
             raise TypeError("dict payload must include 'counts_per_second' or 'value'")
-        value = float(raw_value)
-        timestamp = datetime.now(timezone.utc)
+        value: float = float(raw_value)
+        timestamp: datetime = datetime.now(timezone.utc)
         return timestamp, value
 
     # Case 2: reading=(timestamp, value)
     if "reading" in kwargs:
         reading = kwargs["reading"]
         if isinstance(reading, tuple) and len(reading) == 2:
-            return reading[0], float(reading[1])
+            return _as_dt(reading[0]), float(reading[1])
         raise TypeError("reading must be a (timestamp, value) tuple")
 
     # Case 3: timestamp=..., value=...
     if "timestamp" in kwargs and "value" in kwargs:
-        return kwargs["timestamp"], float(kwargs["value"])
+        return _as_dt(kwargs["timestamp"]), float(kwargs["value"])
 
     # Case 4: ingest_reading((timestamp, value))
     if len(args) == 1 and isinstance(args[0], tuple) and len(args[0]) == 2:
-        return args[0][0], float(args[0][1])
+        return _as_dt(args[0][0]), float(args[0][1])
 
     # Case 5: ingest_reading(timestamp, value)
     if len(args) == 2:
-        return args[0], float(args[1])
+        return _as_dt(args[0]), float(args[1])
 
     raise TypeError(
         "ingest_reading() expects (timestamp, value), timestamp, value, "
@@ -82,20 +88,23 @@ def _normalize_reading_args(*args: Any, **kwargs: Any) -> tuple[datetime, float]
 
 
 def ingest_reading(*args: Any, **kwargs: Any) -> Optional[Reading]:
+    """
+    Ingest a single reading into the database.
+    """
     timestamp, value = _normalize_reading_args(*args, **kwargs)
     timestamp = _ensure_aware(timestamp)
 
-    config = current_app.config_obj
+    config: Dict[str, Any] = current_app.config_obj
     if not config.get("INGESTION_ENABLED", True):
         return None
 
     # Unit tests expect mode="test"; production uses "normal"
-    mode = "test" if current_app.testing else "normal"
+    mode: str = "test" if current_app.testing else "normal"
 
     row = Reading(
         timestamp=timestamp,
-        counts_per_second=value,
-        counts_per_minute=value * 60.0,
+        counts_per_second=int(value),
+        counts_per_minute=int(value * 60),
         microsieverts_per_hour=value * 0.005,
         mode=mode,
     )
@@ -119,12 +128,13 @@ def ingest_readings(*args: Any, **kwargs: Any) -> List[Optional[Reading]]:
       - ingest_readings(batch=[...])
       - ingest_readings([...])
     """
-    positional = list(args)
+    positional: List[Any] = list(args)
 
     # Optional leading session argument (ignored; we use db.session)
     if positional and not isinstance(positional[0], (list, tuple, dict)):
         positional = positional[1:]
 
+    batch: Iterable[Any]
     if "readings" in kwargs:
         batch = kwargs["readings"]
     elif "batch" in kwargs:
@@ -146,18 +156,25 @@ ingest_batch = ingest_readings
 # ---------------------------------------------------------------------------
 
 
-def get_ingestion_status() -> dict:
-    config = current_app.config_obj
-    enabled = config.get("INGESTION_ENABLED", True)
+def get_ingestion_status() -> Dict[str, Any]:
+    """
+    Return ingestion diagnostics for UI and API.
+    """
+    config: Dict[str, Any] = current_app.config_obj
+    enabled: bool = config.get("INGESTION_ENABLED", True)
 
     try:
-        total_rows = db.session.query(Reading).count()
+        total_rows: Optional[int] = db.session.query(Reading).count()
     except Exception:
         total_rows = None
 
     try:
-        last_row = db.session.query(Reading).order_by(Reading.timestamp.desc()).first()
-        last_ingested_at = last_row.timestamp_dt.isoformat() if last_row else None
+        last_row: Optional[Reading] = (
+            db.session.query(Reading).order_by(Reading.timestamp.desc()).first()
+        )
+        last_ingested_at: Optional[str] = (
+            last_row.timestamp_dt.isoformat() if last_row else None
+        )
     except Exception:
         last_ingested_at = None
 

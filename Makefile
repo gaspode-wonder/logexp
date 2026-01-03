@@ -52,6 +52,9 @@ check-lint: ## Run flake8 in CI-style fail-on-error mode
 check-mypy: ## Run mypy in strict CI mode
 	$(ACTIVATE) && mypy --strict logexp
 
+typecheck: ## Run mypy using project configuration
+	$(ACTIVATE) && mypy .
+
 # =============================================================================
 # Database Management
 # =============================================================================
@@ -74,7 +77,7 @@ ci-local: ## Mirror GitHub Actions locally
 	$(ACTIVATE) && \
 		pip install --upgrade pip && \
 		pip install -r requirements.txt && \
-		mypy logexp && \
+		mypy . && \
 		pytest -vv
 
 test-clean: ## Clean environment and run tests in a fresh state
@@ -89,6 +92,12 @@ test-clean: ## Clean environment and run tests in a fresh state
 
 	@echo ">>> Running pytest..."
 	$(ACTIVATE) && pytest -vv
+
+test-architecture: ## Run architecture-level tests only
+	$(ACTIVATE) && pytest tests/architecture -q
+
+test-smart: ## Run pytest in fail-fast / last-failed mode
+	$(ACTIVATE) && pytest --lf --ff -q
 
 # =============================================================================
 # Developer Utilities
@@ -138,21 +147,14 @@ db-upgrade: ## Apply database migrations
 
 check-env: ## Validate required environment variables for parity with CI
 	@echo ">>> Checking environment variable parity..."
-	@python scripts/check_env_parity.py
+	$(ACTIVATE) && python scripts/check_env_parity.py
 
 # =============================================================================
 # Logging & Analytics Utilities
 # =============================================================================
 
 log-demo: ## Emit a single structured log line for debugging logging setup
-	@PYTHONPATH=. python scripts/log_demo.py
+	$(ACTIVATE) && PYTHONPATH=. python scripts/log_demo.py
 
 analytics-demo: ## Run analytics demo script
-	@PYTHONPATH=. python scripts/analytics_demo.py
-
-# Run only architecture-level tests
-test-architecture:
-    pytest tests/architecture -q
-
-test-smart:
-    pytest --lf --ff -q
+	$(ACTIVATE) && PYTHONPATH=. python scripts/analytics_demo.py

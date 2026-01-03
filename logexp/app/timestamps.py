@@ -16,12 +16,13 @@ Contract:
 from __future__ import annotations
 
 import datetime
+from typing import Union
 from zoneinfo import ZoneInfo
 
-UTC = ZoneInfo("UTC")
+UTC: ZoneInfo = ZoneInfo("UTC")
 
 
-def normalize_timestamp(value) -> datetime.datetime:
+def normalize_timestamp(value: Union[str, datetime.datetime]) -> datetime.datetime:
     """
     Normalize a timestamp into a UTC-aware datetime.
 
@@ -39,13 +40,15 @@ def normalize_timestamp(value) -> datetime.datetime:
 
     # Already a datetime
     if isinstance(value, datetime.datetime):
-        dt = value
+        dt: datetime.datetime = value
+
     # Parse ISO8601 string
     elif isinstance(value, str):
         try:
             dt = datetime.datetime.fromisoformat(value)
         except Exception as exc:
             raise ValueError(f"Invalid timestamp string: {value}") from exc
+
     else:
         raise TypeError(f"Unsupported timestamp type: {type(value)}")
 
