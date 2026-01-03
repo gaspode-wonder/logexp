@@ -1,4 +1,6 @@
-# logexp/poller.py
+# filename: logexp/poller.py
+
+from __future__ import annotations
 
 import logging
 from typing import Any, Dict, Optional
@@ -8,24 +10,27 @@ import serial
 logger = logging.getLogger("logexp.poller")
 
 
+Frame = Dict[str, Any]
+
+
 class Poller:
     """
     Step 11E — Poller implementation.
 
-    11E‑1: skeleton
-    11E‑2: poll_once() (fake frame path)
-    11E‑3: poll_forever() loop
-    11E‑5: real serial frame provider
-    11E‑6: diagnostics surface
-    11E‑7: respect POLLING_ENABLED
+    Responsibilities:
+      - Deterministic fake-frame provider (test-safe)
+      - Optional real serial frame provider
+      - Diagnostics tracking
+      - Respect POLLING_ENABLED
+      - Deterministic poll_forever() loop
     """
 
     def __init__(self, config: Dict[str, Any], ingestion: Any) -> None:
         self.config = config
         self.ingestion = ingestion
 
-        # 11E‑6 diagnostics state
-        self.last_frame: Optional[Dict[str, Any]] = None
+        # Diagnostics state (11E‑6)
+        self.last_frame: Optional[Frame] = None
         self.frames_ingested: int = 0
         self.frames_failed: int = 0
         self.frames_skipped: int = 0
@@ -39,15 +44,16 @@ class Poller:
 
         Default is True to preserve prior behavior unless explicitly disabled.
         """
-        return self.config.get("POLLING_ENABLED", True)
+        enabled = self.config.get("POLLING_ENABLED", True)
+        return bool(enabled)
 
     # ------------------------------------------------------------
     # 11E‑5: Real serial frame provider
     # ------------------------------------------------------------
-    def read_serial_frame(self) -> Optional[Dict[str, Any]]:
-        port = self.config.get("SERIAL_PORT")
-        baudrate = self.config.get("SERIAL_BAUDRATE", 9600)
-        timeout = self.config.get("SERIAL_TIMEOUT", 1.0)
+    def read_serial_frame(self) -> Optional[Frame]:
+        port: Optional[str] = self.config.get("SERIAL_PORT")
+        baudrate: int = int(self.config.get("SERIAL_BAUDRATE", 9600))
+        timeout: float = float(self.config.get("SERIAL_TIMEOUT", 1.0))
 
         if not port:
             logger.error("SERIAL_PORT not configured; cannot read frame from serial.")
@@ -55,7 +61,7 @@ class Poller:
 
         try:
             with serial.Serial(port=port, baudrate=baudrate, timeout=timeout) as ser:
-                raw_bytes = ser.readline()
+                raw_bytes: bytes = ser.readline()
         except serial.SerialException as exc:
             logger.exception("SerialException on port %s: %s", port, exc)
             return None
@@ -73,19 +79,19 @@ class Poller:
     # ------------------------------------------------------------
     # 11E‑2 + 11E‑5: Deterministic frame provider
     # ------------------------------------------------------------
-    def get_frame(self) -> Optional[Dict[str, Any]]:
-        use_fake = self.config.get("USE_FAKE_FRAMES", True)
+    def get_frame(self) -> Optional[Frame]:
+        use_fake: bool = bool(self.config.get("USE_FAKE_FRAMES", True))
 
         if use_fake:
-            fake_value = self.config.get("FAKE_FRAME_VALUE", 42)
+            fake_value: Any = self.config.get("FAKE_FRAME_VALUE", 42)
             return {"value": fake_value}
 
         return self.read_serial_frame()
 
     # ------------------------------------------------------------
-    # 11E‑2 + 11E‑6 + 11E‑7: poll_once() with diagnostics and POLLING_ENABLED
+    # 11E‑2 + 11E‑6 + 11E‑7: poll_once()
     # ------------------------------------------------------------
-    def poll_once(self) -> Optional[Dict[str, Any]]:
+    def poll_once(self) -> Optional[Frame]:
         if not self.is_enabled():
             logger.info("Polling disabled by config; poll_once() will not poll.")
             return None
@@ -111,14 +117,14 @@ class Poller:
         return frame
 
     # ------------------------------------------------------------
-    # 11E‑3 + 11E‑7: poll_forever() respecting POLLING_ENABLED
+    # 11E‑3 + 11E‑7: poll_forever()
     # ------------------------------------------------------------
     def poll_forever(self) -> None:
         if not self.is_enabled():
             logger.info("Polling disabled by config; poll_forever() will not poll.")
             return
 
-        max_frames = self.config.get("MAX_FRAMES", 10)
+        max_frames: int = int(self.config.get("MAX_FRAMES", 10))
         for _ in range(max_frames):
             self.poll_once()
 

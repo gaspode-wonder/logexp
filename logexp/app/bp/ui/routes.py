@@ -1,3 +1,5 @@
+from typing import Any
+
 from flask import current_app, redirect, render_template, url_for
 
 from logexp.app.bp.ui import bp_ui
@@ -5,12 +7,12 @@ from logexp.app.models import LogExpReading
 
 
 @bp_ui.route("/")
-def index():
+def index() -> Any:
     return redirect(url_for("ui.readings_index"))
 
 
 @bp_ui.route("/readings")
-def readings_index():
+def readings_index() -> Any:
     readings = (
         LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
     )

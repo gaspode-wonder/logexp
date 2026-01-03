@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from flask import current_app, jsonify, render_template
 
@@ -17,7 +18,7 @@ from logexp.app.services.poller import get_poller_status
 # Diagnostics UI (HTML)
 # ---------------------------------------------------------------------------
 @bp_diagnostics.get("/")
-def diagnostics_page():
+def diagnostics_page() -> Any:
     """
     Diagnostics UI entrypoint.
 
@@ -53,7 +54,7 @@ def diagnostics_page():
 # Legacy endpoint name used in templates/tests
 # ---------------------------------------------------------------------------
 @bp_diagnostics.get("/index", endpoint="diagnostics_index")
-def diagnostics_index():
+def diagnostics_index() -> Any:
     return diagnostics_page()
 
 
@@ -61,7 +62,7 @@ def diagnostics_index():
 # Support /diagnostics (no trailing slash)
 # ---------------------------------------------------------------------------
 @bp_diagnostics.get("")
-def diagnostics_page_no_slash():
+def diagnostics_page_no_slash() -> Any:
     return diagnostics_page()
 
 
@@ -69,7 +70,7 @@ def diagnostics_page_no_slash():
 # Minimal JSON test endpoint (legacy)
 # ---------------------------------------------------------------------------
 @bp_diagnostics.get("/geiger/test")
-def diagnostics_test():
+def diagnostics_test() -> Any:
     """
     Legacy JSON test endpoint.
     Retained for backward compatibility with older test suites.

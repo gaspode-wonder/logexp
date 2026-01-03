@@ -1,9 +1,9 @@
-# logexp/app/services/analytics_diagnostics.py
+# filename: logexp/app/services/analytics_diagnostics.py
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from flask import current_app
 
@@ -11,12 +11,12 @@ from logexp.analytics.diagnostics import (
     get_analytics_status as pure_analytics_status,
 )
 from logexp.analytics.engine import AnalyticsEngine, ReadingSample
-from logexp.app.models import Reading
+from logexp.app.models import LogExpReading
 
 
 def _get_window_params(
     now: Optional[datetime] = None,
-) -> tuple[int, datetime, datetime]:
+) -> Tuple[int, datetime, datetime]:
     """
     Derive window parameters from config and the current time.
 
@@ -27,11 +27,11 @@ def _get_window_params(
         now = datetime.now(timezone.utc)
 
     config = current_app.config_obj
-    window_seconds = config.get("ANALYTICS_WINDOW_SECONDS", 60)
-    window_minutes = max(1, window_seconds // 60)
+    window_seconds: int = config.get("ANALYTICS_WINDOW_SECONDS", 60)
+    window_minutes: int = max(1, window_seconds // 60)
 
-    window_end = now
-    window_start = now - timedelta(minutes=window_minutes)
+    window_end: datetime = now
+    window_start: datetime = now - timedelta(minutes=window_minutes)
 
     return window_minutes, window_start, window_end
 
@@ -41,9 +41,9 @@ def _load_samples(window_start: datetime) -> List[ReadingSample]:
     Load readings from the database and convert them to ReadingSample
     instances for the pure analytics engine.
     """
-    rows = (
-        Reading.query.filter(Reading.timestamp >= window_start)
-        .order_by(Reading.timestamp.asc())
+    rows: List[LogExpReading] = (
+        LogExpReading.query.filter(LogExpReading.timestamp >= window_start)
+        .order_by(LogExpReading.timestamp.asc())
         .all()
     )
 
@@ -53,30 +53,39 @@ def _load_samples(window_start: datetime) -> List[ReadingSample]:
     ]
 
 
-def summarize_readings(now: Optional[datetime] = None) -> dict:
+def summarize_readings(readings: List[LogExpReading]) -> Dict[str, Any]:
     """
-    Legacy service-layer API used by logging and diagnostics.
+    Summarize a list of LogExpReading objects into JSON-safe analytics metrics.
 
-    Returns a JSON-safe summary of readings over the configured window:
-        - window_minutes
-        - count
-        - window_start (ISO8601)
-        - window_end (ISO8601)
-        - average
-        - minimum
-        - maximum
-
-    Accepts an optional `now` to allow deterministic tests to fix time.
+    This is the legacy helper used by diagnostics routes. It does NOT load
+    from the database; it operates only on the provided readings list.
     """
-    if now is None:
-        now = datetime.now(timezone.utc)
+    if not readings:
+        return {
+            "window_minutes": 0,
+            "count": 0,
+            "window_start": None,
+            "window_end": None,
+            "average": None,
+            "minimum": None,
+            "maximum": None,
+        }
 
-    window_minutes, window_start, _ = _get_window_params(now=now)
-    samples = _load_samples(window_start=window_start)
+    # Determine window boundaries from the readings themselves
+    timestamps = [r.timestamp_dt for r in readings]
+    window_start = min(timestamps)
+    window_end = max(timestamps)
 
+    samples = [
+        ReadingSample(timestamp=r.timestamp_dt, value=float(r.counts_per_second))
+        for r in readings
+    ]
+
+    # Compute metrics using the pure analytics engine
+    window_minutes = max(1, int((window_end - window_start).total_seconds() // 60))
     engine = AnalyticsEngine(window_minutes=window_minutes)
     engine.add_readings(samples)
-    result = engine.compute_metrics(now=now)
+    result = engine.compute_metrics(now=window_end)
 
     return {
         "window_minutes": result.window_minutes,
@@ -89,7 +98,7 @@ def summarize_readings(now: Optional[datetime] = None) -> dict:
     }
 
 
-def get_analytics_status(now: Optional[datetime] = None) -> dict:
+def get_analytics_status(now: Optional[datetime] = None) -> Dict[str, Any]:
     """
     Flask-aware analytics diagnostics for the unified /api/diagnostics payload.
 
@@ -103,7 +112,7 @@ def get_analytics_status(now: Optional[datetime] = None) -> dict:
         now = datetime.now(timezone.utc)
 
     window_minutes, window_start, _ = _get_window_params(now=now)
-    samples = _load_samples(window_start=window_start)
+    samples: List[ReadingSample] = _load_samples(window_start=window_start)
 
     return pure_analytics_status(
         window_minutes=window_minutes,

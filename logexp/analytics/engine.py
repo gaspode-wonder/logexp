@@ -1,10 +1,10 @@
-# logexp/analytics/engine.py
+# filename: logexp/analytics/engine.py
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
 @dataclass
@@ -38,11 +38,14 @@ class AnalyticsEngine:
         if window_minutes <= 0:
             raise ValueError("window_minutes must be positive")
 
-        self.window_minutes = window_minutes
+        self.window_minutes: int = window_minutes
         self._samples: List[ReadingSample] = []
 
     @staticmethod
     def _ensure_aware(dt: datetime) -> None:
+        """
+        Ensure the datetime is timezone-aware.
+        """
         if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
             raise ValueError("datetime must be timezone-aware")
 
@@ -60,10 +63,13 @@ class AnalyticsEngine:
         for sample in samples:
             self.add_reading(sample)
 
-    def _window_bounds(self, now: datetime) -> tuple[datetime, datetime]:
+    def _window_bounds(self, now: datetime) -> Tuple[datetime, datetime]:
+        """
+        Compute the inclusive window bounds for the given timestamp.
+        """
         self._ensure_aware(now)
-        window_end = now
-        window_start = now - timedelta(minutes=self.window_minutes)
+        window_end: datetime = now
+        window_start: datetime = now - timedelta(minutes=self.window_minutes)
         return window_start, window_end
 
     def get_window(self, now: datetime) -> List[ReadingSample]:
@@ -90,7 +96,7 @@ class AnalyticsEngine:
         If no samples are in the window, returns zeros/nones as appropriate.
         """
         window_start, window_end = self._window_bounds(now)
-        window_samples = self.get_window(now)
+        window_samples: List[ReadingSample] = self.get_window(now)
 
         if not window_samples:
             return AnalyticsResult(
@@ -103,11 +109,11 @@ class AnalyticsEngine:
                 maximum=None,
             )
 
-        values = [s.value for s in window_samples]
-        count = len(values)
-        average = sum(values) / count
-        minimum = min(values)
-        maximum = max(values)
+        values: List[float] = [s.value for s in window_samples]
+        count: int = len(values)
+        average: float = sum(values) / count
+        minimum: float = min(values)
+        maximum: float = max(values)
 
         return AnalyticsResult(
             window_minutes=self.window_minutes,

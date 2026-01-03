@@ -1,10 +1,12 @@
-# filename: .pre-commit-config.yaml
-
 repos:
-  - repo: local
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
     hooks:
-      - id: architecture-tests
-        name: Run architecture tests
-        entry: pytest tests/architecture -q
-        language: system
-        pass_filenames: false
+      - id: black
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format

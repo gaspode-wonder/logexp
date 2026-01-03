@@ -1,56 +1,68 @@
-# logexp/app/models.py
+# filename: logexp/app/models.py
+
 from __future__ import annotations
 
-from datetime import timezone
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo
 
-from .extensions import db
+from flask import current_app
+from sqlalchemy.orm import Mapped, mapped_column
 
-__all__ = ["LogExpReading", "Reading"]
+from .extensions import db
 
 
 class LogExpReading(db.Model):
     __tablename__ = "logexp_readings"
 
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime(timezone=True), nullable=False)
-    counts_per_second = db.Column(db.Float, nullable=False)
-    counts_per_minute = db.Column(db.Float, nullable=False)
-    microsieverts_per_hour = db.Column(db.Float, nullable=False)
-    mode = db.Column(db.String(16), nullable=False)
+    # --- SQLAlchemy 2.0 typed columns ---
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    def to_dict(self):
-        # Localize to America/Chicago for test expectations
-        local_tz = ZoneInfo("America/Chicago")
+    timestamp: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
-        ts = self.timestamp
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
+    counts_per_second: Mapped[int] = mapped_column(nullable=False)
+    counts_per_minute: Mapped[int] = mapped_column(nullable=False)
+    microsieverts_per_hour: Mapped[float] = mapped_column(nullable=False)
+    mode: Mapped[str] = mapped_column(db.String(10), nullable=False)
 
-        localized = ts.astimezone(local_tz)
+    # --- Typed initializer (kept exactly as you designed it) ---
+    def __init__(
+        self,
+        *,
+        counts_per_second: int,
+        counts_per_minute: int,
+        microsieverts_per_hour: float,
+        mode: str,
+        timestamp: Optional[datetime] = None,
+        id: Optional[int] = None,
+    ) -> None:
+        if id is not None:
+            self.id = id
+
+        if timestamp is not None:
+            self.timestamp = timestamp
+
+        self.counts_per_second = counts_per_second
+        self.counts_per_minute = counts_per_minute
+        self.microsieverts_per_hour = microsieverts_per_hour
+        self.mode = mode
+
+    # --- Serialization ---
+    def to_dict(self) -> Dict[str, Any]:
+        tz_name = current_app.config_obj.get("LOCAL_TIMEZONE", "UTC")
+        tz = ZoneInfo(tz_name)
+
+        localized_ts = self.timestamp.astimezone(tz) if self.timestamp else None
 
         return {
             "id": self.id,
-            "timestamp": localized,
+            "timestamp": localized_ts,
             "counts_per_second": self.counts_per_second,
             "counts_per_minute": self.counts_per_minute,
             "microsieverts_per_hour": self.microsieverts_per_hour,
             "mode": self.mode,
         }
-
-    @property
-    def timestamp_dt(self):
-        """
-        Return the timestamp as a timezone-aware datetime in UTC.
-        Analytics depends on this property.
-        """
-        ts = self.timestamp
-        if ts.tzinfo is None:
-            return ts.replace(tzinfo=timezone.utc)
-        return ts.astimezone(timezone.utc)
-
-
-# ---------------------------------------------------------------------------
-# Backward-compatible alias expected by the test suite
-# ---------------------------------------------------------------------------
-Reading = LogExpReading

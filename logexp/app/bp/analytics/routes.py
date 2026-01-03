@@ -1,17 +1,19 @@
-# logexp/app/bp/analytics/routes.py
+# filename: logexp/app/bp/analytics/routes.py
 
 import datetime
+from typing import Any
 
 from flask import Response, render_template, request
 
-from logexp.app.analytics import compute_window, run_analytics
+from logexp.app import db
 from logexp.app.bp.analytics import bp_analytics
+from logexp.app.services.analytics import compute_window, run_analytics
 from logexp.app.services.analytics_diagnostics import summarize_readings
 from logexp.app.services.analytics_export import export_readings_to_csv
 
 
 @bp_analytics.route("/", methods=["GET"])
-def analytics_index():
+def analytics_index() -> Any:
     # Query params
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
@@ -20,13 +22,13 @@ def analytics_index():
 
     # Default: last 24h
     if not start_date and not end_date and not quick_range:
-        default_start = datetime.now() - datetime.timedelta(hours=24)
+        default_start = datetime.datetime.now() - datetime.timedelta(hours=24)
         start_date = default_start.isoformat(timespec="minutes")
-        end_date = datetime.now().isoformat(timespec="minutes")
+        end_date = datetime.datetime.now().isoformat(timespec="minutes")
 
     # Handle quick ranges
     if quick_range:
-        now = datetime.now()
+        now = datetime.datetime.now()
         if quick_range == "1h":
             start_date = (now - datetime.timedelta(hours=1)).isoformat(
                 timespec="minutes"
@@ -42,7 +44,7 @@ def analytics_index():
         end_date = now.isoformat(timespec="minutes")
 
     # Run analytics subsystem
-    rollup = run_analytics()
+    rollup = run_analytics(db.session)
     readings = compute_window()
     diagnostics = summarize_readings(readings)
 
@@ -58,7 +60,7 @@ def analytics_index():
 
 
 @bp_analytics.route("/export", methods=["GET"])
-def analytics_export():
+def analytics_export() -> Any:
     readings = compute_window()
     csv_data = export_readings_to_csv(readings)
 

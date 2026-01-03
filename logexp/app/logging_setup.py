@@ -3,12 +3,15 @@
 # Centralized logging configuration for all logexp.* namespaces.
 # Ensures structured JSON logs are attached before any app or tests run.
 
+from __future__ import annotations
+
 import logging
+from typing import List
 
 from logexp.app.logging import StructuredFormatter
 
 
-def configure_logging():
+def configure_logging() -> None:
     """
     Configure structured logging for all logexp.* namespaces.
 
@@ -16,10 +19,10 @@ def configure_logging():
     - Clears existing handlers to prevent duplicates
     - Applies consistent INFO-level logging across the app
     """
-    handler = logging.StreamHandler()
+    handler: logging.Handler = logging.StreamHandler()
     handler.setFormatter(StructuredFormatter())
 
-    namespaces = [
+    namespaces: List[str] = [
         "logexp.app",
         "logexp.ingestion",
         "logexp.analytics",
@@ -27,7 +30,7 @@ def configure_logging():
     ]
 
     for ns in namespaces:
-        logger = logging.getLogger(ns)
+        logger: logging.Logger = logging.getLogger(ns)
         logger.handlers.clear()
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)

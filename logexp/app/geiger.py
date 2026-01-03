@@ -1,34 +1,42 @@
+# filename: logexp/app/geiger.py
+
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import serial
 import serial.tools.list_ports
 
 
 def read_geiger(port: str, baudrate: int) -> str:
-    """Read one line of raw text from the Geiger counter."""
+    """
+    Read one line of raw text from the Geiger counter.
+    """
     with serial.Serial(port, baudrate, timeout=2) as ser:
-        line = ser.readline().decode("utf-8").strip()
+        line: str = ser.readline().decode("utf-8").strip()
         return line
 
 
 def list_serial_ports() -> List[str]:
-    """Return a list of available serial ports."""
+    """
+    Return a list of available serial ports.
+    """
     return [p.device for p in serial.tools.list_ports.comports()]
 
 
 def try_port(port: str, baudrate: int) -> str:
-    """Attempt to read one line from a given port."""
+    """
+    Attempt to read one line from a given port.
+    """
     try:
         with serial.Serial(port, baudrate, timeout=2) as ser:
-            line = ser.readline().decode("utf-8").strip()
+            line: str = ser.readline().decode("utf-8").strip()
             return line if line else "<no data>"
     except Exception as e:
         return f"<error: {e}>"
 
 
-def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, object]:
+def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, Any]:
     """
     Parse Geiger counter output into structured fields.
 
@@ -37,11 +45,11 @@ def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, object]:
       - "CPS, 1, CPM, 20, uSv/hr, 0.11, SLOW"
 
     Mode logic:
-      - INST: CPS > 255 → CPM = CPS*60
+      - INST: CPS > 255 → CPM = CPS * 60
       - FAST: CPS > threshold
       - SLOW: default
     """
-    result = {
+    result: Dict[str, Any] = {
         "counts_per_second": 0,
         "counts_per_minute": 0,
         "microsieverts_per_hour": 0.0,
@@ -52,26 +60,28 @@ def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, object]:
         return result
 
     try:
-        parts = [p.strip() for p in line.replace("=", ",").split(",")]
+        parts: List[str] = [p.strip() for p in line.replace("=", ",").split(",")]
 
         for i, p in enumerate(parts):
-            if p.upper().startswith("CPS"):
+            key = p.upper()
+
+            if key.startswith("CPS"):
                 result["counts_per_second"] = (
                     int(parts[i + 1]) if i + 1 < len(parts) else 0
                 )
-            elif p.upper().startswith("CPM"):
+            elif key.startswith("CPM"):
                 result["counts_per_minute"] = (
                     int(parts[i + 1]) if i + 1 < len(parts) else 0
                 )
-            elif "USV" in p.upper():
+            elif "USV" in key:
                 result["microsieverts_per_hour"] = (
                     float(parts[i + 1]) if i + 1 < len(parts) else 0.0
                 )
-            elif p.upper() in ("SLOW", "FAST", "INST"):
-                result["mode"] = p.upper()
+            elif key in ("SLOW", "FAST", "INST"):
+                result["mode"] = key
 
         # Mode logic
-        cps = result["counts_per_second"]
+        cps: int = result["counts_per_second"]
         if cps > 255:
             result["counts_per_minute"] = cps * 60
             result["mode"] = "INST"
