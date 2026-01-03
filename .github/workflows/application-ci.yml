@@ -39,6 +39,7 @@ jobs:
         run: python scripts/check_env_parity.py
 
       - name: Run database migrations
+        working-directory: ./logexp
         env:
           FLASK_APP: logexp.app:create_app
           PYTHONPATH: .
