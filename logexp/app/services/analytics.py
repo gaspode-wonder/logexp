@@ -1,20 +1,25 @@
-# logexp/app/services/analytics.py
+# filename: logexp/app/services/analytics.py
+
+from __future__ import annotations
+
 from datetime import datetime, timezone
 import logging
+from typing import Any, Dict
 
 logger = logging.getLogger("logexp.analytics")
 
 
-def run_analytics(db_session):
+def run_analytics(db_session: Any) -> Dict[str, int]:
     """
     Execute the analytics pipeline:
     - aggregate readings
     - compute rollups
     - detect anomalies
     - write analytics tables
-    """
 
-    start_ts = datetime.now(timezone.utc)
+    Currently a stub implementation preserved for legacy behavior.
+    """
+    start_ts: datetime = datetime.now(timezone.utc)
 
     logger.info(
         "analytics_start",
@@ -27,9 +32,9 @@ def run_analytics(db_session):
     # ------------------------------------------------------------------
     # Placeholder analytics logic (replace with real implementation)
     # ------------------------------------------------------------------
-    aggregated = 0
-    anomalies = 0
-    written = 0
+    aggregated: int = 0
+    anomalies: int = 0
+    written: int = 0
 
     # Example structure:
     #
@@ -41,7 +46,7 @@ def run_analytics(db_session):
 
     db_session.commit()
 
-    end_ts = datetime.now(timezone.utc)
+    end_ts: datetime = datetime.now(timezone.utc)
 
     logger.info(
         "analytics_complete",

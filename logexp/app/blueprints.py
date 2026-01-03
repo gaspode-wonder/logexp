@@ -1,3 +1,4 @@
+# filename: logexp/app/blueprints.py
 """
 Central blueprint registration for LogExp.
 
@@ -5,8 +6,19 @@ This module replaces the legacy app_blueprints.py file and provides
 a clean, explicit, modern blueprint registration mechanism.
 """
 
+from __future__ import annotations
 
-def register_blueprints(app):
+from typing import Any
+
+from flask import Flask
+
+
+def register_blueprints(app: Flask) -> None:
+    """
+    Register all application blueprints in a deterministic order.
+
+    Imports are intentionally local to avoid circular dependencies.
+    """
     from .bp.about import bp_about
     from .bp.analytics import bp_analytics
     from .bp.api import bp_api

@@ -1,5 +1,14 @@
 # filename: wsgi.py
 
+"""
+WSGI entrypoint for LogExp.
+
+Creates the application and conditionally starts the poller only when
+running the actual server (not tests, not shell, not CLI).
+"""
+
+from __future__ import annotations
+
 from logexp.app import create_app
 
 app = create_app()

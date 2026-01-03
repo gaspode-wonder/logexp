@@ -1,22 +1,23 @@
-# logexp/analytics/diagnostics.py
+# filename: logexp/analytics/diagnostics.py
 
 from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from .engine import AnalyticsEngine, AnalyticsResult, ReadingSample
-
 
 # ---------------------------------------------------------------------------
 # Pure Analytics Diagnostics
 # ---------------------------------------------------------------------------
+
+
 def get_analytics_status(
     window_minutes: int,
     samples: List[ReadingSample],
     now: datetime,
-) -> dict:
+) -> Dict[str, Any]:
     """
     Pure analytics diagnostics function.
 
@@ -30,9 +31,9 @@ def get_analytics_status(
 
     result: AnalyticsResult = engine.compute_metrics(now=now)
 
-    payload = asdict(result)
-    payload["window_start"] = payload["window_start"].isoformat()
-    payload["window_end"] = payload["window_end"].isoformat()
+    payload: Dict[str, Any] = asdict(result)
+    payload["window_start"] = result.window_start.isoformat()
+    payload["window_end"] = result.window_end.isoformat()
 
     return payload
 
@@ -40,6 +41,8 @@ def get_analytics_status(
 # ---------------------------------------------------------------------------
 # Pure Database Diagnostics
 # ---------------------------------------------------------------------------
+
+
 def get_database_status(
     *,
     uri: Optional[str],
@@ -49,7 +52,7 @@ def get_database_status(
     last_reading_at: Optional[datetime],
     migration_revision: Optional[str],
     schema_ok: bool,
-) -> dict:
+) -> Dict[str, Any]:
     """
     Pure database diagnostics formatter.
 

@@ -17,17 +17,20 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import logging
-from typing import Any, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from logexp.app.services.ingestion import ingest_reading as _ingest_reading
 
-logger = logging.getLogger("logexp.ingestion")
+logger: logging.Logger = logging.getLogger("logexp.ingestion")
 
 
-def ingest_reading(*args: Any, **kwargs: Any):
+def ingest_reading(*args: Any, **kwargs: Any) -> Any:
+    """
+    Legacy single‑row ingestion wrapper.
+    """
     logger.info("ingestion_start")
     try:
-        row = _ingest_reading(*args, **kwargs)
+        row: Any = _ingest_reading(*args, **kwargs)
         logger.info("ingestion_complete")
         return row
     except Exception:
@@ -41,23 +44,34 @@ def ingest_readings(*args: Any, **kwargs: Any) -> List[Optional[Any]]:
 
     Accepts:
         ingest_readings(session, readings=[...], cutoff_ts=...)
+
+    Behavior:
+    - Leading session argument is ignored.
+    - cutoff_ts is accepted but unused (legacy contract).
+    - Structured logging is preserved.
     """
     logger.info("ingestion_start")
 
+    positional: List[Any] = list(args)
+
     # Ignore leading session argument
-    positional = list(args)
     if positional and not isinstance(positional[0], (list, tuple, dict)):
         positional = positional[1:]
 
-    readings = kwargs.get("readings")
+    readings: Optional[Iterable[Any]] = kwargs.get("readings")
     if readings is None and positional:
         readings = positional[0]
 
-    # cutoff_ts is accepted but unused (legacy contract)
+    # cutoff_ts is accepted but unused
     _ = kwargs.get("cutoff_ts", datetime.now(timezone.utc))
 
+    # Guard: never iterate over None
+    if readings is None:
+        logger.info("ingestion_complete")
+        return []
+
     try:
-        results = [_ingest_reading(item) for item in readings]
+        results: List[Optional[Any]] = [_ingest_reading(item) for item in readings]
         logger.info("ingestion_complete")
         return results
     except Exception:

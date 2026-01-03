@@ -1,9 +1,9 @@
-# logexp/app/services/ingestion.py
+# filename: logexp/app/services/ingestion.py
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from flask import current_app
 
@@ -16,6 +16,9 @@ from logexp.app.models import LogExpReading as Reading
 
 
 def _ensure_aware(ts: datetime) -> datetime:
+    """
+    Ensure a datetime is timezone-aware in UTC.
+    """
     if ts.tzinfo is None or ts.tzinfo.utcoffset(ts) is None:
         return ts.replace(tzinfo=timezone.utc)
     return ts
@@ -26,7 +29,7 @@ def _ensure_aware(ts: datetime) -> datetime:
 # ---------------------------------------------------------------------------
 
 
-def _normalize_reading_args(*args: Any, **kwargs: Any) -> tuple[datetime, float]:
+def _normalize_reading_args(*args: Any, **kwargs: Any) -> Tuple[datetime, float]:
     """
     Normalize all legacy calling patterns into (timestamp, value).
 
@@ -41,14 +44,14 @@ def _normalize_reading_args(*args: Any, **kwargs: Any) -> tuple[datetime, float]
 
     # Case 1: dict payload (logging contract)
     if len(args) == 1 and isinstance(args[0], dict):
-        payload = args[0]
+        payload: Dict[str, Any] = args[0]
         raw_value = payload.get("counts_per_second")
         if raw_value is None:
             raw_value = payload.get("value")
         if raw_value is None:
             raise TypeError("dict payload must include 'counts_per_second' or 'value'")
-        value = float(raw_value)
-        timestamp = datetime.now(timezone.utc)
+        value: float = float(raw_value)
+        timestamp: datetime = datetime.now(timezone.utc)
         return timestamp, value
 
     # Case 2: reading=(timestamp, value)
@@ -82,15 +85,18 @@ def _normalize_reading_args(*args: Any, **kwargs: Any) -> tuple[datetime, float]
 
 
 def ingest_reading(*args: Any, **kwargs: Any) -> Optional[Reading]:
+    """
+    Ingest a single reading into the database.
+    """
     timestamp, value = _normalize_reading_args(*args, **kwargs)
     timestamp = _ensure_aware(timestamp)
 
-    config = current_app.config_obj
+    config: Dict[str, Any] = current_app.config_obj
     if not config.get("INGESTION_ENABLED", True):
         return None
 
     # Unit tests expect mode="test"; production uses "normal"
-    mode = "test" if current_app.testing else "normal"
+    mode: str = "test" if current_app.testing else "normal"
 
     row = Reading(
         timestamp=timestamp,
@@ -119,12 +125,13 @@ def ingest_readings(*args: Any, **kwargs: Any) -> List[Optional[Reading]]:
       - ingest_readings(batch=[...])
       - ingest_readings([...])
     """
-    positional = list(args)
+    positional: List[Any] = list(args)
 
     # Optional leading session argument (ignored; we use db.session)
     if positional and not isinstance(positional[0], (list, tuple, dict)):
         positional = positional[1:]
 
+    batch: Iterable[Any]
     if "readings" in kwargs:
         batch = kwargs["readings"]
     elif "batch" in kwargs:
@@ -146,18 +153,25 @@ ingest_batch = ingest_readings
 # ---------------------------------------------------------------------------
 
 
-def get_ingestion_status() -> dict:
-    config = current_app.config_obj
-    enabled = config.get("INGESTION_ENABLED", True)
+def get_ingestion_status() -> Dict[str, Any]:
+    """
+    Return ingestion diagnostics for UI and API.
+    """
+    config: Dict[str, Any] = current_app.config_obj
+    enabled: bool = config.get("INGESTION_ENABLED", True)
 
     try:
-        total_rows = db.session.query(Reading).count()
+        total_rows: Optional[int] = db.session.query(Reading).count()
     except Exception:
         total_rows = None
 
     try:
-        last_row = db.session.query(Reading).order_by(Reading.timestamp.desc()).first()
-        last_ingested_at = last_row.timestamp_dt.isoformat() if last_row else None
+        last_row: Optional[Reading] = (
+            db.session.query(Reading).order_by(Reading.timestamp.desc()).first()
+        )
+        last_ingested_at: Optional[str] = (
+            last_row.timestamp_dt.isoformat() if last_row else None
+        )
     except Exception:
         last_ingested_at = None
 
