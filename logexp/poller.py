@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Dict, Optional
 
 import serial
 
-logger = logging.getLogger("logexp.poller")
+from logexp.app.logging_setup import get_logger
 
+logger = get_logger("logexp.poller")
 
 Frame = Dict[str, Any]
 
@@ -35,17 +35,21 @@ class Poller:
         self.frames_failed: int = 0
         self.frames_skipped: int = 0
 
+        logger.debug(
+            "poller_initialized",
+            extra={
+                "use_fake": self.config.get("USE_FAKE_FRAMES", True),
+                "enabled": self.config.get("POLLING_ENABLED", True),
+            },
+        )
+
     # ------------------------------------------------------------
     # 11E‑7: Polling enabled flag
     # ------------------------------------------------------------
     def is_enabled(self) -> bool:
-        """
-        Return True if polling is enabled according to config.
-
-        Default is True to preserve prior behavior unless explicitly disabled.
-        """
-        enabled = self.config.get("POLLING_ENABLED", True)
-        return bool(enabled)
+        enabled = bool(self.config.get("POLLING_ENABLED", True))
+        logger.debug("poller_enabled_check", extra={"enabled": enabled})
+        return enabled
 
     # ------------------------------------------------------------
     # 11E‑5: Real serial frame provider
@@ -55,25 +59,42 @@ class Poller:
         baudrate: int = int(self.config.get("SERIAL_BAUDRATE", 9600))
         timeout: float = float(self.config.get("SERIAL_TIMEOUT", 1.0))
 
+        logger.debug(
+            "serial_read_attempt",
+            extra={"port": port, "baudrate": baudrate, "timeout": timeout},
+        )
+
         if not port:
-            logger.error("SERIAL_PORT not configured; cannot read frame from serial.")
+            logger.error("serial_port_missing")
             return None
 
         try:
             with serial.Serial(port=port, baudrate=baudrate, timeout=timeout) as ser:
                 raw_bytes: bytes = ser.readline()
         except serial.SerialException as exc:
-            logger.exception("SerialException on port %s: %s", port, exc)
+            logger.error(
+                "serial_exception",
+                extra={"port": port, "error": str(exc)},
+            )
             return None
         except OSError as exc:
-            logger.exception("OS error on port %s: %s", port, exc)
+            logger.error(
+                "serial_os_error",
+                extra={"port": port, "error": str(exc)},
+            )
             return None
 
         if not raw_bytes:
-            logger.warning("Empty frame read from serial port %s", port)
+            logger.warning("serial_empty_frame", extra={"port": port})
             return None
 
         raw_text = raw_bytes.decode("utf-8", errors="replace").strip()
+
+        logger.debug(
+            "serial_frame_read",
+            extra={"port": port, "bytes": len(raw_bytes)},
+        )
+
         return {"raw": raw_text}
 
     # ------------------------------------------------------------
@@ -84,8 +105,10 @@ class Poller:
 
         if use_fake:
             fake_value: Any = self.config.get("FAKE_FRAME_VALUE", 42)
+            logger.debug("fake_frame_generated", extra={"value": fake_value})
             return {"value": fake_value}
 
+        logger.debug("serial_frame_requested")
         return self.read_serial_frame()
 
     # ------------------------------------------------------------
@@ -93,13 +116,13 @@ class Poller:
     # ------------------------------------------------------------
     def poll_once(self) -> Optional[Frame]:
         if not self.is_enabled():
-            logger.info("Polling disabled by config; poll_once() will not poll.")
+            logger.info("polling_disabled_poll_once")
             return None
 
         frame = self.get_frame()
 
         if frame is None:
-            logger.warning("poll_once() obtained no frame; skipping ingestion.")
+            logger.warning("poll_once_no_frame")
             self.frames_skipped += 1
             self.last_frame = None
             return None
@@ -107,13 +130,18 @@ class Poller:
         try:
             self.ingestion.ingest(frame)
         except Exception as exc:  # noqa: BLE001
-            logger.exception("Error during ingestion of frame %r: %s", frame, exc)
+            logger.error(
+                "ingestion_error",
+                extra={"frame": frame, "error": str(exc)},
+            )
             self.frames_failed += 1
             self.last_frame = frame
             return None
 
         self.frames_ingested += 1
         self.last_frame = frame
+
+        logger.debug("poll_once_success", extra={"frame": frame})
         return frame
 
     # ------------------------------------------------------------
@@ -121,12 +149,16 @@ class Poller:
     # ------------------------------------------------------------
     def poll_forever(self) -> None:
         if not self.is_enabled():
-            logger.info("Polling disabled by config; poll_forever() will not poll.")
+            logger.info("polling_disabled_poll_forever")
             return
 
         max_frames: int = int(self.config.get("MAX_FRAMES", 10))
+        logger.debug("poll_forever_start", extra={"max_frames": max_frames})
+
         for _ in range(max_frames):
             self.poll_once()
+
+        logger.debug("poll_forever_complete")
 
     # ------------------------------------------------------------
     # 11E‑6: Diagnostics surface
@@ -134,7 +166,7 @@ class Poller:
     def get_diagnostics(self) -> Dict[str, Any]:
         mode = "fake" if self.config.get("USE_FAKE_FRAMES", True) else "serial"
 
-        return {
+        diagnostics = {
             "mode": mode,
             "last_frame": self.last_frame,
             "frames_ingested": self.frames_ingested,
@@ -146,3 +178,6 @@ class Poller:
                 "timeout": self.config.get("SERIAL_TIMEOUT", 1.0),
             },
         }
+
+        logger.debug("poller_diagnostics", extra=diagnostics)
+        return diagnostics

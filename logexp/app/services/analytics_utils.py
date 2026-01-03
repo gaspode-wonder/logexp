@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Optional
 
+from logexp.app.logging_setup import get_logger
+
+logger = get_logger("logexp.analytics")
+
 
 def moving_average(values: Iterable[float], smoothing_factor: float) -> Optional[float]:
     """
@@ -11,11 +15,17 @@ def moving_average(values: Iterable[float], smoothing_factor: float) -> Optional
     """
     values_list: List[float] = list(values)
     if not values_list:
+        logger.debug("analytics_utils_moving_average_empty")
         return None
 
     ema: float = values_list[0]
     for v in values_list[1:]:
         ema = (smoothing_factor * v) + ((1 - smoothing_factor) * ema)
+
+    logger.debug(
+        "analytics_utils_moving_average_computed",
+        extra={"count": len(values_list), "ema": ema},
+    )
 
     return ema
 
@@ -26,15 +36,32 @@ def average(values: Iterable[float]) -> Optional[float]:
     """
     values_list: List[float] = list(values)
     if not values_list:
+        logger.debug("analytics_utils_average_empty")
         return None
-    return sum(values_list) / len(values_list)
+
+    avg = sum(values_list) / len(values_list)
+
+    logger.debug(
+        "analytics_utils_average_computed",
+        extra={"count": len(values_list), "average": avg},
+    )
+
+    return avg
 
 
 def extract_field(readings: Iterable[Any], field: str) -> List[Any]:
     """
     Extract a numeric field from a list of ORM objects.
     """
-    return [getattr(r, field) for r in readings]
+    readings_list = list(readings)
+    extracted = [getattr(r, field) for r in readings_list]
+
+    logger.debug(
+        "analytics_utils_extract_field",
+        extra={"field": field, "count": len(extracted)},
+    )
+
+    return extracted
 
 
 def summarize_readings(readings: Iterable[Any]) -> Dict[str, Any]:
@@ -44,12 +71,26 @@ def summarize_readings(readings: Iterable[Any]) -> Dict[str, Any]:
     """
     readings_list: List[Any] = list(readings)
     if not readings_list:
+        logger.debug("analytics_utils_summarize_empty")
         return {"count": 0}
 
-    return {
+    summary = {
         "count": len(readings_list),
         "first_timestamp": readings_list[0].timestamp,
         "last_timestamp": readings_list[-1].timestamp,
         "min_cps": min(r.counts_per_second for r in readings_list),
         "max_cps": max(r.counts_per_second for r in readings_list),
     }
+
+    logger.debug(
+        "analytics_utils_summarize_computed",
+        extra={
+            "count": summary["count"],
+            "first_timestamp": summary["first_timestamp"].isoformat(),
+            "last_timestamp": summary["last_timestamp"].isoformat(),
+            "min_cps": summary["min_cps"],
+            "max_cps": summary["max_cps"],
+        },
+    )
+
+    return summary

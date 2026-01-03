@@ -16,7 +16,11 @@ from flask import Flask, current_app, render_template
 from logexp.app.blueprints import register_blueprints
 from logexp.app.config import load_config
 from logexp.app.extensions import db, migrate
-from logexp.app.logging_setup import configure_logging
+from logexp.app.logging_setup import configure_logging, get_logger
+from logexp.app.middleware.request_id import request_id_middleware
+
+logger = get_logger("logexp.app")
+
 
 # ---------------------------------------------------------------------------
 # SQLite timezone support
@@ -52,6 +56,8 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
         }
     }
 
+    logger.debug("sqlite_timezone_support_enabled")
+
 
 # ---------------------------------------------------------------------------
 # Application Factory
@@ -69,36 +75,53 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
       - Ingestion and analytics controlled by explicit config flags
     """
 
+    logger.debug("app_factory_start")
+
     app = Flask(__name__)
 
     # 1. Load config (single source of truth)
     app.config_obj = load_config(overrides=overrides or {})
     app.config.update(app.config_obj)
 
+    logger.debug(
+        "config_loaded",
+        extra={"keys": list(app.config_obj.keys())},
+    )
+
     # ----------------------------------------------------------------------
     # DATABASE FALLBACK
-    # If neither SQLALCHEMY_DATABASE_URI nor SQLALCHEMY_BINDS is effectively
-    # set (URI is missing/empty and BINDS is missing/empty), default to an
-    # in-memory SQLite database. This preserves test and local dev behavior
-    # without overriding explicit configuration.
     # ----------------------------------------------------------------------
     has_uri = bool(app.config.get("SQLALCHEMY_DATABASE_URI"))
     has_binds = bool(app.config.get("SQLALCHEMY_BINDS"))
+
     if not has_uri and not has_binds:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        logger.debug("database_fallback_applied", extra={"uri": "sqlite:///:memory:"})
+    else:
+        logger.debug(
+            "database_config_present",
+            extra={"has_uri": has_uri, "has_binds": has_binds},
+        )
 
     # 2. SQLite timezone support
     configure_sqlite_timezone_support(app)
 
     # 3. Structured logging
     configure_logging()
+    logger.debug("structured_logging_configured")
+
+    # 3b. Request ID middleware (Step‑12C)
+    request_id_middleware(app)
+    logger.debug("request_id_middleware_enabled")
 
     # 4. Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
+    logger.debug("extensions_initialized")
 
     # 5. Register blueprints
     register_blueprints(app)
+    logger.debug("blueprints_registered")
 
     # 6. Poller startup REMOVED — now handled in wsgi.py
     app.logger.info(
@@ -111,14 +134,17 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
 
     @app.errorhandler(404)
     def not_found_error(error: Exception) -> Tuple[str, int]:
+        logger.debug("error_404_triggered")
         return render_template("errors/404.html"), 404
 
     @app.errorhandler(403)
     def forbidden_error(error: Exception) -> Tuple[str, int]:
+        logger.debug("error_403_triggered")
         return render_template("errors/403.html"), 403
 
     @app.errorhandler(500)
     def internal_error(error: Exception) -> Tuple[str, int]:
+        logger.error("error_500_triggered", extra={"error": str(error)})
         return render_template("errors/500.html"), 500
 
     # ----------------------------------------------------------------------
@@ -130,10 +156,9 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
         if app.config_obj.get("TESTING", False) and getattr(app, "poller", None):
             try:
                 app.poller.stop()
+                logger.debug("poller_stopped_in_teardown")
             except RuntimeError:
-                app.logger.debug(
-                    "Poller stop called from within poller thread; skipping join."
-                )
+                logger.debug("poller_stop_called_from_within_thread")
 
     # ----------------------------------------------------------------------
     # 9. CLI commands
@@ -175,15 +200,21 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
     # 10. Startup Diagnostics Banner
     # ----------------------------------------------------------------------
 
-    print("\n=== LogExp Startup Diagnostics ===")
-    print("CWD:", os.getcwd())
-    print("Python:", sys.executable)
-    print("Version:", sys.version)
-    print("Filtered ENV:")
-    for k, v in os.environ.items():
-        if any(x in k for x in ["SQL", "FLASK", "PYTHON", "TZ", "ANALYTICS"]):
-            print(f"  {k}={v}")
-    print("=== End Diagnostics ===\n")
+    logger.info(
+        "startup_diagnostics",
+        extra={
+            "cwd": os.getcwd(),
+            "python": sys.executable,
+            "version": sys.version,
+            "filtered_env": {
+                k: v
+                for k, v in os.environ.items()
+                if any(x in k for x in ["SQL", "FLASK", "PYTHON", "TZ", "ANALYTICS"])
+            },
+        },
+    )
+
+    logger.debug("app_factory_complete")
 
     return app
 

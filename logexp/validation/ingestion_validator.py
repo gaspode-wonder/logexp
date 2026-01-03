@@ -29,6 +29,7 @@ def validate_ingestion_payload(payload: dict) -> dict | None:
         dict  → valid payload (shallow copy)
         None  → invalid payload (graceful failure)
     """
+    log.debug("ingestion_validation_start", extra={"keys": list(payload.keys())})
 
     required = ["cps", "cpm", "usv", "mode", "timestamp"]
 
@@ -43,11 +44,13 @@ def validate_ingestion_payload(payload: dict) -> dict | None:
     # ------------------------------------------------------------
     # Validate mode (expanded to include INST)
     # ------------------------------------------------------------
-    if payload["mode"] not in ("SLOW", "FAST", "INST"):
-        log.warning("invalid_mode", extra={"mode": payload["mode"]})
+    mode = payload["mode"]
+    if mode not in ("SLOW", "FAST", "INST"):
+        log.warning("invalid_mode", extra={"mode": mode})
         return None
 
     # ------------------------------------------------------------
     # Return a shallow copy to avoid mutation
     # ------------------------------------------------------------
+    log.debug("ingestion_validation_success", extra={"mode": mode})
     return dict(payload)

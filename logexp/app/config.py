@@ -7,6 +7,10 @@ from __future__ import annotations
 import os
 from typing import Any, Callable, Dict, Optional, Tuple
 
+from logexp.app.logging_setup import get_logger
+
+logger = get_logger("logexp.config")
+
 # ---------------------------------------------------------------------------
 # Base Defaults (single source of truth)
 # ---------------------------------------------------------------------------
@@ -30,7 +34,6 @@ DEFAULTS: Dict[str, Any] = {
     "ANALYTICS_ENABLED": True,
 }
 
-
 # ---------------------------------------------------------------------------
 # Environment Variable Mapping
 # ---------------------------------------------------------------------------
@@ -46,7 +49,6 @@ ENV_MAP: Dict[str, Tuple[str, Callable[[str], Any]]] = {
     "ANALYTICS_WINDOW_SECONDS": ("ANALYTICS_WINDOW_SECONDS", int),
     "ANALYTICS_ENABLED": ("ANALYTICS_ENABLED", lambda v: v.lower() == "true"),
 }
-
 
 # ---------------------------------------------------------------------------
 # Config Loader
@@ -64,6 +66,8 @@ def load_config(overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     Returns:
         A plain dictionary used by the application factory.
     """
+    logger.debug("config_load_start")
+
     config: Dict[str, Any] = DEFAULTS.copy()
 
     # 1. Apply environment variables
@@ -72,11 +76,28 @@ def load_config(overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if raw is not None:
             try:
                 config[key] = caster(raw)
-            except Exception:
+                logger.debug(
+                    "config_env_applied",
+                    extra={"key": key, "env_var": env_var, "value": config[key]},
+                )
+            except Exception as exc:
+                logger.error(
+                    "config_env_invalid",
+                    extra={"env_var": env_var, "raw": raw, "error": str(exc)},
+                )
                 raise ValueError(f"Invalid value for {env_var}: {raw!r}")
 
     # 2. Apply explicit overrides
     if overrides:
+        logger.debug(
+            "config_overrides_applied",
+            extra={"override_keys": list(overrides.keys())},
+        )
         config.update(overrides)
+
+    logger.debug(
+        "config_load_complete",
+        extra={"final_keys": list(config.keys())},
+    )
 
     return config

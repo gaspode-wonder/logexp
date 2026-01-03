@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from flask import Flask
 
+from logexp.app.logging_setup import get_logger
+
+logger = get_logger("logexp.blueprints")
+
 
 def register_blueprints(app: Flask) -> None:
     """
@@ -17,6 +21,8 @@ def register_blueprints(app: Flask) -> None:
 
     Imports are intentionally local to avoid circular dependencies.
     """
+    logger.debug("blueprint_registration_start")
+
     from .bp.about import bp_about
     from .bp.analytics import bp_analytics
     from .bp.api import bp_api
@@ -25,10 +31,16 @@ def register_blueprints(app: Flask) -> None:
     from .bp.settings import bp_settings
     from .bp.ui import bp_ui
 
-    app.register_blueprint(bp_ui)
-    app.register_blueprint(bp_api)
-    app.register_blueprint(bp_settings)
-    app.register_blueprint(bp_diagnostics)
-    app.register_blueprint(bp_analytics)
-    app.register_blueprint(bp_docs)
-    app.register_blueprint(bp_about)
+    for bp, name in [
+        (bp_ui, "ui"),
+        (bp_api, "api"),
+        (bp_settings, "settings"),
+        (bp_diagnostics, "diagnostics"),
+        (bp_analytics, "analytics"),
+        (bp_docs, "docs"),
+        (bp_about, "about"),
+    ]:
+        logger.debug("blueprint_register", extra={"blueprint": name})
+        app.register_blueprint(bp)
+
+    logger.debug("blueprint_registration_complete")

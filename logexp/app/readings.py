@@ -15,6 +15,12 @@ from __future__ import annotations
 
 import warnings
 
+from logexp.app.logging_setup import get_logger
+
+logger = get_logger("logexp.readings.deprecated")
+
+logger.debug("deprecated_module_imported", extra={"module": "readings.py"})
+
 warnings.warn(
     "readings.py is deprecated. Use logexp/app/blueprints.py instead.",
     DeprecationWarning,

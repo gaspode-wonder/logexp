@@ -1,3 +1,5 @@
+# filename: Dockerfile
+
 # =========================
 # Build stage
 # =========================
@@ -11,7 +13,7 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
-  && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies first for caching
 COPY docker-requirements.txt .
@@ -30,7 +32,7 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
-  && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages
 COPY --from=builder /install /usr/local

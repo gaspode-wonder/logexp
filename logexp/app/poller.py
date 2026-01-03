@@ -7,6 +7,8 @@ import threading
 import time
 from typing import Any, Optional
 
+from logexp.app.logging_setup import get_logger
+
 
 class GeigerPoller:
     """
@@ -20,6 +22,9 @@ class GeigerPoller:
     def __init__(self, app: Any, interval: int = 5) -> None:
         self.app: Any = app
         self.interval: int = interval
+
+        # Subsystem logger (Step‑12C)
+        self.logger = get_logger("logexp.poller")
 
         # Lifecycle state
         self._running: bool = False
@@ -35,24 +40,22 @@ class GeigerPoller:
 
         # Test mode guard
         if self.app.config_obj.get("TESTING", False):
-            self.app.logger.debug("Poller disabled in TESTING mode.")
+            self.logger.debug("Poller disabled in TESTING mode.")
             return
 
         # Gunicorn guard
         if "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower():
-            self.app.logger.info("Poller disabled under Gunicorn worker.")
+            self.logger.info("Poller disabled under Gunicorn worker.")
             return
 
         # Docker build guard
         if os.environ.get("DOCKER_BUILD", "") == "1":
-            self.app.logger.info("Poller disabled during Docker build.")
+            self.logger.info("Poller disabled during Docker build.")
             return
 
         # Already running?
         if self._running:
-            self.app.logger.warning(
-                "Poller.start() called but poller is already running."
-            )
+            self.logger.warning("Poller.start() called but poller is already running.")
             return
 
         self._running = True
@@ -62,10 +65,12 @@ class GeigerPoller:
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
-        self.app.logger.info(
-            "GeigerPoller starting (interval=%s, device=%s)",
-            self.app.config_obj["POLL_INTERVAL"],
-            self.app.config_obj["GEIGER_DEVICE_PATH"],
+        self.logger.info(
+            "GeigerPoller starting",
+            extra={
+                "interval": self.app.config_obj["POLL_INTERVAL"],
+                "device": self.app.config_obj["GEIGER_DEVICE_PATH"],
+            },
         )
 
     # ------------------------------------------------------------------
@@ -73,11 +78,11 @@ class GeigerPoller:
         """Signal the poller thread to stop and wait for it to exit."""
 
         if not self._running:
-            self.app.logger.warning("Poller.stop() called but poller is not running.")
+            self.logger.warning("Poller.stop() called but poller is not running.")
             return
 
         if self._stopping:
-            self.app.logger.debug("Poller.stop() called again; already stopping.")
+            self.logger.debug("Poller.stop() called again; already stopping.")
             return
 
         self._stopping = True
@@ -87,9 +92,9 @@ class GeigerPoller:
         if self._thread and self._thread.is_alive():
             if threading.current_thread() != self._thread:
                 self._thread.join(timeout=2)
-                self.app.logger.info("GeigerPoller stopped cleanly.")
+                self.logger.info("GeigerPoller stopped cleanly.")
             else:
-                self.app.logger.debug(
+                self.logger.debug(
                     "Poller.stop() called from poller thread; skipping join."
                 )
 
@@ -122,16 +127,21 @@ class GeigerPoller:
 
                     ingest_reading(parsed)
 
-                    self.app.logger.debug(
-                        "Poller tick: cps=%s cpm=%s µSv/h=%s mode=%s",
-                        parsed["counts_per_second"],
-                        parsed["counts_per_minute"],
-                        parsed["microsieverts_per_hour"],
-                        parsed["mode"],
+                    self.logger.debug(
+                        "Poller tick",
+                        extra={
+                            "cps": parsed["counts_per_second"],
+                            "cpm": parsed["counts_per_minute"],
+                            "microsieverts_per_hour": parsed["microsieverts_per_hour"],
+                            "mode": parsed["mode"],
+                        },
                     )
 
                 except Exception as exc:
                     db.session.rollback()
-                    self.app.logger.error(f"Geiger poll error: {exc}")
+                    self.logger.error(
+                        "Geiger poll error",
+                        extra={"error": str(exc)},
+                    )
 
                 time.sleep(config["POLL_INTERVAL"])
