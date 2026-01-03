@@ -1,6 +1,8 @@
 # logexp/app/bp/api/routes.py
-from flask import current_app, jsonify, request
+
 from typing import Any
+
+from flask import current_app, jsonify, request
 
 from logexp.app import db
 from logexp.app.bp.api import bp_api
@@ -51,7 +53,7 @@ def geiger_live() -> Any:
         data = read_geiger(
             current_app.config["GEIGER_PORT"],
             current_app.config["GEIGER_BAUDRATE"],
-            )
+        )
         return jsonify({"raw": data}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

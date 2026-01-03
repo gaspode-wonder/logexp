@@ -1,6 +1,6 @@
-# filename: scripts/check_env_parity.py
-
 #!/usr/bin/env python3
+
+# filename: scripts/check_env_parity.py
 
 # """
 # Check for required environment variables needed for analytics parity.

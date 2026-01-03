@@ -1,6 +1,6 @@
-# filename: scripts/rebuild_test_db.py
-
 #!/usr/bin/env python3
+
+# filename: scripts/rebuild_test_db.py
 
 # """
 # Rebuild the LogExp test database schema.

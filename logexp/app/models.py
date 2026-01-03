@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict
-from zoneinfo import ZoneInfo
 
 from .extensions import db
 
 
-class LogExpReading(db.Model):  # type: ignore[name-defined]
+class LogExpReading(db.Model):
     __tablename__ = "logexp_readings"
 
     id = db.Column(db.Integer, primary_key=True)
