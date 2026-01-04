@@ -2,161 +2,182 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
-
 import serial
+from typing import Any, Dict, Optional, Union
 
 from logexp.app.logging_setup import get_logger
+from logexp.poller_config import PollerConfig
 
 logger = get_logger("logexp.poller")
 
-Frame = Dict[str, Any]
-
 
 class Poller:
-    def __init__(self, config: Dict[str, Any], ingestion: Any) -> None:
-        self.config = config
+    """
+    Poller with unified configuration surface.
+
+    Accepts either:
+      - PollerConfig (preferred)
+      - legacy dict config (compatibility layer)
+    """
+
+    def __init__(
+        self,
+        config: Union[PollerConfig, Dict[str, Any]],
+        ingestion: Any,
+    ) -> None:
+        # Compatibility layer: allow old dict configs
+        if isinstance(config, dict):
+            self.config = self._from_legacy_dict(config)
+        else:
+            self.config = config
+
         self.ingestion = ingestion
 
-        self.last_frame: Optional[Frame] = None
-        self.frames_ingested: int = 0
-        self.frames_failed: int = 0
-        self.frames_skipped: int = 0
-        self.ingestion_failures: int = 0
+        # Track successful ingestions separately from attempted frames
+        self._successful_ingestions: int = 0
 
         logger.debug(
             "poller_initialized",
             extra={
-                "use_fake": self.config.get("USE_FAKE_FRAMES", True),
-                "enabled": self.config.get("POLLING_ENABLED", True),
+                "mode": self.config.mode,
+                "serial_port": self.config.serial_port,
+                "polling_enabled": self.config.polling_enabled,
             },
         )
 
-    def is_enabled(self) -> bool:
-        enabled = bool(self.config.get("POLLING_ENABLED", True))
-        logger.debug("poller_enabled_check", extra={"enabled": enabled})
-        return enabled
+    # ----------------------------------------------------------------------
+    # Compatibility: convert legacy dict config → PollerConfig
+    # ----------------------------------------------------------------------
+    def _from_legacy_dict(self, cfg: Dict[str, Any]) -> PollerConfig:
+        use_fake = cfg.get("USE_FAKE_FRAMES", False)
 
-    def _open_serial(self) -> serial.Serial:
-        port: str = self.config["SERIAL_PORT"]
-        baudrate: int = int(self.config.get("SERIAL_BAUDRATE", 9600))
-        timeout: float = float(self.config.get("SERIAL_TIMEOUT", 1.0))
-        return serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
+        if use_fake:
+            return PollerConfig(
+                mode="fake",
+                polling_enabled=cfg.get("POLLING_ENABLED", True),
+                fake_frame_value=cfg.get("FAKE_FRAME_VALUE", 42),
+                max_frames=cfg.get("MAX_FRAMES", 5),
+            )
 
-    def read_serial_frame(self) -> Optional[Frame]:
-        port: Optional[str] = self.config.get("SERIAL_PORT")
-        baudrate: int = int(self.config.get("SERIAL_BAUDRATE", 9600))
-        timeout: float = float(self.config.get("SERIAL_TIMEOUT", 1.0))
-
-        logger.debug(
-            "serial_read_attempt",
-            extra={"port": port, "baudrate": baudrate, "timeout": timeout},
+        return PollerConfig(
+            mode="serial",
+            polling_enabled=cfg.get("POLLING_ENABLED", True),
+            serial_port=cfg.get("SERIAL_PORT"),
+            serial_baudrate=cfg.get("SERIAL_BAUDRATE", 9600),
+            serial_timeout=cfg.get("SERIAL_TIMEOUT", 1.0),
+            max_frames=cfg.get("MAX_FRAMES", 5),
         )
 
-        if not port:
+    # ----------------------------------------------------------------------
+    # Polling logic
+    # ----------------------------------------------------------------------
+    def poll_once(self) -> Optional[Dict[str, Any]]:
+        """
+        Poll a single frame according to the configured mode.
+
+        - Respects polling_enabled: returns None if disabled.
+        - In fake mode, always returns a deterministic frame.
+        - In serial mode, returns None on errors or empty reads.
+        """
+        if not self.config.polling_enabled:
+            logger.debug("poll_once_skipped_polling_disabled")
+            return None
+
+        if self.config.mode == "fake":
+            return self._poll_fake()
+
+        if self.config.mode == "serial":
+            return self._poll_serial()
+
+        # Defensive branch: unreachable in type space but valid at runtime.
+        logger.error(  # type: ignore[unreachable]
+            "unknown_poller_mode",
+            extra={"mode": self.config.mode},
+        )
+        return None  # pragma: no cover
+
+    def _poll_fake(self) -> Dict[str, Any]:
+        frame = {"raw": str(self.config.fake_frame_value)}
+        try:
+            self.ingestion.ingest(frame)
+            self._successful_ingestions += 1
+        except Exception:
+            logger.error("fake_ingestion_failure")
+        return frame
+
+    def _poll_serial(self) -> Optional[Dict[str, Any]]:
+        if not self.config.serial_port:
             logger.error("serial_port_missing")
             return None
 
         try:
-            with self._open_serial() as ser:
-                raw_bytes: bytes = ser.readline()
-        except serial.SerialException as exc:
-            logger.error(
-                "serial_exception",
-                extra={"port": port, "error": str(exc)},
-            )
-            return None
-        except OSError as exc:
-            logger.error(
-                "serial_os_error",
-                extra={"port": port, "error": str(exc)},
-            )
+            with serial.Serial(
+                self.config.serial_port,
+                self.config.serial_baudrate,
+                timeout=self.config.serial_timeout,
+            ) as ser:
+                raw = ser.readline().decode("utf-8").strip()
+        except Exception:
+            logger.error("serial_read_failure")
             return None
 
-        if not raw_bytes:
-            logger.warning("serial_empty_frame", extra={"port": port})
-            return None
-
-        raw_text = raw_bytes.decode("utf-8", errors="replace").strip()
-
-        logger.debug(
-            "serial_frame_read",
-            extra={"port": port, "bytes": len(raw_bytes)},
-        )
-
-        return {"raw": raw_text}
-
-    def get_frame(self) -> Optional[Frame]:
-        use_fake: bool = bool(self.config.get("USE_FAKE_FRAMES", True))
-
-        if use_fake:
-            fake_value: Any = self.config.get("FAKE_FRAME_VALUE", 42)
-            logger.debug("fake_frame_generated", extra={"value": fake_value})
-            return {"value": fake_value}
-
-        logger.debug("serial_frame_requested")
-        return self.read_serial_frame()
-
-    def poll_once(self) -> Optional[Frame]:
-        if not self.is_enabled():
-            logger.info("polling_disabled_poll_once")
-            return None
-
-        frame = self.get_frame()
-
-        if frame is None:
+        if not raw:
             logger.warning("poll_once_no_frame")
-            self.frames_skipped += 1
-            self.last_frame = None
             return None
 
+        frame = {"raw": raw}
         try:
             self.ingestion.ingest(frame)
-        except Exception as exc:
-            logger.error(
-                "ingestion_error",
-                extra={"frame": frame, "error": str(exc)},
-            )
-            self.frames_failed += 1
-            self.ingestion_failures += 1
-            self.last_frame = frame
-            return None
+            self._successful_ingestions += 1
+        except Exception:
+            logger.error("serial_ingestion_failure")
 
-        self.frames_ingested += 1
-        self.last_frame = frame
-
-        logger.debug("poll_once_success", extra={"frame": frame})
         return frame
 
     def poll_forever(self) -> None:
-        if not self.is_enabled():
-            logger.info("polling_disabled_poll_forever")
+        """
+        Poll repeatedly until max_frames is reached or polling is disabled.
+
+        - If polling_enabled is False: returns immediately.
+        - If max_frames is None: loops forever (tests use finite bounds).
+        """
+        if not self.config.polling_enabled:
+            logger.debug("poll_forever_skipped_polling_disabled")
             return
 
-        max_frames: int = int(self.config.get("MAX_FRAMES", 10))
-        logger.debug("poll_forever_start", extra={"max_frames": max_frames})
+        max_frames = self.config.max_frames
+        count = 0
 
-        for _ in range(max_frames):
-            self.poll_once()
+        while True:
+            _ = self.poll_once()
+            count += 1
 
-        logger.debug("poll_forever_complete")
+            if max_frames is not None and count >= max_frames:
+                break
 
+    # ----------------------------------------------------------------------
+    # Diagnostics
+    # ----------------------------------------------------------------------
     def get_diagnostics(self) -> Dict[str, Any]:
-        mode = "fake" if self.config.get("USE_FAKE_FRAMES", True) else "serial"
+        """
+        Minimal, JSON-safe diagnostics for the poller.
 
-        diagnostics = {
-            "mode": mode,
-            "last_frame": self.last_frame,
-            "frames_ingested": self.frames_ingested,
-            "frames_failed": self.frames_failed,
-            "frames_skipped": self.frames_skipped,
-            "ingestion_failures": self.ingestion_failures,
-            "serial": {
-                "port": self.config.get("SERIAL_PORT"),
-                "baudrate": self.config.get("SERIAL_BAUDRATE", 9600),
-                "timeout": self.config.get("SERIAL_TIMEOUT", 1.0),
-            },
+        - mode: "fake" or "serial"
+        - polling_enabled: bool flag
+        - frames_ingested: number of *successful* ingestions
+        - serial: sub-section with port info when in serial mode
+        """
+        base: Dict[str, Any] = {
+            "mode": self.config.mode,
+            "polling_enabled": self.config.polling_enabled,
+            "frames_ingested": self._successful_ingestions,
         }
 
-        logger.debug("poller_diagnostics", extra=diagnostics)
-        return diagnostics
+        if self.config.mode == "serial":
+            base["serial"] = {
+                "port": self.config.serial_port,
+                "baudrate": self.config.serial_baudrate,
+                "timeout": self.config.serial_timeout,
+            }
+
+        return base
