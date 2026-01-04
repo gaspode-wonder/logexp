@@ -89,8 +89,12 @@ class Poller:
         if self.config.mode == "serial":
             return self._poll_serial()
 
-        logger.error("unknown_poller_mode", extra={"mode": self.config.mode})
-        return None
+        # Defensive branch: unreachable in type space but valid at runtime.
+        logger.error(  # type: ignore[unreachable]
+            "unknown_poller_mode",
+            extra={"mode": self.config.mode},
+        )
+        return None  # pragma: no cover
 
     def _poll_fake(self) -> Dict[str, Any]:
         frame = {"raw": str(self.config.fake_frame_value)}

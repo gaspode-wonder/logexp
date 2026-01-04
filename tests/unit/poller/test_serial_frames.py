@@ -7,7 +7,7 @@ from typing import Any, Iterable
 from logexp.poller_config import PollerConfig
 
 
-def _make_serial_poller(make_poller, fake_items: Iterable[Any]):
+def _make_serial_poller(make_poller: Any, fake_items: Iterable[Any]) -> Any:
     """
     Helper to construct a serial-mode Poller using the unified PollerConfig.
     Ensures a dummy serial_port is provided so the Poller enters serial mode.
