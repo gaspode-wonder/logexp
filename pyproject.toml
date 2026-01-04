@@ -1,0 +1,15 @@
+# filename: pyproject.toml
+
+[project]
+name = "logexp"
+version = "0.1.0"
+description = "LogExp"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["logexp"]
+
