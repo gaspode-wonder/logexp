@@ -76,7 +76,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
 
     logger.debug("app_factory_start")
 
-    # Typed Flask subclass (declares config_obj)
+    # Typed Flask subclass (declares config_obj and poller)
     app: LogExpFlask = LogExpFlask(__name__)
 
     # Typed Request subclass (declares request_id)
@@ -156,9 +156,10 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
 
     @app.teardown_appcontext
     def shutdown_poller(exception: Optional[BaseException] = None) -> None:
-        if app.config_obj.get("TESTING", False) and getattr(app, "poller", None):
+        poller = getattr(app, "poller", None)
+        if app.config_obj.get("TESTING", False) and poller is not None:
             try:
-                app.poller.stop()
+                poller.stop()
                 logger.debug("poller_stopped_in_teardown")
             except RuntimeError:
                 logger.debug("poller_stop_called_from_within_thread")
