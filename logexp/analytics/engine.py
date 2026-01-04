@@ -119,9 +119,7 @@ class AnalyticsEngine:
         # Sort before filtering to satisfy ordering expectations.
         sorted_samples = sorted(self._samples, key=lambda s: s.timestamp)
 
-        window_samples = [
-            s for s in sorted_samples if window_start <= s.timestamp <= window_end
-        ]
+        window_samples = [s for s in sorted_samples if window_start <= s.timestamp <= window_end]
 
         logger.debug(
             "analytics_window_samples_retrieved",
@@ -185,3 +183,6 @@ class AnalyticsEngine:
         self._samples = []
         self.add_readings(readings)
         return self.get_window(now)
+
+
+print("USING logexp/logexp/analytics/engine.py")

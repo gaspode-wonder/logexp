@@ -9,7 +9,9 @@ from zoneinfo import ZoneInfo
 from flask import current_app
 from sqlalchemy.orm import Mapped, mapped_column
 
+from logexp.app.db_types import UTCDateTime
 from logexp.app.logging_setup import get_logger
+
 from .extensions import db
 
 logger = get_logger("logexp.models")
@@ -21,9 +23,9 @@ class LogExpReading(db.Model):
     # --- SQLAlchemy 2.0 typed columns ---
     id: Mapped[int] = mapped_column(primary_key=True)
 
+    # Use the canonical SQLite‑safe UTC datetime type
     timestamp: Mapped[datetime] = mapped_column(
-        db.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        UTCDateTime(),
         nullable=False,
     )
 
@@ -58,8 +60,15 @@ class LogExpReading(db.Model):
         if id is not None:
             self.id = id
 
-        if timestamp is not None:
-            self.timestamp = timestamp
+        # Canonical UTC-aware timestamp handling
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc)
+        elif timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        else:
+            timestamp = timestamp.astimezone(timezone.utc)
+
+        self.timestamp = timestamp
 
         self.counts_per_second = counts_per_second
         self.counts_per_minute = counts_per_minute

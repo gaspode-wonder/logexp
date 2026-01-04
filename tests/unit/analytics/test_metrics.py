@@ -1,4 +1,4 @@
-# tests/unit/analytics/test_metrics.py
+# logexp/tests/unit/analytics/test_metrics.py
 
 import datetime as dt
 

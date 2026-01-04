@@ -1,12 +1,12 @@
-# filename: logexp/logexp/app/services/analytics.py
-
+# filename: logexp/app/services/analytics.py
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
-
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, cast
+
 from flask import current_app
+from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
 
 from logexp.app.extensions import db
@@ -21,30 +21,65 @@ logger.setLevel(logging.INFO)
 logger.propagate = True
 
 
-def compute_window(now: Optional[datetime] = None) -> List[LogExpReading]:
+def compute_window(
+    now: Optional[datetime] = None,
+    db_session: Any = None,
+) -> List[LogExpReading]:
     """
     Return all readings within the configured analytics window.
+    NO timestamp normalization is performed.
     """
-    current: datetime = now or datetime.now(timezone.utc)
+    session = db_session or db.session
 
-    window_seconds: int = current_app.config_obj["ANALYTICS_WINDOW_SECONDS"]
+    # ------------------------------------------------------------------
+    # Infer `now` from MAX(timestamp) with no normalization.
+    # ------------------------------------------------------------------
+    if now is None:
+        try:
+            max_ts = session.query(func.max(LogExpReading.timestamp)).scalar()
+        except OperationalError as exc:
+            if "no such table" in str(exc):
+                logger.debug(
+                    "analytics_window_no_table",
+                    extra={"error": str(exc)},
+                )
+                return []
+            raise
+
+        if max_ts is None:
+            return []
+
+        now = max_ts
+
+    # Type narrowing for Pylance/mypy
+    assert now is not None
+    current: datetime = now
+
+    # Read window size from app.config (NOT config_obj)
+    window_seconds: int = int(current_app.config["ANALYTICS_WINDOW_SECONDS"])
     cutoff: datetime = current - timedelta(seconds=window_seconds)
 
     logger.debug(
         "analytics_compute_window",
         extra={
-            "now": current.isoformat(),
+            "now": str(current),
             "window_seconds": window_seconds,
-            "cutoff": cutoff.isoformat(),
+            "cutoff": str(cutoff),
         },
     )
 
+    # ------------------------------------------------------------------
+    # Fetch all readings >= cutoff, sorted ascending.
+    # ------------------------------------------------------------------
     try:
-        rows = (
-            db.session.query(LogExpReading)
-            .filter(LogExpReading.timestamp >= cutoff)
-            .order_by(LogExpReading.timestamp.asc())
-            .all()
+        rows = cast(
+            List[LogExpReading],
+            (
+                session.query(LogExpReading)
+                .filter(LogExpReading.timestamp >= cutoff)
+                .order_by(LogExpReading.timestamp.asc())
+                .all()
+            ),
         )
 
         logger.debug(
@@ -55,7 +90,6 @@ def compute_window(now: Optional[datetime] = None) -> List[LogExpReading]:
         return rows
 
     except OperationalError as exc:
-        # SQLite in-memory DB during tests may not have the table yet.
         if "no such table" in str(exc):
             logger.debug(
                 "analytics_window_no_table",
@@ -65,26 +99,27 @@ def compute_window(now: Optional[datetime] = None) -> List[LogExpReading]:
         raise
 
 
-def run_analytics(db_session: Any = None) -> Optional[Dict[str, Any]]:
+def run_analytics(
+    db_session: Any = None,
+    now: Optional[datetime] = None,
+) -> Optional[Dict[str, Any]]:
     """
     Must emit:
       - analytics_start
       - analytics_complete
     using logger name "logexp.analytics".
     """
-    enabled = current_app.config_obj.get("ANALYTICS_ENABLED")
+    enabled = current_app.config.get("ANALYTICS_ENABLED")
     if enabled is False:
         logger.debug("analytics_disabled")
         return None
 
-    # --- ALWAYS LOG START ---
     logger.info("analytics_start")
 
-    readings = compute_window()
+    readings = compute_window(now=now, db_session=db_session)
 
     if not readings:
         logger.debug("analytics_no_readings")
-        # --- ALWAYS LOG COMPLETE ---
         logger.info("analytics_complete")
         return None
 
@@ -92,7 +127,7 @@ def run_analytics(db_session: Any = None) -> Optional[Dict[str, Any]]:
     count = len(cps_values)
     avg_cps = sum(cps_values) / count
 
-    result = {
+    result: Dict[str, Any] = {
         "count": count,
         "avg_cps": avg_cps,
         "first_timestamp": readings[0].timestamp,
@@ -104,12 +139,10 @@ def run_analytics(db_session: Any = None) -> Optional[Dict[str, Any]]:
         extra={
             "count": count,
             "avg_cps": avg_cps,
-            "first_timestamp": readings[0].timestamp.isoformat(),
-            "last_timestamp": readings[-1].timestamp.isoformat(),
+            "first_timestamp": str(readings[0].timestamp),
+            "last_timestamp": str(readings[-1].timestamp),
         },
     )
 
-    # --- ALWAYS LOG COMPLETE ---
     logger.info("analytics_complete")
-
     return result
