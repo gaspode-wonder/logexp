@@ -1,4 +1,4 @@
-# tests/unit/analytics/test_windowing.py
+# logexp/tests/unit/analytics/test_windowing.py
 
 import datetime as dt
 
