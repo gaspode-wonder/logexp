@@ -7,6 +7,9 @@ PYTHON := python3
 VENV := .venv
 ACTIVATE := . $(VENV)/bin/activate
 
+# Resolve site-packages path for the active venv (version‑agnostic)
+SITE_PACKAGES := $(shell $(PYTHON) -c "import site; print(site.getsitepackages()[0])")
+
 # ANSI Colors
 GREEN := \033[1;32m
 BLUE := \033[1;34m
@@ -38,6 +41,7 @@ bootstrap: ## Onboard a new maintainer with a fresh environment
 	$(call timed,"Bootstrapping development environment", \
 	$(PYTHON) -m venv $(VENV) && \
 	$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt && \
+	echo "/Users/jebbaugh/git/personal/active/logexp" > $(SITE_PACKAGES)/logexp.pth && \
 	PYTHONPATH=. python scripts/ci_diagnostics.py \
 	)
 
@@ -134,6 +138,7 @@ test-clean:
 	$(call timed,"git clean -xdf", git clean -xdf)
 	$(call timed,"Creating virtual environment", $(PYTHON) -m venv $(VENV))
 	$(call timed,"Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
+	$(call timed,"Creating logexp.pth", echo "/Users/jebbaugh/git/personal/active/logexp" > $(SITE_PACKAGES)/logexp.pth)
 	$(call timed,"Rebuilding test DB", $(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py)
 	$(call timed,"Running pytest", $(ACTIVATE) && PYTHONPATH=. pytest -vv)
 
@@ -170,4 +175,13 @@ help:
 	@echo "Available commands:"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?##' Makefile | sed 's/:.*##/: /' | column -t -s ':'
+	@echo ""
+
+test-all: ## Run full formatting, linting, and test suite
+	$(call timed,Black auto-format, $(ACTIVATE) && black .)
+	$(call timed,Ruff lint, $(ACTIVATE) && ruff check .)
+	$(call timed,Pytest full suite, $(ACTIVATE) && pytest -q)
+
+	@echo ""
+	@echo "$(YELLOW)Reminder: run 'v' to activate your environment$(RESET)"
 	@echo ""

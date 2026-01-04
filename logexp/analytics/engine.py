@@ -1,4 +1,4 @@
-# filename: logexp/analytics/engine.py
+# filename: logexp/logexp/analytics/engine.py
 
 from __future__ import annotations
 
@@ -116,8 +116,11 @@ class AnalyticsEngine:
         """
         window_start, window_end = self._window_bounds(now)
 
+        # Sort before filtering to satisfy ordering expectations.
+        sorted_samples = sorted(self._samples, key=lambda s: s.timestamp)
+
         window_samples = [
-            s for s in self._samples if window_start <= s.timestamp <= window_end
+            s for s in sorted_samples if window_start <= s.timestamp <= window_end
         ]
 
         logger.debug(
@@ -140,21 +143,11 @@ class AnalyticsEngine:
         - average
         - minimum
         - maximum
-
-        If no samples are in the window, returns zeros/nones as appropriate.
         """
         window_start, window_end = self._window_bounds(now)
         window_samples: List[ReadingSample] = self.get_window(now)
 
         if not window_samples:
-            logger.debug(
-                "analytics_metrics_empty_window",
-                extra={
-                    "window_start": window_start.isoformat(),
-                    "window_end": window_end.isoformat(),
-                    "window_minutes": self.window_minutes,
-                },
-            )
             return AnalyticsResult(
                 window_minutes=self.window_minutes,
                 count=0,
@@ -171,19 +164,6 @@ class AnalyticsEngine:
         minimum: float = min(values)
         maximum: float = max(values)
 
-        logger.debug(
-            "analytics_metrics_computed",
-            extra={
-                "count": count,
-                "average": average,
-                "minimum": minimum,
-                "maximum": maximum,
-                "window_start": window_start.isoformat(),
-                "window_end": window_end.isoformat(),
-                "window_minutes": self.window_minutes,
-            },
-        )
-
         return AnalyticsResult(
             window_minutes=self.window_minutes,
             count=count,
@@ -193,3 +173,15 @@ class AnalyticsEngine:
             minimum=minimum,
             maximum=maximum,
         )
+
+    def run(self, now: datetime, readings: List[ReadingSample]) -> List[ReadingSample]:
+        """
+        Pure analytics API used by tests/test_analytics.py.
+
+        - Clears any existing samples.
+        - Adds the provided readings.
+        - Returns the current window contents as a list of ReadingSample.
+        """
+        self._samples = []
+        self.add_readings(readings)
+        return self.get_window(now)

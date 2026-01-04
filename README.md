@@ -178,20 +178,20 @@ docker compose logs -f
 
 ### Readings
 
-- `/readings` — Web UI table and chart  
-- `/api/readings.json` — JSON readings  
-- `/api/readings.csv` — CSV export  
+- `/readings` — Web UI table and chart
+- `/api/readings.json` — JSON readings
+- `/api/readings.csv` — CSV export
 
 ### Poller Control
 
-- `/api/poller/status`  
-- `/api/poller/start`  
-- `/api/poller/stop`  
+- `/api/poller/status`
+- `/api/poller/start`
+- `/api/poller/stop`
 
 ### Diagnostics
 
-- `/api/geiger/test`  
-- `/api/health` — Application healthcheck  
+- `/api/geiger/test`
+- `/api/health` — Application healthcheck
 
 ---
 
@@ -336,6 +336,39 @@ curl http://localhost:5000/api/poller/status
 ```bash
 curl http://localhost:5000/api/health
 ```
+
+---
+
+## Analytics Architecture (Step‑12D)
+
+LogExp contains two analytics layers:
+
+1. **Pure Analytics Engine** (`logexp.analytics.engine`)
+   - deterministic
+   - in‑memory
+   - DB‑free
+   - future ingestion/control‑plane foundation
+
+2. **Legacy DB Analytics** (`logexp.app.services.analytics`)
+   - SQLAlchemy queries
+   - legacy dict output
+   - transitional compatibility layer
+
+These layers must remain separate.
+
+### Fixture Boundaries
+
+- DB analytics tests use `reading_factory` (creates `LogExpReading` rows).
+- Pure engine tests use `make_reading` / `make_batch` (create `ReadingSample` objects).
+
+### Do Not Merge These Worlds
+
+- Do not feed DB models into the pure engine.
+- Do not feed `ReadingSample` into DB analytics.
+- Do not collapse the two layers into one implementation.
+
+The pure engine is the future.
+The legacy DB analytics will be removed after ingestion migration.
 
 ---
 

@@ -1,4 +1,4 @@
-# filename: logexp/app/services/analytics.py
+# filename: logexp/logexp/app/services/analytics.py
 
 from __future__ import annotations
 
