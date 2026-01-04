@@ -11,7 +11,11 @@ class LogExpFlask(Flask):
     Typed Flask subclass declaring dynamic attributes added at runtime.
     """
 
+    # Loaded config object (single source of truth)
     config_obj: Dict[str, Any]
+
+    # Poller instance attached at runtime (optional)
+    poller: Optional[Any]
 
 
 class LogExpRequest(Request):
