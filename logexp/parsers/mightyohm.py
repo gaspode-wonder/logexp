@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Any, Dict, Optional
+
+
 VALID_MODES = {"SLOW", "FAST", "INST"}
 
 
-def parse_mightyohm_csv(raw):
+def parse_mightyohm_csv(raw: str) -> Optional[Dict[str, Any]]:
     if not isinstance(raw, str) or not raw.strip():
         return None
 

@@ -2,7 +2,7 @@
 
 # Helper utilities for deterministic analytics tests.
 # These are pure functions: no ingestion, no poller, no DB, no Flask.
-
+from typing import Any
 import datetime as dt
 
 
@@ -20,7 +20,7 @@ def shift(ts: dt.datetime, seconds: int) -> dt.datetime:
     return ts + dt.timedelta(seconds=seconds)
 
 
-def make_reading(model_cls, ts: dt.datetime, value: float):
+def make_reading(model_cls: Any, ts: dt.datetime, value: float) -> Any:
     """
     Create a Reading instance without DB involvement.
     """
