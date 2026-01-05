@@ -110,13 +110,9 @@ def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, Any]:
             key = p.upper()
 
             if key.startswith("CPS"):
-                result["counts_per_second"] = (
-                    int(parts[i + 1]) if i + 1 < len(parts) else 0
-                )
+                result["counts_per_second"] = int(parts[i + 1]) if i + 1 < len(parts) else 0
             elif key.startswith("CPM"):
-                result["counts_per_minute"] = (
-                    int(parts[i + 1]) if i + 1 < len(parts) else 0
-                )
+                result["counts_per_minute"] = int(parts[i + 1]) if i + 1 < len(parts) else 0
             elif "USV" in key:
                 result["microsieverts_per_hour"] = (
                     float(parts[i + 1]) if i + 1 < len(parts) else 0.0

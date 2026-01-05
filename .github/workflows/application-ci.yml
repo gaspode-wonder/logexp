@@ -14,11 +14,8 @@ jobs:
     application-ci:
         runs-on: ubuntu-latest
 
-        strategy:
-            matrix:
-                python-version: ["3.10", "3.11"]
-
         env:
+            PYTHON_VERSION: "3.10.14"
             TZ: UTC
             ANALYTICS_ENABLED: "true"
             ANALYTICS_WINDOW_SECONDS: "60"
@@ -29,10 +26,14 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            - name: Clean workspace (remove stale configs & caches)
+              run: git clean -xfd
+
             - name: Set up Python
               uses: actions/setup-python@v5
               with:
-                  python-version: ${{ matrix.python-version }}
+                  python-version: "${{ env.PYTHON_VERSION }}"
+                  cache: "pip"
 
             - name: Install dependencies
               run: |
@@ -46,7 +47,6 @@ jobs:
               run: python scripts/ci_diagnostics.py
 
             - name: Run database migrations
-              working-directory: .
               env:
                   FLASK_APP: logexp.app:create_app
                   PYTHONPATH: .
@@ -54,7 +54,6 @@ jobs:
               run: flask db upgrade
 
             - name: Run pytest
-              working-directory: .
               env:
                   PYTHONPATH: .
                   SQLALCHEMY_DATABASE_URI: sqlite:///ci.db

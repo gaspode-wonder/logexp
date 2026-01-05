@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 from zoneinfo import ZoneInfo
 
 from flask import current_app
 from sqlalchemy.orm import Mapped, mapped_column
 
+from logexp.app.db_types import UTCDateTime
 from logexp.app.logging_setup import get_logger
+from logexp.app.typing import LogExpFlask
+
 from .extensions import db
 
 logger = get_logger("logexp.models")
@@ -21,9 +24,9 @@ class LogExpReading(db.Model):
     # --- SQLAlchemy 2.0 typed columns ---
     id: Mapped[int] = mapped_column(primary_key=True)
 
+    # Canonical SQLite‑safe UTC datetime type
     timestamp: Mapped[datetime] = mapped_column(
-        db.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        UTCDateTime(),
         nullable=False,
     )
 
@@ -58,8 +61,15 @@ class LogExpReading(db.Model):
         if id is not None:
             self.id = id
 
-        if timestamp is not None:
-            self.timestamp = timestamp
+        # Canonical UTC-aware timestamp handling
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc)
+        elif timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        else:
+            timestamp = timestamp.astimezone(timezone.utc)
+
+        self.timestamp = timestamp
 
         self.counts_per_second = counts_per_second
         self.counts_per_minute = counts_per_minute
@@ -68,7 +78,10 @@ class LogExpReading(db.Model):
 
     # --- Serialization ---
     def to_dict(self) -> Dict[str, Any]:
-        tz_name = current_app.config_obj.get("LOCAL_TIMEZONE", "UTC")
+        # Explicit cast so mypy knows config_obj exists
+        typed_app = cast(LogExpFlask, current_app)
+
+        tz_name = typed_app.config_obj.get("LOCAL_TIMEZONE", "UTC")
         tz = ZoneInfo(tz_name)
 
         localized_ts = self.timestamp.astimezone(tz) if self.timestamp else None
@@ -90,3 +103,7 @@ class LogExpReading(db.Model):
             "microsieverts_per_hour": self.microsieverts_per_hour,
             "mode": self.mode,
         }
+
+
+# Backward‑compatible alias expected by tests and services
+Reading = LogExpReading

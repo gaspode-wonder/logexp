@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import serial
 from typing import Any, Dict, Optional, Union
+
+import serial
 
 from logexp.app.logging_setup import get_logger
 from logexp.poller_config import PollerConfig

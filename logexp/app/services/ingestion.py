@@ -3,266 +3,108 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Optional, cast
 
 from flask import current_app
 
 from logexp.app.extensions import db
-from logexp.app.models import LogExpReading as Reading
 from logexp.app.logging_setup import get_logger
+from logexp.app.models import LogExpReading
+from logexp.app.typing import LogExpFlask
 
 logger = get_logger("logexp.ingestion")
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+def get_config() -> Dict[str, Any]:
+    app = cast(LogExpFlask, current_app)
+    return app.config_obj
 
 
-def _ensure_aware(ts: datetime) -> datetime:
+def _normalize_timestamp(raw: Any) -> datetime:
     """
-    Ensure a datetime is timezone-aware in UTC.
+    Convert incoming timestamps into canonical UTC-aware datetime objects.
+
+    Supported formats:
+      - float/int epoch seconds
+      - ISO8601 strings
+      - datetime objects (naive or aware)
+      - None → now()
     """
-    if ts.tzinfo is None or ts.tzinfo.utcoffset(ts) is None:
-        return ts.replace(tzinfo=timezone.utc)
-    return ts
+    if raw is None:
+        return datetime.now(timezone.utc)
+
+    # float/int epoch seconds
+    if isinstance(raw, (int, float)):
+        return datetime.fromtimestamp(raw, tz=timezone.utc)
+
+    # ISO8601 string
+    if isinstance(raw, str):
+        dt = datetime.fromisoformat(raw)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+
+    # datetime object
+    if isinstance(raw, datetime):
+        if raw.tzinfo is None:
+            return raw.replace(tzinfo=timezone.utc)
+        return raw.astimezone(timezone.utc)
+
+    raise TypeError(f"Unsupported timestamp type: {type(raw)}")
 
 
-# ---------------------------------------------------------------------------
-# Argument normalization
-# ---------------------------------------------------------------------------
+def ingest_reading(payload: Dict[str, Any]) -> Optional[LogExpReading]:
+    logger.info("ingestion_start")
 
-
-def _normalize_reading_args(*args: Any, **kwargs: Any) -> Tuple[datetime, float]:
-    """
-    Normalize all legacy calling patterns into (timestamp, value).
-
-    Supported forms:
-      - ingest_reading(timestamp, value)
-      - ingest_reading((timestamp, value))
-      - ingest_reading(reading=(timestamp, value))
-      - ingest_reading(timestamp=..., value=...)
-      - ingest_reading({"counts_per_second": ..., ...})
-      - ingest_reading({"value": ..., ...})   # logging contract
-    """
-
-    def _as_dt(ts: Any) -> datetime:
-        if isinstance(ts, datetime):
-            return ts
-        raise TypeError(f"timestamp must be datetime, got {type(ts)!r}")
-
-    # Case 1: dict payload (logging contract)
-    if len(args) == 1 and isinstance(args[0], dict):
-        payload: Dict[str, Any] = args[0]
-        raw_value = payload.get("counts_per_second") or payload.get("value")
-        if raw_value is None:
-            raise TypeError("dict payload must include 'counts_per_second' or 'value'")
-        value: float = float(raw_value)
-        timestamp: datetime = datetime.now(timezone.utc)
-
-        logger.debug(
-            "ingestion_normalize_dict_payload",
-            extra={"value": value, "timestamp": timestamp.isoformat()},
-        )
-
-        return timestamp, value
-
-    # Case 2: reading=(timestamp, value)
-    if "reading" in kwargs:
-        reading = kwargs["reading"]
-        if isinstance(reading, tuple) and len(reading) == 2:
-            ts, val = _as_dt(reading[0]), float(reading[1])
-
-            logger.debug(
-                "ingestion_normalize_reading_kwarg",
-                extra={"timestamp": ts.isoformat(), "value": val},
-            )
-
-            return ts, val
-        raise TypeError("reading must be a (timestamp, value) tuple")
-
-    # Case 3: timestamp=..., value=...
-    if "timestamp" in kwargs and "value" in kwargs:
-        ts, val = _as_dt(kwargs["timestamp"]), float(kwargs["value"])
-
-        logger.debug(
-            "ingestion_normalize_timestamp_value_kwargs",
-            extra={"timestamp": ts.isoformat(), "value": val},
-        )
-
-        return ts, val
-
-    # Case 4: ingest_reading((timestamp, value))
-    if len(args) == 1 and isinstance(args[0], tuple) and len(args[0]) == 2:
-        ts, val = _as_dt(args[0][0]), float(args[0][1])
-
-        logger.debug(
-            "ingestion_normalize_tuple_arg",
-            extra={"timestamp": ts.isoformat(), "value": val},
-        )
-
-        return ts, val
-
-    # Case 5: ingest_reading(timestamp, value)
-    if len(args) == 2:
-        ts, val = _as_dt(args[0]), float(args[1])
-
-        logger.debug(
-            "ingestion_normalize_positional_args",
-            extra={"timestamp": ts.isoformat(), "value": val},
-        )
-
-        return ts, val
-
-    raise TypeError(
-        "ingest_reading() expects (timestamp, value), timestamp, value, "
-        "reading=(timestamp, value), timestamp=..., value=..., or dict payload"
-    )
-
-
-# ---------------------------------------------------------------------------
-# Ingestion API
-# ---------------------------------------------------------------------------
-
-
-def ingest_reading(*args: Any, **kwargs: Any) -> Optional[Reading]:
-    """
-    Ingest a single reading into the database.
-    """
-    timestamp, value = _normalize_reading_args(*args, **kwargs)
-    timestamp = _ensure_aware(timestamp)
-
-    config: Dict[str, Any] = current_app.config_obj
+    config = get_config()
     if not config.get("INGESTION_ENABLED", True):
-        logger.debug(
-            "ingestion_disabled",
-            extra={"timestamp": timestamp.isoformat(), "value": value},
-        )
+        logger.info("ingestion_skipped", extra={"reason": "disabled"})
         return None
 
-    mode: str = "test" if current_app.testing else "normal"
-
-    row = Reading(
-        timestamp=timestamp,
-        counts_per_second=int(value),
-        counts_per_minute=int(value * 60),
-        microsieverts_per_hour=value * 0.005,
-        mode=mode,
-    )
-
-    logger.debug(
-        "ingestion_row_created",
-        extra={
-            "timestamp": timestamp.isoformat(),
-            "value": value,
-            "mode": mode,
-        },
-    )
-
-    db.session.add(row)
+    logger.info("ingestion_payload_received", extra={"payload": payload})
 
     try:
-        db.session.commit()
-        logger.debug(
-            "ingestion_row_committed",
-            extra={"id": row.id, "timestamp": timestamp.isoformat()},
+        timestamp = _normalize_timestamp(payload.get("timestamp"))
+
+        reading = LogExpReading(
+            counts_per_second=payload["counts_per_second"],
+            counts_per_minute=payload["counts_per_minute"],
+            microsieverts_per_hour=payload["microsieverts_per_hour"],
+            mode=payload["mode"],
+            timestamp=timestamp,
         )
+
+        db.session.add(reading)
+        db.session.commit()
+
+        logger.info("ingestion_complete", extra={"id": reading.id})
+        return reading
+
     except Exception as exc:
         db.session.rollback()
-        logger.error(
-            "ingestion_commit_failed",
-            extra={"error": str(exc)},
-        )
-        raise RuntimeError("Failed to commit reading") from exc
-
-    return row
+        logger.error("ingestion_error", extra={"error": str(exc)})
+        raise
 
 
-def ingest_readings(*args: Any, **kwargs: Any) -> List[Optional[Reading]]:
-    """
-    Accepts:
-      - ingest_readings(db.session, readings=[...], cutoff_ts=...)
-      - ingest_readings(readings=[...])
-      - ingest_readings(batch=[...])
-      - ingest_readings([...])
-    """
-    positional: List[Any] = list(args)
+def load_historical_readings(limit: Optional[int] = None) -> Any:
+    from logexp.app.models import LogExpReading
 
-    # Optional leading session argument (ignored; we use db.session)
-    if positional and not isinstance(positional[0], (list, tuple, dict)):
-        positional = positional[1:]
+    query = LogExpReading.query.order_by(LogExpReading.timestamp.desc())
+    if limit:
+        query = query.limit(limit)
 
-    batch: Iterable[Any]
-    if "readings" in kwargs:
-        batch = kwargs["readings"]
-    elif "batch" in kwargs:
-        batch = kwargs["batch"]
-    elif len(positional) == 1:
-        batch = positional[0]
-    else:
-        raise TypeError("ingest_readings() expects a batch or readings list")
-
-    logger.debug(
-        "ingestion_batch_start",
-        extra={"batch_size": len(list(batch)) if hasattr(batch, "__len__") else None},
-    )
-
-    results = [ingest_reading(item) for item in batch]
-
-    logger.debug(
-        "ingestion_batch_complete",
-        extra={"inserted": sum(1 for r in results if r is not None)},
-    )
-
-    return results
+    logger.debug("historical_readings_loaded", extra={"limit": limit})
+    return query.all()
 
 
-# Legacy alias
-ingest_batch = ingest_readings
+def run_ingestion_diagnostics() -> Dict[str, Any]:
+    config = get_config()
+    enabled = config.get("INGESTION_ENABLED", True)
 
-
-# ---------------------------------------------------------------------------
-# Diagnostics
-# ---------------------------------------------------------------------------
+    result: Dict[str, Any] = {"enabled": enabled}
+    logger.debug("ingestion_diagnostics_complete", extra=result)
+    return result
 
 
 def get_ingestion_status() -> Dict[str, Any]:
-    """
-    Return ingestion diagnostics for UI and API.
-    """
-    config: Dict[str, Any] = current_app.config_obj
-    enabled: bool = config.get("INGESTION_ENABLED", True)
-
-    logger.debug(
-        "ingestion_status_requested",
-        extra={"enabled": enabled},
-    )
-
-    try:
-        total_rows: Optional[int] = db.session.query(Reading).count()
-    except Exception as exc:
-        logger.error(
-            "ingestion_status_total_rows_failed",
-            extra={"error": str(exc)},
-        )
-        total_rows = None
-
-    try:
-        last_row: Optional[Reading] = (
-            db.session.query(Reading).order_by(Reading.timestamp.desc()).first()
-        )
-        last_ingested_at: Optional[str] = (
-            last_row.timestamp_dt.isoformat() if last_row else None
-        )
-    except Exception as exc:
-        logger.error(
-            "ingestion_status_last_row_failed",
-            extra={"error": str(exc)},
-        )
-        last_ingested_at = None
-
-    return {
-        "enabled": enabled,
-        "last_ingested_at": last_ingested_at,
-        "total_rows": total_rows,
-    }
+    return run_ingestion_diagnostics()

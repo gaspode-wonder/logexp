@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from flask import Flask
 import pytest
+from flask import Flask
 
 from logexp.app.config import load_config
 from logexp.app.models import LogExpReading

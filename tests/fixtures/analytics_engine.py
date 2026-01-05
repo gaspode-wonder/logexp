@@ -5,6 +5,7 @@ Fixtures for the pure AnalyticsEngine.
 """
 
 from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from logexp.analytics.engine import AnalyticsEngine, ReadingSample
