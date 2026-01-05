@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 from zoneinfo import ZoneInfo
 
 from flask import current_app
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from logexp.app.db_types import UTCDateTime
 from logexp.app.logging_setup import get_logger
+from logexp.app.typing import LogExpFlask
 
 from .extensions import db
 
@@ -23,7 +24,7 @@ class LogExpReading(db.Model):
     # --- SQLAlchemy 2.0 typed columns ---
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # Use the canonical SQLite‑safe UTC datetime type
+    # Canonical SQLite‑safe UTC datetime type
     timestamp: Mapped[datetime] = mapped_column(
         UTCDateTime(),
         nullable=False,
@@ -77,7 +78,10 @@ class LogExpReading(db.Model):
 
     # --- Serialization ---
     def to_dict(self) -> Dict[str, Any]:
-        tz_name = current_app.config_obj.get("LOCAL_TIMEZONE", "UTC")
+        # Explicit cast so mypy knows config_obj exists
+        typed_app = cast(LogExpFlask, current_app)
+
+        tz_name = typed_app.config_obj.get("LOCAL_TIMEZONE", "UTC")
         tz = ZoneInfo(tz_name)
 
         localized_ts = self.timestamp.astimezone(tz) if self.timestamp else None

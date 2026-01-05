@@ -6,8 +6,8 @@ from typing import Any
 
 from flask import render_template, request
 
-from logexp.app.logging_setup import get_logger
 from logexp.app.bp.about import bp_about
+from logexp.app.logging_setup import get_logger
 
 logger = get_logger("logexp.about")
 

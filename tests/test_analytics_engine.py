@@ -25,9 +25,7 @@ def engine_10_min_window() -> AnalyticsEngine:
 
 
 def _sample_at(offset_minutes: int, base: datetime, value: float) -> ReadingSample:
-    return ReadingSample(
-        timestamp=base + timedelta(minutes=offset_minutes), value=value
-    )
+    return ReadingSample(timestamp=base + timedelta(minutes=offset_minutes), value=value)
 
 
 def test_empty_window_produces_zero_count_and_none_metrics(

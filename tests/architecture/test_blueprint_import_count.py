@@ -30,6 +30,4 @@ def test_blueprint_imports_are_unique():
 
         assert matches, f"Blueprint package '{pkg}' did not import into sys.modules"
 
-        assert (
-            len(matches) == 1
-        ), f"Blueprint package '{pkg}' imported multiple times: {matches}"
+        assert len(matches) == 1, f"Blueprint package '{pkg}' imported multiple times: {matches}"
