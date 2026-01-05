@@ -1,4 +1,4 @@
-# filename: logexp/app/bp/analytics/routes.py
+# filename: logexp/app/bp/diagnostics/routes.py
 
 from __future__ import annotations
 
@@ -13,33 +13,32 @@ from logexp.app.services.database_diagnostics import get_database_status
 from logexp.app.services.ingestion import get_ingestion_status
 
 # Import the singleton blueprint defined in __init__.py
-from . import bp_analytics
+from . import bp_diagnostics
 
-logger = get_logger("logexp.bp.analytics")
+logger = get_logger("logexp.bp.diagnostics")
 
 
-@bp_analytics.get("", endpoint="analytics_index")
-def analytics_index() -> str:
-    """
-    HTML analytics dashboard.
-    """
+@bp_diagnostics.get("", endpoint="diagnostics_index")
+def diagnostics_index() -> str:
     analytics: Dict[str, Any] = get_analytics_status()
     database: Dict[str, Any] = get_database_status()
     ingestion: Dict[str, Any] = get_ingestion_status()
 
     return render_template(
-        "analytics.html",
+        "diagnostics.html",
         analytics=analytics,
         database=database,
         ingestion=ingestion,
     )
 
 
-@bp_analytics.get("/export", endpoint="analytics_export")
-def analytics_export() -> Any:
-    """
-    JSON analytics export endpoint.
-    """
+@bp_diagnostics.get("/page", endpoint="diagnostics_page")
+def diagnostics_page() -> str:
+    return diagnostics_index()
+
+
+@bp_diagnostics.get("/api", endpoint="diagnostics_api")
+def diagnostics_api() -> Any:
     now = datetime.now(timezone.utc)
 
     analytics: Dict[str, Any] = get_analytics_status()
@@ -51,11 +50,17 @@ def analytics_export() -> Any:
         "analytics": analytics,
         "database": database,
         "ingestion": ingestion,
-        "diagnostics_count": analytics.get("count", 0),
     }
 
     logger.debug(
-        "analytics_export_payload",
+        "diagnostics_api_payload",
         extra={"analytics": analytics, "database": database, "ingestion": ingestion},
     )
+    return jsonify(payload)
+
+
+@bp_diagnostics.get("/test", endpoint="diagnostics_test")
+def diagnostics_test() -> Any:
+    payload = {"status": "ok"}
+    logger.debug("diagnostics_test_endpoint_hit", extra=payload)
     return jsonify(payload)
