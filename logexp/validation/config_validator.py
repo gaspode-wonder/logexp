@@ -9,6 +9,7 @@ for analytics and ingestion.
 
 from __future__ import annotations
 
+from typing import cast
 from zoneinfo import ZoneInfo
 
 from logexp.app.logging_setup import get_logger
@@ -16,7 +17,7 @@ from logexp.app.logging_setup import get_logger
 log = get_logger("logexp.validation.config_validator")
 
 
-def validate_config(cfg: dict) -> dict:
+def validate_config(cfg: dict[str, object]) -> dict[str, object]:
     """
     Validate the minimal configuration contract required by tests.
 
@@ -58,7 +59,7 @@ def validate_config(cfg: dict) -> dict:
     # ------------------------------------------------------------
     tz = cfg["LOCAL_TIMEZONE"]
     try:
-        ZoneInfo(tz)
+        ZoneInfo(cast(str, tz))
     except Exception as exc:
         log.error(
             "invalid_timezone",

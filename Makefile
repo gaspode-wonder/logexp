@@ -1,5 +1,5 @@
 # =============================================================================
-# LogExp Makefile — Step 12B: Config Hygiene Pass
+# LogExp Makefile
 # Deterministic developer workflows with colorized output, timing, and CI parity
 # =============================================================================
 
@@ -39,13 +39,13 @@ endef
 
 bootstrap: ## Onboard a new maintainer with a fresh environment
 	$(call timed,"Bootstrapping development environment", \
-	$(PYTHON) -m venv $(VENV) && \
-	$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt && \
-	echo "/Users/jebbaugh/git/personal/active/logexp" > $(SITE_PACKAGES)/logexp.pth && \
-	PYTHONPATH=. python scripts/ci_diagnostics.py \
+		$(PYTHON) -m venv $(VENV) && \
+		$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt && \
+		echo "/Users/jebbaugh/git/personal/active/logexp" > $(SITE_PACKAGES)/logexp.pth && \
+		PYTHONPATH=. python scripts/ci_diagnostics.py \
 	)
 
-ci: ## Mirror GitHub Actions exactly
+ci: ## Mirror GitHub Actions core lane (fast, no nuking)
 	$(call timed,"CI: Creating virtual environment", $(PYTHON) -m venv $(VENV))
 	$(call timed,"CI: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
 	$(call timed,"CI: Environment parity check", $(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py)
@@ -55,13 +55,65 @@ ci: ## Mirror GitHub Actions exactly
 
 ci-local: ci ## Alias for CI parity
 
+ci-clean: ## CI with clean workspace and fresh venv (no lint/typing gates)
+	$(call timed,"CI-CLEAN: git clean -xdf", git clean -xdf)
+	$(call timed,"CI-CLEAN: Removing virtual environment", rm -rf $(VENV))
+	$(call timed,"CI-CLEAN: Creating virtual environment", $(PYTHON) -m venv $(VENV))
+	$(call timed,"CI-CLEAN: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
+	$(call timed,"CI-CLEAN: Environment parity check", $(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py)
+	$(call timed,"CI-CLEAN: Diagnostics", $(ACTIVATE) && PYTHONPATH=. python scripts/ci_diagnostics.py)
+	$(call timed,"CI-CLEAN: Database migrations", $(ACTIVATE) && PYTHONPATH=. FLASK_APP=logexp.app:create_app SQLALCHEMY_DATABASE_URI=sqlite:///ci.db flask db upgrade)
+	$(call timed,"CI-CLEAN: Running pytest", $(ACTIVATE) && PYTHONPATH=. SQLALCHEMY_DATABASE_URI=sqlite:///ci.db pytest -vv)
+
+# =============================================================================
+# CI-HARD — Full clean-room CI with strict gates
+# =============================================================================
+
+ci-hard: ## Full clean-room CI: nuked workspace + strict lint/typing + full pytest
+	$(call timed,"CI-HARD: git clean -xdf", git clean -xdf)
+	$(call timed,"CI-HARD: Removing virtual environment", rm -rf $(VENV))
+	$(call timed,"CI-HARD: Creating virtual environment", $(PYTHON) -m venv $(VENV))
+	$(call timed,"CI-HARD: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
+
+	$(call timed,"CI-HARD: Environment parity check", \
+		export ANALYTICS_ENABLED=true && \
+		export ANALYTICS_WINDOW_SECONDS=60 && \
+		export LOCAL_TIMEZONE=UTC && \
+		$(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py \
+	)
+
+	$(call timed,"CI-HARD: Diagnostics", \
+		export ANALYTICS_ENABLED=true && \
+		export ANALYTICS_WINDOW_SECONDS=60 && \
+		export LOCAL_TIMEZONE=UTC && \
+		$(ACTIVATE) && PYTHONPATH=. python scripts/ci_diagnostics.py \
+	)
+
+	$(call timed,"CI-HARD: Database migrations", \
+		export ANALYTICS_ENABLED=true && \
+		export ANALYTICS_WINDOW_SECONDS=60 && \
+		export LOCAL_TIMEZONE=UTC && \
+		$(ACTIVATE) && FLASK_APP=logexp.app:create_app SQLALCHEMY_DATABASE_URI=sqlite:///ci.db flask db upgrade \
+	)
+
+	$(call timed,"CI-HARD: Ruff lint", $(ACTIVATE) && ruff check .)
+	$(call timed,"CI-HARD: Black format check", $(ACTIVATE) && black --check .)
+	$(call timed,"CI-HARD: Mypy strict typecheck", $(ACTIVATE) && mypy --strict .)
+
+	$(call timed,"CI-HARD: Running pytest", \
+		export ANALYTICS_ENABLED=true && \
+		export ANALYTICS_WINDOW_SECONDS=60 && \
+		export LOCAL_TIMEZONE=UTC && \
+		$(ACTIVATE) && PYTHONPATH=. SQLALCHEMY_DATABASE_URI=sqlite:///ci.db pytest -vv \
+	)
+
 # =============================================================================
 # Application Development
 # =============================================================================
 
 dev: ## Run Flask with full environment setup
 	$(call timed,"Starting Flask development server", \
-	$(ACTIVATE) && \
+		$(ACTIVATE) && \
 		export FLASK_APP=logexp.app:create_app && \
 		export FLASK_ENV=development && \
 		flask run --reload \
@@ -69,12 +121,12 @@ dev: ## Run Flask with full environment setup
 
 dev-fast: ## Run Flask quickly assuming venv already exists
 	$(call timed,"Starting Flask (fast mode)", \
-	$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask run --reload \
+		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask run --reload \
 	)
 
 shell: ## Open Flask shell with app context
 	$(call timed,"Opening Flask shell", \
-	$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask shell \
+		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask shell \
 	)
 
 # =============================================================================
@@ -116,17 +168,17 @@ db-reset:
 
 test-db:
 	$(call timed,"Rebuilding test DB", \
-	$(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py \
+		$(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py \
 	)
 
 db-migrate:
 	$(call timed,"Creating migration", \
-	$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask db migrate \
+		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask db migrate \
 	)
 
 db-upgrade:
 	$(call timed,"Applying migrations", \
-	$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask db upgrade \
+		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask db upgrade \
 	)
 
 # =============================================================================
@@ -154,11 +206,11 @@ test-smart:
 
 doctor:
 	$(call timed,"Doctor checks", \
-	$(PYTHON) --version && \
-	(test -d $(VENV) && echo "Venv OK" || echo "Venv missing") && \
-	$(ACTIVATE) && python -c "import flask; print('Flask OK')" && \
-	(if lsof -i :5000 >/dev/null 2>&1; then echo 'Port 5000 in use'; else echo 'Port 5000 free'; fi) && \
-	(test -f logexp/app/data/readings.db && echo "DB exists" || echo "DB missing") \
+		$(PYTHON) --version && \
+		(test -d $(VENV) && echo "Venv OK" || echo "Venv missing") && \
+		$(ACTIVATE) && python -c "import flask; print('Flask OK')" && \
+		(if lsof -i :5000 >/dev/null 2>&1; then echo 'Port 5000 in use'; else echo 'Port 5000 free'; fi) && \
+		(test -f logexp/app/data/readings.db && echo "DB exists" || echo "DB missing") \
 	)
 
 check-env:
@@ -177,10 +229,11 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?##' Makefile | sed 's/:.*##/: /' | column -t -s ':'
 	@echo ""
 
-test-all: ## Run full formatting, linting, and test suite
-	$(call timed,Black auto-format, $(ACTIVATE) && black .)
-	$(call timed,Ruff lint, $(ACTIVATE) && ruff check .)
-	$(call timed,Pytest full suite, $(ACTIVATE) && pytest -q)
+test-all: ## Run linting, typing, and full test suite
+	$(call timed,"Ruff lint", $(ACTIVATE) && ruff check .)
+	$(call timed,"Black format check", $(ACTIVATE) && black --check .)
+	$(call timed,"Mypy strict typecheck", $(ACTIVATE) && mypy --strict .)
+	$(call timed,"Pytest full suite", $(ACTIVATE) && pytest -vv)
 
 	@echo ""
 	@echo "$(YELLOW)Reminder: run 'v' to activate your environment$(RESET)"

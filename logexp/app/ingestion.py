@@ -95,3 +95,5 @@ def ingest_readings(*args: Any, **kwargs: Any) -> List[Any]:
 
 
 ingest_batch = ingest_readings
+
+__all__ = ["ingest_reading"]
