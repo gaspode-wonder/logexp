@@ -168,7 +168,8 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
     # 9. CLI commands
     # ----------------------------------------------------------------------
 
-    @app.cli.command("geiger-start")
+    # mypy: Flask CLI decorators are untyped; we explicitly ignore the correct codes.
+    @app.cli.command("geiger-start")  # type: ignore[no-untyped-call, untyped-decorator]
     def geiger_start() -> None:
         poller = getattr(current_app, "poller", None)
         if poller and not poller._thread.is_alive():
@@ -177,7 +178,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
         else:
             print("Poller already running.")
 
-    @app.cli.command("geiger-stop")
+    @app.cli.command("geiger-stop")  # type: ignore[no-untyped-call, untyped-decorator]
     def geiger_stop() -> None:
         poller = getattr(current_app, "poller", None)
         if poller and poller._thread.is_alive():
@@ -186,14 +187,14 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
         else:
             print("Poller not running.")
 
-    @app.cli.command("seed-data")
+    @app.cli.command("seed-data")  # type: ignore[no-untyped-call, untyped-decorator]
     def seed_data() -> None:
         from logexp.seeds import seed_data
 
         seed_data.run(app)
         current_app.logger.info("Database seeded (idempotent).")
 
-    @app.cli.command("clear-db")
+    @app.cli.command("clear-db")  # type: ignore[no-untyped-call, untyped-decorator]
     def clear_db() -> None:
         with app.app_context():
             db.drop_all()
@@ -223,4 +224,4 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
     return app
 
 
-__all__ = ["create_app"]
+__all__ = ["db", "create_app"]

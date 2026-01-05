@@ -14,7 +14,7 @@ from logexp.app.logging_setup import get_logger
 log = get_logger("logexp.validation.ingestion_validator")
 
 
-def validate_ingestion_payload(payload: dict) -> dict | None:
+def validate_ingestion_payload(payload: dict[str, object]) -> dict[str, object] | None:
     """
     Validate a single ingestion payload.
 
