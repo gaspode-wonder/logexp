@@ -18,7 +18,7 @@ from .extensions import db
 logger = get_logger("logexp.models")
 
 
-class LogExpReading(db.Model):  # type: ignore[misc]
+class LogExpReading(db.Model):
     __tablename__ = "logexp_readings"
 
     # --- SQLAlchemy 2.0 typed columns ---
