@@ -8,6 +8,7 @@ from flask import current_app
 
 from logexp.app.extensions import db
 from logexp.app.logging_setup import get_logger
+from logexp.app.models import LogExpReading
 from logexp.app.typing import LogExpFlask
 
 logger = get_logger("logexp.ingestion")
@@ -22,7 +23,7 @@ def get_config() -> Dict[str, Any]:
     return app.config_obj
 
 
-def ingest_reading(payload: Dict[str, Any]):
+def ingest_reading(payload: Dict[str, Any]) -> Optional["LogExpReading"]:
     """
     Canonical ingestion function.
 
@@ -31,7 +32,7 @@ def ingest_reading(payload: Dict[str, Any]):
       - Log 'ingestion_payload_received'
       - Log 'ingestion_complete' on success
       - Log 'ingestion_error' on failure
-      - Return the created LogExpReading instance
+      - Return the created LogExpReading instance (or None if disabled)
     """
     logger.info("ingestion_start")
 
