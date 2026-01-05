@@ -2,8 +2,8 @@
 
 # Helper utilities for deterministic analytics tests.
 # These are pure functions: no ingestion, no poller, no DB, no Flask.
-from typing import Any
 import datetime as dt
+from typing import Any
 
 
 def ts(year, month, day, hour, minute, second):

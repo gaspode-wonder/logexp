@@ -94,9 +94,7 @@ class GeigerPoller:
                 self._thread.join(timeout=2)
                 self.logger.info("GeigerPoller stopped cleanly.")
             else:
-                self.logger.debug(
-                    "Poller.stop() called from poller thread; skipping join."
-                )
+                self.logger.debug("Poller.stop() called from poller thread; skipping join.")
 
     # ------------------------------------------------------------------
     def _run(self) -> None:

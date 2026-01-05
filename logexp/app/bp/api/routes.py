@@ -6,10 +6,10 @@ from typing import Any
 
 from flask import current_app, jsonify, request
 
-from logexp.app.logging_setup import get_logger
 from logexp.app import db
 from logexp.app.bp.api import bp_api
 from logexp.app.geiger import list_serial_ports, read_geiger, try_port
+from logexp.app.logging_setup import get_logger
 from logexp.app.models import LogExpReading
 from logexp.app.schemas import ReadingCreate, ReadingResponse
 
@@ -78,9 +78,7 @@ def readings_json() -> Any:
         extra={"path": request.path, "method": request.method},
     )
 
-    readings = (
-        LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
-    )
+    readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
 
     logger.debug(
         "api_readings_json_returning",

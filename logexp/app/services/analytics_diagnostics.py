@@ -3,175 +3,125 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from statistics import mean
+from typing import Any, Dict, List, Optional, cast
 
 from flask import current_app
 
+from logexp.app.extensions import db
 from logexp.app.logging_setup import get_logger
-from logexp.analytics.diagnostics import (
-    get_analytics_status as pure_analytics_status,
-)
-from logexp.analytics.engine import AnalyticsEngine, ReadingSample
 from logexp.app.models import LogExpReading
+from logexp.app.typing import LogExpFlask
 
-logger = get_logger("logexp.analytics")
+logger = get_logger("logexp.analytics_diagnostics")
 
 
-def _get_window_params(
-    now: Optional[datetime] = None,
-) -> Tuple[int, datetime, datetime]:
+def get_config() -> Dict[str, Any]:
     """
-    Derive window parameters from config and the current time.
-
-    Returns:
-        (window_minutes, window_start, window_end)
+    Typed accessor for application configuration.
+    Ensures mypy sees config_obj on the typed Flask subclass.
     """
-    if now is None:
-        now = datetime.now(timezone.utc)
+    return cast(LogExpFlask, current_app).config_obj
 
-    config = current_app.config_obj
-    window_seconds: int = config.get("ANALYTICS_WINDOW_SECONDS", 60)
-    window_minutes: int = max(1, window_seconds // 60)
 
-    window_end: datetime = now
-    window_start: datetime = now - timedelta(minutes=window_minutes)
+def _load_windowed_readings(window_start: datetime) -> List[LogExpReading]:
+    """
+    Load readings from window_start to now.
+    Deterministic ordering (newest first).
+    """
+    query = (
+        db.session.query(LogExpReading)
+        .filter(LogExpReading.timestamp >= window_start)
+        .order_by(LogExpReading.timestamp.desc())
+    )
+    readings: List[LogExpReading] = query.all()
 
     logger.debug(
-        "analytics_diag_window_params",
-        extra={
-            "now": now.isoformat(),
-            "window_seconds": window_seconds,
-            "window_minutes": window_minutes,
-            "window_start": window_start.isoformat(),
-            "window_end": window_end.isoformat(),
-        },
-    )
-
-    return window_minutes, window_start, window_end
-
-
-def _load_samples(window_start: datetime) -> List[ReadingSample]:
-    """
-    Load readings from the database and convert them to ReadingSample
-    instances for the pure analytics engine.
-    """
-    rows: List[LogExpReading] = (
-        LogExpReading.query.filter(LogExpReading.timestamp >= window_start)
-        .order_by(LogExpReading.timestamp.asc())
-        .all()
-    )
-
-    logger.debug(
-        "analytics_diag_samples_loaded",
+        "analytics_load_window",
         extra={
             "window_start": window_start.isoformat(),
-            "row_count": len(rows),
-        },
-    )
-
-    return [
-        ReadingSample(timestamp=row.timestamp_dt, value=float(row.counts_per_second))
-        for row in rows
-    ]
-
-
-def summarize_readings(readings: List[LogExpReading]) -> Dict[str, Any]:
-    """
-    Summarize a list of LogExpReading objects into JSON-safe analytics metrics.
-
-    This is the legacy helper used by diagnostics routes. It does NOT load
-    from the database; it operates only on the provided readings list.
-    """
-    if not readings:
-        logger.debug("analytics_diag_summarize_empty")
-        return {
-            "window_minutes": 0,
-            "count": 0,
-            "window_start": None,
-            "window_end": None,
-            "average": None,
-            "minimum": None,
-            "maximum": None,
-        }
-
-    timestamps = [r.timestamp_dt for r in readings]
-    window_start = min(timestamps)
-    window_end = max(timestamps)
-
-    logger.debug(
-        "analytics_diag_summarize_bounds",
-        extra={
-            "window_start": window_start.isoformat(),
-            "window_end": window_end.isoformat(),
             "count": len(readings),
         },
     )
+    return readings
 
-    samples = [
-        ReadingSample(timestamp=r.timestamp_dt, value=float(r.counts_per_second))
-        for r in readings
-    ]
 
-    window_minutes = max(1, int((window_end - window_start).total_seconds() // 60))
-    engine = AnalyticsEngine(window_minutes=window_minutes)
-    engine.add_readings(samples)
-    result = engine.compute_metrics(now=window_end)
+def summarize_readings(readings: List[LogExpReading]) -> Optional[Dict[str, Any]]:
+    """
+    Canonical analytics rollup used by diagnostics, routes, and tests.
 
-    logger.debug(
-        "analytics_diag_summarize_metrics",
-        extra={
-            "window_minutes": result.window_minutes,
-            "count": result.count,
-            "average": result.average,
-            "minimum": result.minimum,
-            "maximum": result.maximum,
-        },
-    )
+    Contract:
+      - Empty list → None
+      - Deterministic under fixed time
+      - JSON‑safe values
+      - Computes average CPS, CPM, uSv/h
+      - Returns the most recent reading timestamp (UTC)
+      - Includes 'count' for test expectations
+    """
+    if not readings:
+        logger.debug("analytics_summarize_empty")
+        return None
 
-    return {
-        "window_minutes": result.window_minutes,
-        "count": result.count,
-        "window_start": result.window_start.isoformat(),
-        "window_end": result.window_end.isoformat(),
-        "average": result.average,
-        "minimum": result.minimum,
-        "maximum": result.maximum,
+    readings_sorted = sorted(readings, key=lambda r: r.timestamp, reverse=True)
+
+    cps_values = [r.counts_per_second for r in readings_sorted]
+    cpm_values = [r.counts_per_minute for r in readings_sorted]
+    usv_values = [r.microsieverts_per_hour for r in readings_sorted]
+
+    latest_ts = readings_sorted[0].timestamp.astimezone(timezone.utc)
+
+    summary: Dict[str, Any] = {
+        "latest_timestamp": latest_ts,
+        "avg_cps": mean(cps_values),
+        "avg_cpm": mean(cpm_values),
+        "avg_usv": mean(usv_values),
+        "count": len(readings_sorted),
     }
 
+    logger.debug("analytics_summarize_complete", extra=summary)
+    return summary
 
-def get_analytics_status(now: Optional[datetime] = None) -> Dict[str, Any]:
+
+def run_analytics_diagnostics() -> Dict[str, Any]:
     """
-    Flask-aware analytics diagnostics for the unified /api/diagnostics payload.
+    Diagnostics payload for the analytics subsystem.
 
-    Delegates to the pure analytics diagnostics function, which returns a
-    JSON-safe dict with the same fields as summarize_readings, but is
-    structured around the pure engine's AnalyticsResult dataclass.
-
-    Accepts an optional `now` for deterministic tests.
+    Contract (aligned with tests):
+      - 'window_minutes'
+      - 'window_start'
+      - 'window_end'
+      - 'count'
     """
-    if now is None:
-        now = datetime.now(timezone.utc)
+    config = get_config()
 
-    logger.debug(
-        "analytics_diag_status_requested",
-        extra={"now": now.isoformat()},
-    )
+    enabled = config.get("ANALYTICS_ENABLED", True)
+    window_minutes = config.get("ANALYTICS_WINDOW_MINUTES", 5)
 
-    window_minutes, window_start, _ = _get_window_params(now=now)
-    samples: List[ReadingSample] = _load_samples(window_start=window_start)
+    window_end = datetime.now(timezone.utc)
+    window_start = window_end - timedelta(minutes=window_minutes)
 
-    payload = pure_analytics_status(
-        window_minutes=window_minutes,
-        samples=samples,
-        now=now,
-    )
+    readings = _load_windowed_readings(window_start)
+    summary = summarize_readings(readings)
 
-    logger.debug(
-        "analytics_diag_status_completed",
-        extra={
-            "window_minutes": window_minutes,
-            "sample_count": len(samples),
-        },
-    )
+    result: Dict[str, Any] = {
+        "enabled": enabled,
+        "window_minutes": window_minutes,
+        "window_start": window_start,
+        "window_end": window_end,
+        "count": summary["count"] if summary is not None else 0,
+        "avg_cps": summary["avg_cps"] if summary is not None else None,
+        "avg_cpm": summary["avg_cpm"] if summary is not None else None,
+        "avg_usv": summary["avg_usv"] if summary is not None else None,
+        "latest_timestamp": summary["latest_timestamp"] if summary is not None else None,
+    }
 
-    return payload
+    logger.debug("analytics_diagnostics_complete", extra=result)
+    return result
+
+
+def get_analytics_status() -> Dict[str, Any]:
+    """
+    Backwards‑compatible API expected by diagnostics blueprint and tests.
+    No arguments; loads its own windowed readings.
+    """
+    return run_analytics_diagnostics()

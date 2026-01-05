@@ -3,92 +3,85 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Dict
 
-from flask import current_app, jsonify, render_template, request
+from flask import jsonify, render_template
 
 from logexp.app.logging_setup import get_logger
-from logexp.app.bp.diagnostics import bp_diagnostics
 from logexp.app.services.analytics_diagnostics import get_analytics_status
 from logexp.app.services.database_diagnostics import get_database_status
-from logexp.app.services.ingestion import get_ingestion_status
-from logexp.app.services.poller import get_poller_status
 
-logger = get_logger("logexp.diagnostics")
+# Import the singleton blueprint defined in __init__.py
+from . import bp_diagnostics
+
+logger = get_logger("logexp.bp.diagnostics")
 
 
 # ---------------------------------------------------------------------------
-# Diagnostics UI (HTML)
+# Primary diagnostics page (HTML)
 # ---------------------------------------------------------------------------
-@bp_diagnostics.get("/")
-def diagnostics_page() -> Any:
-    logger.debug(
-        "diagnostics_page_requested",
-        extra={"path": request.path, "method": request.method},
+@bp_diagnostics.get("", endpoint="diagnostics_index")
+def diagnostics_index() -> str:
+    """
+    HTML diagnostics dashboard.
+    Endpoint: diagnostics.diagnostics_index
+    """
+    analytics = get_analytics_status()
+    database = get_database_status()
+
+    return render_template(
+        "diagnostics.html",
+        analytics=analytics,
+        database=database,
     )
 
-    config = getattr(current_app, "config_obj", {})
+
+# ---------------------------------------------------------------------------
+# Legacy alias required by tests: diagnostics_page*
+# ---------------------------------------------------------------------------
+@bp_diagnostics.get("/page", endpoint="diagnostics_page")
+def diagnostics_page() -> str:
+    """
+    Legacy endpoint required by architecture tests.
+    Endpoint name must start with diagnostics_page.
+    """
+    return diagnostics_index()
+
+
+# ---------------------------------------------------------------------------
+# JSON diagnostics API
+# ---------------------------------------------------------------------------
+@bp_diagnostics.get("/api", endpoint="diagnostics_api")
+def diagnostics_api() -> Any:
+    """
+    JSON diagnostics endpoint: /diagnostics/api
+    """
     now = datetime.now(timezone.utc)
 
-    context = {
-        "config": dict(config),
-        "ingestion": get_ingestion_status(),
-        "poller": get_poller_status(),
-        "analytics": get_analytics_status(),
-        "database": get_database_status(),
-        "meta": {
-            "timestamp": now.isoformat(),
-        },
+    analytics = get_analytics_status()
+    database = get_database_status()
+
+    payload: Dict[str, Any] = {
+        "timestamp": now,
+        "analytics": analytics,
+        "database": database,
     }
 
     logger.debug(
-        "diagnostics_page_context_built",
-        extra={
-            "has_ingestion": context["ingestion"] is not None,
-            "has_poller": context["poller"] is not None,
-            "has_analytics": context["analytics"] is not None,
-            "has_database": context["database"] is not None,
-        },
+        "diagnostics_api_payload",
+        extra={"analytics": analytics, "database": database},
     )
-
-    return render_template("diagnostics.html", **context)
-
-
-# ---------------------------------------------------------------------------
-# Legacy endpoint name used in templates/tests
-# ---------------------------------------------------------------------------
-@bp_diagnostics.get("/index", endpoint="diagnostics_index")
-def diagnostics_index() -> Any:
-    logger.debug(
-        "diagnostics_index_requested",
-        extra={"path": request.path, "method": request.method},
-    )
-    return diagnostics_page()
+    return jsonify(payload)
 
 
 # ---------------------------------------------------------------------------
-# Support /diagnostics (no trailing slash)
+# Minimal test endpoint required by tests
 # ---------------------------------------------------------------------------
-@bp_diagnostics.get("")
-def diagnostics_page_no_slash() -> Any:
-    logger.debug(
-        "diagnostics_page_no_slash_requested",
-        extra={"path": request.path, "method": request.method},
-    )
-    return diagnostics_page()
-
-
-# ---------------------------------------------------------------------------
-# Minimal JSON test endpoint (legacy)
-# ---------------------------------------------------------------------------
-@bp_diagnostics.get("/geiger/test")
+@bp_diagnostics.get("/test", endpoint="diagnostics_test")
 def diagnostics_test() -> Any:
     """
-    Legacy JSON test endpoint.
-    Retained for backward compatibility with older test suites.
+    Simple test endpoint.
     """
-    logger.debug(
-        "diagnostics_test_requested",
-        extra={"path": request.path, "method": request.method},
-    )
-    return jsonify({"status": "ok"})
+    payload = {"status": "ok"}
+    logger.debug("diagnostics_test_endpoint_hit", extra=payload)
+    return jsonify(payload)

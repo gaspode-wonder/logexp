@@ -10,6 +10,4 @@ def test_service_modules_import_cleanly():
         try:
             importlib.import_module(name)
         except Exception as exc:
-            raise AssertionError(
-                f"Import-time failure in service module '{name}': {exc}"
-            ) from exc
+            raise AssertionError(f"Import-time failure in service module '{name}': {exc}") from exc

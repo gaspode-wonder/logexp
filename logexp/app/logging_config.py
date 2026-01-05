@@ -20,9 +20,7 @@ def configure_logging() -> None:
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
 
-    formatter = logging.Formatter(
-        fmt="level=%(levelname)s subsystem=%(name)s msg=%(message)s"
-    )
+    formatter = logging.Formatter(fmt="level=%(levelname)s subsystem=%(name)s msg=%(message)s")
     handler.setFormatter(formatter)
 
     root.handlers.clear()
