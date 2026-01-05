@@ -1,4 +1,4 @@
-# filename: logexp/app/bp/diagnostics/routes.py
+# filename: logexp/app/bp/analytics/routes.py
 
 from __future__ import annotations
 
@@ -13,40 +13,32 @@ from logexp.app.services.database_diagnostics import get_database_status
 from logexp.app.services.ingestion import get_ingestion_status
 
 # Import the singleton blueprint defined in __init__.py
-from . import bp_diagnostics
+from . import bp_analytics
 
-logger = get_logger("logexp.bp.diagnostics")
+logger = get_logger("logexp.bp.analytics")
 
 
-@bp_diagnostics.get("", endpoint="diagnostics_index")
-def diagnostics_index() -> str:
+@bp_analytics.get("", endpoint="analytics_index")
+def analytics_index() -> str:
     """
-    HTML diagnostics dashboard.
+    HTML analytics dashboard.
     """
     analytics: Dict[str, Any] = get_analytics_status()
     database: Dict[str, Any] = get_database_status()
     ingestion: Dict[str, Any] = get_ingestion_status()
 
     return render_template(
-        "diagnostics.html",
+        "analytics.html",
         analytics=analytics,
         database=database,
         ingestion=ingestion,
     )
 
 
-@bp_diagnostics.get("/page", endpoint="diagnostics_page")
-def diagnostics_page() -> str:
+@bp_analytics.get("/export", endpoint="analytics_export")
+def analytics_export() -> Any:
     """
-    Legacy endpoint required by architecture tests.
-    """
-    return diagnostics_index()
-
-
-@bp_diagnostics.get("/api", endpoint="diagnostics_api")
-def diagnostics_api() -> Any:
-    """
-    JSON diagnostics endpoint.
+    JSON analytics export endpoint.
     """
     now = datetime.now(timezone.utc)
 
@@ -59,20 +51,11 @@ def diagnostics_api() -> Any:
         "analytics": analytics,
         "database": database,
         "ingestion": ingestion,
+        "diagnostics_count": analytics.get("count", 0),
     }
 
     logger.debug(
-        "diagnostics_api_payload",
+        "analytics_export_payload",
         extra={"analytics": analytics, "database": database, "ingestion": ingestion},
     )
-    return jsonify(payload)
-
-
-@bp_diagnostics.get("/test", endpoint="diagnostics_test")
-def diagnostics_test() -> Any:
-    """
-    Simple test endpoint.
-    """
-    payload = {"status": "ok"}
-    logger.debug("diagnostics_test_endpoint_hit", extra=payload)
     return jsonify(payload)
