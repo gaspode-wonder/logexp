@@ -4,7 +4,7 @@
 name = "logexp"
 version = "0.1.0"
 description = "LogExp"
-requires-python = ">=3.10"
+requires-python = "==3.10.14"
 
 [build-system]
 requires = ["setuptools"]
