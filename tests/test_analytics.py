@@ -16,9 +16,7 @@ def test_single_reading_in_window(analytics_engine, ts_base, make_reading):
     assert result[0].value == 10.0
 
 
-def test_reading_outside_window_excluded(
-    analytics_engine, ts_base, shift, make_reading
-):
+def test_reading_outside_window_excluded(analytics_engine, ts_base, shift, make_reading):
     old = make_reading(shift(ts_base, -600), 5.0)  # 10 minutes old
     new = make_reading(shift(ts_base, -100), 9.0)  # inside 5‑min window
 
@@ -28,9 +26,7 @@ def test_reading_outside_window_excluded(
     assert result[0].value == 9.0
 
 
-def test_multiple_readings_sorted_by_timestamp(
-    analytics_engine, ts_base, shift, make_batch
-):
+def test_multiple_readings_sorted_by_timestamp(analytics_engine, ts_base, shift, make_batch):
     readings = make_batch(
         [
             (shift(ts_base, -10), 3.0),

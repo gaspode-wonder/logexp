@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Iterable, Tuple, List
+from typing import Iterable, List, Tuple
 
 import pytest
 
+from logexp.analytics.engine import ReadingSample
 from logexp.app.extensions import db
 from logexp.app.models import LogExpReading
-from logexp.analytics.engine import ReadingSample
-
 
 # ---------------------------------------------------------------------------
 # DB-backed factory for integration tests (unit/test_analytics.py, etc.)

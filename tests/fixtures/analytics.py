@@ -1,6 +1,7 @@
 # tests/fixtures/analytics.py
 
 import datetime as dt
+
 import pytest
 
 from logexp.analytics.engine import AnalyticsEngine, ReadingSample

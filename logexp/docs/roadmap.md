@@ -124,7 +124,7 @@ Goals:
 ---
 
 ## 12D — Test Architecture Hardening
-**Status: 🔜 Next**
+**Status: ✔ Completed**
 
 Goals:
 - Deterministic analytics tests
@@ -132,63 +132,10 @@ Goals:
 - Ingestion tests without real serial ports
 - Fixtures for config overrides
 
-
-## 12D — Test Architecture Hardening
-**Status: 🔜 Next**
-
-### Purpose
-Strengthen the entire test suite so every subsystem (analytics, poller, ingestion, routes) runs deterministically, without cross‑contamination, hidden state, or environmental drift. This step ensures the test harness is as production‑grade as the application.
-
----
-
-### Goals
-- **Deterministic analytics tests**
-  - No reliance on implicit config
-  - Explicit timestamps, windows, and rollup boundaries
-  - Analytics enabled/disabled via fixture overrides
-  - Zero leakage from ingestion or poller tests
-
-- **Isolated poller tests**
-  - Poller never touches real serial ports
-  - `_open_serial` seam fully controlled by tests
-  - Fake frames and serial exceptions deterministic
-  - Diagnostics surface validated independently
-
-- **Ingestion tests without real serial ports**
-  - Ingestion receives frames directly
-  - No serial dependencies
-  - No poller involvement
-  - DB state isolated per test
-
-- **Fixtures for config overrides**
-  - Centralized config fixture with override hooks
-  - Deterministic defaults for analytics, poller, ingestion
-  - Ability to toggle subsystems cleanly per test
-  - No hidden environment variable dependencies
-
----
-
-### Expected Outcomes
-- All tests run deterministically regardless of machine, OS, or environment
-- No test relies on real hardware, real serial ports, or implicit config
-- Analytics, poller, and ingestion tests become fully independent lanes
-- Config overrides become explicit, readable, and maintainable
-- Future maintainers can extend the test suite without fear of breakage
-
----
-
-### Exit Criteria
-- All analytics tests deterministic and isolated
-- All poller tests isolated and serial‑free
-- All ingestion tests serial‑free and poller‑free
-- Config fixture adopted across the suite
-- Zero nondeterministic failures across repeated runs
-
-
 ---
 
 ## 12E — CI Stability Pass
-**Status: TODO**
+**Status: 🔜 Next**
 
 Goals:
 - Fully deterministic CI

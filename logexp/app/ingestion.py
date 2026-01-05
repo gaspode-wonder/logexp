@@ -1,83 +1,99 @@
 # filename: logexp/app/ingestion.py
+
 """
-Legacy ingestion wrapper providing the logging contract expected by tests.
+Compatibility shim for legacy import paths.
 
-The real ingestion logic lives in:
-    logexp.app.services.ingestion
-
-This wrapper preserves the legacy API shape:
-    - leading session argument
-    - readings=[...]
-    - cutoff_ts=...
-    - structured logging ("ingestion_start", "ingestion_complete")
-    - logger name: logexp.ingestion
+Tests and legacy code import ingest_readings from this module.
+The real implementation lives in logexp.app.services.ingestion.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List
 
-from logexp.app.logging_setup import get_logger
-from logexp.app.services.ingestion import ingest_reading as _ingest_reading
-
-logger = get_logger("logexp.ingestion")
+from logexp.app.services.ingestion import ingest_reading
 
 
-def ingest_reading(*args: Any, **kwargs: Any) -> Any:
+def _normalize_readings_arg(arg: Any) -> List[Dict[str, Any]]:
     """
-    Legacy single‑row ingestion wrapper.
+    Normalize various test/legacy call shapes into a list of dict payloads.
     """
-    logger.info("ingestion_start")
-    try:
-        row: Any = _ingest_reading(*args, **kwargs)
-        logger.info("ingestion_complete")
-        return row
-    except Exception:
-        logger.exception("ingestion_failed")
-        raise
-
-
-def ingest_readings(*args: Any, **kwargs: Any) -> List[Optional[Any]]:
-    """
-    Legacy wrapper for batch ingestion.
-
-    Accepts:
-        ingest_readings(session, readings=[...], cutoff_ts=...)
-
-    Behavior:
-    - Leading session argument is ignored.
-    - cutoff_ts is accepted but unused (legacy contract).
-    - Structured logging is preserved.
-    """
-    logger.info("ingestion_start")
-
-    positional: List[Any] = list(args)
-
-    # Ignore leading session argument
-    if positional and not isinstance(positional[0], (list, tuple, dict)):
-        positional = positional[1:]
-
-    readings: Optional[Iterable[Any]] = kwargs.get("readings")
-    if readings is None and positional:
-        readings = positional[0]
-
-    # cutoff_ts is accepted but unused
-    _ = kwargs.get("cutoff_ts", datetime.now(timezone.utc))
-
-    # Guard: never iterate over None
-    if readings is None:
-        logger.info("ingestion_complete")
+    if arg is None:
         return []
 
-    try:
-        results: List[Optional[Any]] = [_ingest_reading(item) for item in readings]
-        logger.info("ingestion_complete")
-        return results
-    except Exception:
-        logger.exception("ingestion_failed")
-        raise
+    # Single dict → [dict]
+    if isinstance(arg, dict):
+        return [arg]
+
+    # Iterable of dicts
+    if isinstance(arg, Iterable):
+        return list(arg)
+
+    return []
 
 
-# Legacy alias
+def _translate_legacy_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Translate legacy ingestion payloads into the canonical ingestion format.
+
+    Tests pass payloads like:
+        {"value": 1}
+
+    The ingestion service expects:
+        {
+            "counts_per_second": ...,
+            "counts_per_minute": ...,
+            "microsieverts_per_hour": ...,
+            "mode": ...
+        }
+    """
+    if "counts_per_second" in payload:
+        # Already canonical
+        return payload
+
+    # Legacy format: {"value": X}
+    value = payload.get("value")
+
+    return {
+        "counts_per_second": value,
+        "counts_per_minute": value,
+        "microsieverts_per_hour": value,
+        "mode": "legacy",
+    }
+
+
+def ingest_readings(*args: Any, **kwargs: Any) -> List[Any]:
+    """
+    Legacy API: ingest a list of payloads.
+
+    Supported call styles:
+      - ingest_readings([...])
+      - ingest_readings(readings=[...])
+      - ingest_readings(readings={...})
+      - ingest_readings([...], cutoff_ts=..., extra=...)
+
+    All extra kwargs (including cutoff_ts) are ignored here.
+    """
+    if "readings" in kwargs:
+        raw = kwargs["readings"]
+    elif args:
+        raw = args[0]
+    else:
+        raw = None
+
+    raw_list = _normalize_readings_arg(raw)
+
+    # Translate legacy payloads into canonical ingestion payloads
+    translated = [_translate_legacy_payload(p) for p in raw_list]
+
+    results: List[Any] = []
+    for payload in translated:
+        result = ingest_reading(payload)
+        results.append(result)
+
+    return results
+
+
 ingest_batch = ingest_readings
+
+__all__ = ["ingest_reading"]

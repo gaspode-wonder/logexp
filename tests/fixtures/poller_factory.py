@@ -8,9 +8,9 @@ from typing import Any, Iterable, Optional
 
 import pytest
 
+import logexp.poller as poller_module
 from logexp.poller import Poller
 from logexp.poller_config import PollerConfig
-import logexp.poller as poller_module
 from tests.fixtures.poller.fake_ingestion import FakeIngestion
 from tests.fixtures.poller.fake_serial import FakeSerial
 

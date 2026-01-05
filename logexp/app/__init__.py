@@ -11,13 +11,14 @@ import sqlite3
 import sys
 from typing import Any, Dict, Optional, Tuple
 
-from flask import Flask, current_app, render_template
+from flask import current_app, render_template
 
 from logexp.app.blueprints import register_blueprints
 from logexp.app.config import load_config
 from logexp.app.extensions import db, migrate
 from logexp.app.logging_setup import configure_logging, get_logger
 from logexp.app.middleware.request_id import request_id_middleware
+from logexp.app.typing import LogExpFlask, LogExpRequest
 
 logger = get_logger("logexp.app")
 
@@ -27,7 +28,7 @@ logger = get_logger("logexp.app")
 # ---------------------------------------------------------------------------
 
 
-def configure_sqlite_timezone_support(app: Flask) -> None:
+def configure_sqlite_timezone_support(app: LogExpFlask) -> None:
     """
     Ensures SQLite stores and returns timezone-aware datetimes.
     Must run AFTER config overrides but BEFORE db.init_app().
@@ -51,9 +52,7 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
     sqlite3.register_converter("timestamp", convert_datetime)
 
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "connect_args": {
-            "detect_types": sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
-        }
+        "connect_args": {"detect_types": sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES}
     }
 
     logger.debug("sqlite_timezone_support_enabled")
@@ -64,7 +63,7 @@ def configure_sqlite_timezone_support(app: Flask) -> None:
 # ---------------------------------------------------------------------------
 
 
-def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
+def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
     """
     Central application factory.
 
@@ -77,7 +76,11 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
 
     logger.debug("app_factory_start")
 
-    app = Flask(__name__)
+    # Typed Flask subclass (declares config_obj and poller)
+    app: LogExpFlask = LogExpFlask(__name__)
+
+    # Typed Request subclass (declares request_id)
+    app.request_class = LogExpRequest
 
     # 1. Load config (single source of truth)
     app.config_obj = load_config(overrides=overrides or {})
@@ -153,9 +156,10 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
 
     @app.teardown_appcontext
     def shutdown_poller(exception: Optional[BaseException] = None) -> None:
-        if app.config_obj.get("TESTING", False) and getattr(app, "poller", None):
+        poller = getattr(app, "poller", None)
+        if app.config_obj.get("TESTING", False) and poller is not None:
             try:
-                app.poller.stop()
+                poller.stop()
                 logger.debug("poller_stopped_in_teardown")
             except RuntimeError:
                 logger.debug("poller_stop_called_from_within_thread")
@@ -164,6 +168,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
     # 9. CLI commands
     # ----------------------------------------------------------------------
 
+    # mypy: Flask CLI decorators are untyped; we explicitly ignore the correct codes.
     @app.cli.command("geiger-start")
     def geiger_start() -> None:
         poller = getattr(current_app, "poller", None)
@@ -219,4 +224,4 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> Flask:
     return app
 
 
-__all__ = ["create_app"]
+__all__ = ["db", "create_app"]

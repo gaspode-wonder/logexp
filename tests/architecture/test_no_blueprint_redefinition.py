@@ -20,10 +20,7 @@ def test_no_blueprint_redefinition_in_routes():
 
         for node in ast.walk(tree):
             # Detect Blueprint(...) calls
-            if (
-                isinstance(node, ast.Call)
-                and getattr(node.func, "id", None) == "Blueprint"
-            ):
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "Blueprint":
                 raise AssertionError(
                     f"Blueprint() call found in {routes_file}. "
                     "Blueprints must be defined only in __init__.py."

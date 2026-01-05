@@ -101,9 +101,7 @@ def get_database_status(
             "engine": engine,
             "connected": connected,
             "readings_count": readings_count,
-            "last_reading_at": (
-                last_reading_at.isoformat() if last_reading_at else None
-            ),
+            "last_reading_at": (last_reading_at.isoformat() if last_reading_at else None),
             "migration_revision": migration_revision,
             "schema_ok": schema_ok,
         },

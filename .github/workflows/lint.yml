@@ -18,6 +18,10 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            - name: Clean workspace (remove stale configs & caches)
+              run: |
+                  git clean -xfd
+
             - name: Set up Python
               uses: actions/setup-python@v5
               with:

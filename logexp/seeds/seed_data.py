@@ -5,8 +5,8 @@ from __future__ import annotations
 from flask import Flask
 
 from logexp.app.extensions import db
-from logexp.app.models import LogExpReading
 from logexp.app.logging_setup import get_logger
+from logexp.app.models import LogExpReading
 
 logger = get_logger("logexp.seeds")
 
