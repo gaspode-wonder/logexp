@@ -248,60 +248,60 @@ DOCKER_IMAGE := logexp:test
 
 .PHONY: help
 help:
-    @echo "Common commands:"
-    @echo "  make bootstrap       - Install dev dependencies (editable)"
-    @echo "  make lint            - Run ruff linting"
-    @echo "  make test            - Run pytest"
-    @echo "  make ci              - Run lint + tests (local CI)"
-    @echo "  make docker-build    - Build Docker image"
-    @echo "  make docker-shell    - Shell into Docker container"
-    @echo "  make up-linux        - docker-compose up for linux"
-    @echo "  make up-mac          - docker-compose up for mac"
-    @echo "  make up-pi           - docker-compose up for pi"
-    @echo "  make down            - Stop all compose stacks"
+	@echo "Common commands:"
+	@echo "  make bootstrap       - Install dev dependencies (editable)"
+	@echo "  make lint            - Run ruff linting"
+	@echo "  make test            - Run pytest"
+	@echo "  make ci              - Run lint + tests (local CI)"
+	@echo "  make docker-build    - Build Docker image"
+	@echo "  make docker-shell    - Shell into Docker container"
+	@echo "  make up-linux        - docker-compose up for linux"
+	@echo "  make up-mac          - docker-compose up for mac"
+	@echo "  make up-pi           - docker-compose up for pi"
+	@echo "  make down            - Stop all compose stacks"
 
 .PHONY: bootstrap
 bootstrap:
-    $(PIP) install --upgrade pip
-    $(PIP) install -e .
-    $(PIP) install -r requirements.txt
+	$(PIP) install --upgrade pip
+	$(PIP) install -e .
+	$(PIP) install -r requirements.txt
 
 .PHONY: lint
 lint:
-    ruff check .
+	ruff check .
 
 .PHONY: test
 test:
-    pytest -vv
+	pytest -vv
 
 .PHONY: ci
 ci: lint test
 
 .PHONY: docker-build
 docker-build:
-    docker build -t $(DOCKER_IMAGE) .
+	docker build -t $(DOCKER_IMAGE) .
 
 .PHONY: docker-shell
 docker-shell:
-    docker run --rm -it \
-        -e DATABASE_URL="postgresql://logexp:logexp@postgres:5432/logexp" \
-        $(DOCKER_IMAGE) \
-        /bin/bash
+	docker run --rm -it \
+		-e DATABASE_URL="postgresql://logexp:logexp@postgres:5432/logexp" \
+		$(DOCKER_IMAGE) \
+		/bin/bash
 
 .PHONY: up-linux
 up-linux:
-    docker compose -f docker-compose.linux.yml up --build
+	docker compose -f docker-compose.linux.yml up --build
 
 .PHONY: up-mac
 up-mac:
-    docker compose -f docker-compose.mac.yml up --build
+	docker compose -f docker-compose.mac.yml up --build
 
 .PHONY: up-pi
 up-pi:
-    docker compose -f docker-compose.pi.yml up --build
+	docker compose -f docker-compose.pi.yml up --build
 
 .PHONY: down
 down:
-    docker compose -f docker-compose.linux.yml down || true
-    docker compose -f docker-compose.mac.yml down || true
-    docker compose -f docker-compose.pi.yml down || true
+	docker compose -f docker-compose.linux.yml down || true
+	docker compose -f docker-compose.mac.yml down || true
+	docker compose -f docker-compose.pi.yml down || true

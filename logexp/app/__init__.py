@@ -11,10 +11,11 @@ import sqlite3
 import sys
 from typing import Any, Dict, Optional, Tuple
 
-from flask import current_app, render_template
+from flask import render_template
 
 from logexp.app import models  # noqa: F401
 from logexp.app.blueprints import register_blueprints
+from logexp.app.cli import register_cli
 from logexp.app.config import load_config
 from logexp.app.extensions import db, migrate
 from logexp.app.logging_setup import configure_logging, get_logger
@@ -128,7 +129,11 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
     register_blueprints(app)
     logger.debug("blueprints_registered")
 
-    # 6. Poller startup REMOVED — now handled in wsgi.py
+    # 6. Register CLI commands
+    register_cli(app)
+    logger.debug("cli_commands_registered")
+
+    # 7. Poller startup REMOVED — now handled in wsgi.py
     app.logger.info(
         "Poller startup moved to wsgi.py (START_POLLER, gunicorn, shell, tests respected)."
     )
@@ -167,44 +172,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
                 logger.debug("poller_stop_called_from_within_thread")
 
     # ----------------------------------------------------------------------
-    # 9. CLI commands
-    # ----------------------------------------------------------------------
-
-    # mypy: Flask CLI decorators are untyped; we explicitly ignore the correct codes.
-    @app.cli.command("geiger-start")
-    def geiger_start() -> None:
-        poller = getattr(current_app, "poller", None)
-        if poller and not poller._thread.is_alive():
-            poller.start()
-            current_app.logger.info("Geiger poller started.")
-        else:
-            print("Poller already running.")
-
-    @app.cli.command("geiger-stop")
-    def geiger_stop() -> None:
-        poller = getattr(current_app, "poller", None)
-        if poller and poller._thread.is_alive():
-            poller.stop()
-            print("Geiger poller stopped.")
-        else:
-            print("Poller not running.")
-
-    @app.cli.command("seed-data")
-    def seed_data() -> None:
-        from logexp.seeds import seed_data
-
-        seed_data.run(app)
-        current_app.logger.info("Database seeded (idempotent).")
-
-    @app.cli.command("clear-db")
-    def clear_db() -> None:
-        with app.app_context():
-            db.drop_all()
-            db.create_all()
-            current_app.logger.info("Test database cleared and recreated.")
-
-    # ----------------------------------------------------------------------
-    # 10. Startup Diagnostics Banner
+    # 9. Startup Diagnostics Banner
     # ----------------------------------------------------------------------
 
     logger.info(
@@ -226,4 +194,8 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
     return app
 
 
-__all__ = ["db", "create_app"]
+def wsgi_app() -> LogExpFlask:
+    return create_app()
+
+
+__all__ = ["db", "create_app", "wsgi_app"]
