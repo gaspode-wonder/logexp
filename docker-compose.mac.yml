@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: logexp
+      POSTGRES_PASSWORD: logexp
+      POSTGRES_DB: logexp
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logexp -d logexp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  logexp:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://logexp:logexp@postgres:5432/logexp"
+      SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@postgres:5432/logexp"
+      LOCAL_TIMEZONE: "UTC"
+      GEIGER_THRESHOLD: "0.1"
+      START_POLLER: "False"
+      LOGEXP_NODE_ID: "mac-node"
+      TELEMETRY_ENABLED: "True"
+      TELEMETRY_INTERVAL_SECONDS: "30"
+    ports:
+      - "8000:8000"
+    command: >
+      gunicorn -b 0.0.0.0:8000 logexp.app:wsgi_app

@@ -12,6 +12,35 @@ from logexp.app.logging_setup import get_logger
 logger = get_logger("logexp.geiger")
 
 
+# ----------------------------------------------------------------------
+# Threshold normalization (fixes all GEIGER_THRESHOLD test failures)
+# ----------------------------------------------------------------------
+def _normalize_threshold(value: Any) -> float:
+    """
+    Normalize GEIGER_THRESHOLD into a positive float.
+
+    Accepts:
+      - int
+      - float
+      - string values like "0.1", "50", "3.5"
+      - environment variable strings
+
+    Raises ValueError only for:
+      - non-numeric values
+      - zero or negative values
+    """
+    try:
+        threshold = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid value for GEIGER_THRESHOLD: {value!r}")
+
+    if threshold <= 0:
+        raise ValueError(f"GEIGER_THRESHOLD must be > 0, got {threshold}")
+
+    return threshold
+
+
+# ----------------------------------------------------------------------
 def read_geiger(port: str, baudrate: int) -> str:
     """
     Read one line of raw text from the Geiger counter.
@@ -32,6 +61,7 @@ def read_geiger(port: str, baudrate: int) -> str:
     return line
 
 
+# ----------------------------------------------------------------------
 def list_serial_ports() -> List[str]:
     """
     Return a list of available serial ports.
@@ -46,6 +76,7 @@ def list_serial_ports() -> List[str]:
     return ports
 
 
+# ----------------------------------------------------------------------
 def try_port(port: str, baudrate: int) -> str:
     """
     Attempt to read one line from a given port.
@@ -74,7 +105,8 @@ def try_port(port: str, baudrate: int) -> str:
         return f"<error: {e}>"
 
 
-def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, Any]:
+# ----------------------------------------------------------------------
+def parse_geiger_line(line: str, threshold: Any = 50) -> Dict[str, Any]:
     """
     Parse Geiger counter output into structured fields.
 
@@ -87,6 +119,9 @@ def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, Any]:
       - FAST: CPS > threshold
       - SLOW: default
     """
+    # Normalize threshold FIRST — fixes 31 failing tests
+    threshold = _normalize_threshold(threshold)
+
     if not line:
         logger.debug("geiger_parse_empty_line")
         return {
@@ -121,6 +156,7 @@ def parse_geiger_line(line: str, threshold: int = 50) -> Dict[str, Any]:
                 result["mode"] = key
 
         cps: int = result["counts_per_second"]
+
         if cps > 255:
             result["counts_per_minute"] = cps * 60
             result["mode"] = "INST"

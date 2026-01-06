@@ -13,9 +13,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["logexp"]
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # RUFF — linter + formatter (replaces flake8, isort, pycodestyle, pyflakes)
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 [tool.ruff]
 line-length = 100
 target-version = "py310"
@@ -27,25 +27,28 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 
-# ---------------------------------------------------------------------------
-# BLACK — optional, but kept for compatibility with editors
-# Ruff can format, but Black is still widely supported.
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# BLACK — optional, kept for editor compatibility
+# ------------------------------------------------------------------------------
 [tool.black]
 line-length = 100
 target-version = ["py310"]
 
-# ---------------------------------------------------------------------------
-# PYTEST — deterministic test discovery + warnings
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# PYTEST — deterministic test discovery
+# ------------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests",
+]
 
-# ---------------------------------------------------------------------------
-# COVERAGE — optional but canonical
-# ---------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# COVERAGE — canonical
+# ------------------------------------------------------------------------------
 [tool.coverage.run]
 branch = true
 source = ["logexp"]
@@ -54,16 +57,17 @@ source = ["logexp"]
 show_missing = true
 skip_covered = true
 
-# ---------------------------------------------------------------------------
-# MYPY — canonical, consolidated, strict, modern
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# MYPY — strict, modern, SQLAlchemy‑2.0‑compatible
+# ------------------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.10"
 mypy_path = "."
 explicit_package_bases = true
 namespace_packages = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
 
-# Core strictness
+# Strictness
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
@@ -79,27 +83,11 @@ pretty = true
 # Third‑party libraries without stubs
 ignore_missing_imports = true
 
-# ---------------------------------------------------------------------------
-# MYPY OVERRIDES
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# MYPY OVERRIDES — minimal, correct, no SQLAlchemy suppression
+# ------------------------------------------------------------------------------
 
-# Flask, SQLAlchemy, serial, werkzeug, etc.
-[[tool.mypy.overrides]]
-module = [
-    "flask_migrate.*",
-    "serial.*",
-    "serial.tools.*",
-    "werkzeug.*",
-    "sqlalchemy.*",
-]
-ignore_missing_imports = true
-
-# SQLAlchemy dynamic base class (db.Model)
-[[tool.mypy.overrides]]
-module = "logexp.app.models"
-disable_error_code = ["name-defined"]
-
-# Tests — less strict, but still typed
+# Tests — allow untyped defs
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
@@ -110,11 +98,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "tests.fixtures.*"
 ignore_errors = true
-
-# Unit analytics tests (pure Python)
-[[tool.mypy.overrides]]
-module = "tests.unit.analytics.*"
-ignore_missing_imports = true
 
 # Alembic migrations
 [[tool.mypy.overrides]]

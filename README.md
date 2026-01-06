@@ -1,7 +1,7 @@
 # LogExp — Radiation Logging & Exploration Platform
 
-![Pre-commit](https://github.com/<YOUR_GITHUB_USERNAME>/logexp/actions/workflows/application-ci.yml/badge.svg?branch=main&event=push)
-
+![Pre-commit](https://github.com/gaspode-wonder/logexp/actions/workflows/application-ci.yml/badge.svg?branch=main&event=push)
+![CI](https://github.com/gaspode-wonder/logexp/actions/workflows/ci.yml/badge.svg)
 
 LogExp is a radiation logging and visualization platform that integrates a MightyOhm Geiger Counter with a Flask backend, Postgres storage, and a web UI. It supports real‑time polling, analytics, CSV export, diagnostics, and a production‑ready Docker deployment using Gunicorn.
 

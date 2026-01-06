@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from flask import current_app, render_template
 
+from logexp.app import models  # noqa: F401
 from logexp.app.blueprints import register_blueprints
 from logexp.app.config import load_config
 from logexp.app.extensions import db, migrate
@@ -31,7 +32,10 @@ logger = get_logger("logexp.app")
 def configure_sqlite_timezone_support(app: LogExpFlask) -> None:
     """
     Ensures SQLite stores and returns timezone-aware datetimes.
-    Must run AFTER config overrides but BEFORE db.init_app().
+
+    This function only configures sqlite3's adapters/converters.
+    Engine options (including detect_types) are managed centrally
+    in logexp.app.config.load_config() based on the URI prefix.
     """
 
     def adapt_datetime(dt: datetime.datetime) -> str:
@@ -50,10 +54,6 @@ def configure_sqlite_timezone_support(app: LogExpFlask) -> None:
 
     sqlite3.register_adapter(datetime.datetime, adapt_datetime)
     sqlite3.register_converter("timestamp", convert_datetime)
-
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "connect_args": {"detect_types": sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES}
-    }
 
     logger.debug("sqlite_timezone_support_enabled")
 
@@ -107,6 +107,8 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
         )
 
     # 2. SQLite timezone support
+    # Safe to call unconditionally: config.load_config() already controls
+    # SQLALCHEMY_ENGINE_OPTIONS based on URI (sqlite vs postgres).
     configure_sqlite_timezone_support(app)
 
     # 3. Structured logging
