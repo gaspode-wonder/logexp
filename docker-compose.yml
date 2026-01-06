@@ -1,15 +1,16 @@
-# docker-compose.yml — LogExp on macOS (dev environment)
+# docker-compose.yml — canonical LogExp stack (Linux, Pi, CI, production-like)
 
 services:
-  db:
+  postgres:
     image: postgres:18
-    container_name: logexp_db
     environment:
       POSTGRES_USER: logexp
       POSTGRES_PASSWORD: logexp
       POSTGRES_DB: logexp
     volumes:
-      - logexp_db_data_v3:/var/lib/postgresql
+      - logexp_db_data_v3:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U logexp -d logexp"]
       interval: 10s
@@ -20,25 +21,31 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: logexp_app
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
 
     environment:
-      DATABASE_URL: "postgresql://logexp:logexp@db:5432/logexp"
-      SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@db:5432/logexp"
-      LOCAL_TIMEZONE: "America/Chicago"
-      START_POLLER: "False"        # No hardware on macOS
-      LOGEXP_NODE_ID: "dev-mac"
+      DATABASE_URL: "postgresql://logexp:logexp@postgres:5432/logexp"
+      SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@postgres:5432/logexp"
+      LOCAL_TIMEZONE: "UTC"
+      GEIGER_THRESHOLD: "0.1"
+      START_POLLER: "False"
+      LOGEXP_NODE_ID: "canonical-node"
       TELEMETRY_ENABLED: "True"
       TELEMETRY_INTERVAL_SECONDS: "30"
 
     ports:
-      - "5000:5000"
+      - "8000:8000"
+
+    command:
+      - gunicorn
+      - -b
+      - 0.0.0.0:8000
+      - logexp.app:create_app()
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
