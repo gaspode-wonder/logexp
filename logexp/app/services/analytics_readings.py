@@ -8,8 +8,11 @@ side‑effect‑free except for database access.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Sequence
 
+from sqlalchemy import select
+
+from logexp.app.extensions import db
 from logexp.app.models import Reading
 
 
@@ -21,11 +24,10 @@ def load_recent_readings(window_seconds: int) -> List[Reading]:
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(seconds=window_seconds)
 
-    readings: List[Reading] = (
-        Reading.query.filter(Reading.timestamp >= cutoff).order_by(Reading.timestamp.asc()).all()
-    )
+    stmt = select(Reading).filter(Reading.timestamp >= cutoff).order_by(Reading.timestamp.asc())
 
-    return readings
+    readings: Sequence[Reading] = db.session.execute(stmt).scalars().all()
+    return list(readings)
 
 
 def summarize_readings(readings: Iterable[Reading]) -> Dict[str, Any]:

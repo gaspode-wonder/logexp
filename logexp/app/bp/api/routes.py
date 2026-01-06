@@ -23,7 +23,7 @@ def get_readings() -> Any:
         extra={"path": request.path, "method": request.method},
     )
 
-    readings = LogExpReading.query.order_by(LogExpReading.timestamp.asc()).all()
+    readings = db.session.query(LogExpReading).order_by(LogExpReading.timestamp.asc()).all()
     responses = [ReadingResponse(**r.to_dict()).model_dump() for r in readings]
 
     logger.debug(
@@ -78,7 +78,9 @@ def readings_json() -> Any:
         extra={"path": request.path, "method": request.method},
     )
 
-    readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
+    readings = (
+        db.session.query(LogExpReading).order_by(LogExpReading.timestamp.desc()).limit(50).all()
+    )
 
     logger.debug(
         "api_readings_json_returning",
