@@ -7,6 +7,7 @@ from typing import Any
 from flask import current_app, redirect, render_template, request, url_for
 
 from logexp.app.bp.ui import bp_ui
+from logexp.app.extensions import db
 from logexp.app.logging_setup import get_logger
 from logexp.app.models import LogExpReading
 
@@ -29,7 +30,9 @@ def readings_index() -> Any:
         extra={"path": request.path, "method": request.method},
     )
 
-    readings = LogExpReading.query.order_by(LogExpReading.timestamp.desc()).limit(50).all()
+    readings = (
+        db.session.query(LogExpReading).order_by(LogExpReading.timestamp.desc()).limit(50).all()
+    )
 
     poller = getattr(current_app, "poller", None)
     poller_status = "running" if poller and poller._thread.is_alive() else "stopped"

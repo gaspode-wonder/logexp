@@ -7,18 +7,18 @@ from typing import Any, Dict, Optional, cast
 from zoneinfo import ZoneInfo
 
 from flask import current_app
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from logexp.app.db_types import UTCDateTime
+from logexp.app.extensions import Base
 from logexp.app.logging_setup import get_logger
 from logexp.app.typing import LogExpFlask
-
-from .extensions import db
 
 logger = get_logger("logexp.models")
 
 
-class LogExpReading(db.Model):
+class LogExpReading(Base):
     __tablename__ = "logexp_readings"
 
     # --- SQLAlchemy 2.0 typed columns ---
@@ -33,7 +33,7 @@ class LogExpReading(db.Model):
     counts_per_second: Mapped[int] = mapped_column(nullable=False)
     counts_per_minute: Mapped[int] = mapped_column(nullable=False)
     microsieverts_per_hour: Mapped[float] = mapped_column(nullable=False)
-    mode: Mapped[str] = mapped_column(db.String(10), nullable=False)
+    mode: Mapped[str] = mapped_column(String(10), nullable=False)
 
     # --- Typed initializer ---
     def __init__(

@@ -89,7 +89,7 @@ def ingest_reading(payload: Dict[str, Any]) -> Optional[LogExpReading]:
 def load_historical_readings(limit: Optional[int] = None) -> Any:
     from logexp.app.models import LogExpReading
 
-    query = LogExpReading.query.order_by(LogExpReading.timestamp.desc())
+    query = db.session.query(LogExpReading).order_by(LogExpReading.timestamp.desc())
     if limit:
         query = query.limit(limit)
 
