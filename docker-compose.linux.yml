@@ -1,3 +1,5 @@
+# docker-compose.linux.yml — LogExp on Linux host
+
 version: "3.9"
 
 services:
@@ -7,6 +9,8 @@ services:
       POSTGRES_USER: logexp
       POSTGRES_PASSWORD: logexp
       POSTGRES_DB: logexp
+    volumes:
+      - logexp_db_data_v3:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -16,7 +20,9 @@ services:
       retries: 5
 
   logexp:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,5 +37,17 @@ services:
       TELEMETRY_INTERVAL_SECONDS: "30"
     ports:
       - "8000:8000"
-    command: >
-      gunicorn -b 0.0.0.0:8000 logexp.app:wsgi_app
+    command:
+      - gunicorn
+      - -b
+      - 0.0.0.0:8000
+      - logexp.app:create_app()
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  logexp_db_data_v3:
