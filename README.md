@@ -372,6 +372,59 @@ The legacy DB analytics will be removed after ingestion migration.
 
 ---
 
+## Runtime Contract
+
+LogExp runs in a strictly defined environment.
+The application, Docker image, and CI pipeline all share the same contract:
+
+### **1. Database Backend**
+- **Postgres 18** is the canonical production database.
+- **SQLite** is used only for unit tests.
+- Engine options are isolated:
+  - SQLite → `detect_types` enabled
+  - Postgres → no SQLite engine options
+
+### **2. Required Environment Variables**
+These must be present in all non‑test environments:
+
+| Variable | Description |
+|---------|-------------|
+| `SQLALCHEMY_DATABASE_URI` | Postgres connection string |
+| `LOCAL_TIMEZONE` | Local timezone name |
+
+### **3. Optional Environment Variables**
+All optional variables are typed and normalized:
+
+| Variable | Type | Purpose |
+|----------|------|---------|
+| `GEIGER_THRESHOLD` | float | Diagnostics threshold |
+| `START_POLLER` | bool | Hardware poller enable/disable |
+| `LOGEXP_NODE_ID` | str | Node identifier |
+| `TELEMETRY_ENABLED` | bool | Telemetry toggle |
+| `TELEMETRY_INTERVAL_SECONDS` | int | Telemetry interval |
+
+### **4. Containerized Startup**
+CI guarantees that:
+- the Docker image builds successfully
+- `create_app()` boots inside the container
+- environment variables are parsed correctly
+- no SQLite fallback occurs in container or migration jobs
+
+### **5. Migrations**
+- SQLite migrations validated via pytest
+- Postgres migrations validated via CI (`flask db upgrade`)
+- Alembic env is exercised under real Postgres 18
+
+### **6. Deterministic Config Layering**
+Config is resolved in this order:
+1. Defaults
+2. Environment variables
+3. Explicit overrides (tests, CLI)
+
+This ensures reproducible behavior across local dev, CI, and production.
+
+---
+
 ## License
 
 MIT License
