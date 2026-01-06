@@ -103,3 +103,7 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "migrations.*"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "logexp.app.cli"
+ignore_errors = true
