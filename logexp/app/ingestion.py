@@ -11,7 +11,46 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List
 
+from flask import Blueprint, jsonify
+from flask.typing import ResponseReturnValue
+
+from logexp.app.extensions import db
+from logexp.app.models import LogExpReading
 from logexp.app.services.ingestion import ingest_reading
+
+# ---------------------------------------------------------------------------
+# Blueprint for ingestion-related API endpoints
+# ---------------------------------------------------------------------------
+
+bp = Blueprint("ingestion_api", __name__, url_prefix="/api")
+
+
+@bp.get("/readings/latest")
+def get_latest_reading() -> ResponseReturnValue:
+    """
+    Return the most recent reading stored in the database.
+    """
+    row = db.session.query(LogExpReading).order_by(LogExpReading.timestamp.desc()).first()
+
+    if row is None:
+        return jsonify({"error": "no readings available"}), 404
+
+    return jsonify(
+        {
+            "id": row.id,
+            "timestamp": row.timestamp.isoformat(),
+            "counts_per_second": row.counts_per_second,
+            "counts_per_minute": row.counts_per_minute,
+            "microsieverts_per_hour": row.microsieverts_per_hour,
+            "mode": row.mode,
+            "node_id": row.node_id,
+        }
+    )
+
+
+# ---------------------------------------------------------------------------
+# Legacy ingestion shim
+# ---------------------------------------------------------------------------
 
 
 def _normalize_readings_arg(arg: Any) -> List[Dict[str, Any]]:
@@ -94,6 +133,7 @@ def ingest_readings(*args: Any, **kwargs: Any) -> List[Any]:
     return results
 
 
+# Backwards compatibility alias
 ingest_batch = ingest_readings
 
-__all__ = ["ingest_reading"]
+__all__ = ["ingest_reading", "ingest_readings", "ingest_batch", "bp"]

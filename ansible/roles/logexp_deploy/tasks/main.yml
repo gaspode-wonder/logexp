@@ -1,0 +1,130 @@
+# filename: ansible/roles/logexp_deploy/tasks/main.yml
+
+---
+# Deploy LogExp container to Beamrider‑0002 with strict idempotence
+# All registered variables use the logexp_deploy_ prefix.
+
+# ---------------------------------------------------------------------------
+# Ensure environment
+# ---------------------------------------------------------------------------
+
+- name: Ensure Docker is installed
+  ansible.builtin.package:
+    name: docker.io
+    state: present
+  become: true
+
+- name: Ensure /opt/logexp exists
+  ansible.builtin.file:
+    path: /opt/logexp
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Copy docker-compose.pi.yml to target
+  ansible.builtin.copy:
+    src: docker-compose.pi.yml
+    dest: /opt/logexp/docker-compose.pi.yml
+    mode: "0644"
+  become: true
+
+# ---------------------------------------------------------------------------
+# Image handling (ID‑based idempotence)
+# ---------------------------------------------------------------------------
+
+- name: Ensure temp directory for manifest extraction exists
+  ansible.builtin.file:
+    path: /tmp/logexp-image
+    state: directory
+    mode: "0755"
+
+- name: Copy LogExp container image to target
+  ansible.builtin.copy:
+    src: logexp-image.tar
+    dest: /tmp/logexp-image.tar
+    mode: "0644"
+  become: true
+
+- name: Extract manifest.json from image tarball using unarchive
+  ansible.builtin.unarchive:
+    src: /tmp/logexp-image.tar
+    dest: /tmp/logexp-image/
+    remote_src: true
+    include:
+      - manifest.json
+  register: logexp_deploy_unarchive_result
+  changed_when: false
+  become: true
+
+- name: Read manifest.json
+  ansible.builtin.slurp:
+    src: /tmp/logexp-image/manifest.json
+  register: logexp_deploy_manifest
+  changed_when: false
+  become: true
+
+- name: Parse image ID from manifest.json
+  ansible.builtin.set_fact:
+    logexp_deploy_image_id: >-
+      {{
+        (logexp_deploy_manifest.content | b64decode | from_json)[0].Config
+        | regex_replace('.json$', '')
+      }}
+  changed_when: false
+
+- name: Check if LogExp image ID already exists locally
+  ansible.builtin.command: docker images --no-trunc --format "{{ '{{.ID}}' }}"
+  register: logexp_deploy_local_images
+  changed_when: false
+  failed_when: logexp_deploy_local_images.rc != 0
+  become: true
+
+- name: Load LogExp image into Docker only if missing
+  ansible.builtin.command: docker load -i /tmp/logexp-image.tar
+  when: logexp_deploy_image_id not in logexp_deploy_local_images.stdout
+  register: logexp_deploy_load_result
+  changed_when: logexp_deploy_load_result.rc == 0
+  failed_when: logexp_deploy_load_result.rc != 0
+  become: true
+
+# ---------------------------------------------------------------------------
+# Container lifecycle (strict idempotence)
+# ---------------------------------------------------------------------------
+
+- name: Inspect LogExp container state
+  ansible.builtin.command: docker inspect -f "{{ '{{.State.Status}}' }}" logexp
+  register: logexp_deploy_container_state
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Stop LogExp container if running
+  ansible.builtin.command: docker stop logexp
+  when: logexp_deploy_container_state.stdout == "running"
+  register: logexp_deploy_stop_result
+  changed_when: logexp_deploy_stop_result.rc == 0
+  failed_when: logexp_deploy_stop_result.rc not in [0]
+  become: true
+
+- name: Remove LogExp container if present and not running
+  ansible.builtin.command: docker rm logexp
+  when: logexp_deploy_container_state.stdout in ["exited", "created"]
+  register: logexp_deploy_rm_result
+  changed_when: logexp_deploy_rm_result.rc == 0
+  failed_when: logexp_deploy_rm_result.rc not in [0]
+  become: true
+
+# ---------------------------------------------------------------------------
+# Compose deployment
+# ---------------------------------------------------------------------------
+
+- name: Bring up LogExp container using compose
+  ansible.builtin.command: docker compose -f docker-compose.pi.yml up -d
+  args:
+    chdir: /opt/logexp
+  register: logexp_deploy_compose_result
+  failed_when: logexp_deploy_compose_result.rc != 0
+  changed_when: >
+    'Creating' in logexp_deploy_compose_result.stdout or
+    'Recreating' in logexp_deploy_compose_result.stdout
+  become: true

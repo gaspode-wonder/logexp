@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from flask import current_app, jsonify, request
+from flask.typing import ResponseReturnValue
+from sqlalchemy import desc
 
 from logexp.app import db
 from logexp.app.bp.api import bp_api
@@ -24,6 +26,7 @@ def get_readings() -> Any:
     )
 
     readings = db.session.query(LogExpReading).order_by(LogExpReading.timestamp.asc()).all()
+
     responses = [ReadingResponse(**r.to_dict()).model_dump() for r in readings]
 
     logger.debug(
@@ -57,6 +60,7 @@ def create_reading() -> Any:
         counts_per_minute=validated.counts_per_minute,
         microsieverts_per_hour=validated.microsieverts_per_hour,
         mode=validated.mode,
+        device_id=getattr(validated, "device_id", None),
     )
 
     db.session.add(reading)
@@ -69,6 +73,36 @@ def create_reading() -> Any:
 
     response = ReadingResponse(**reading.to_dict())
     return jsonify(response.model_dump()), 201
+
+
+@bp_api.get("/readings/latest")
+def get_latest_reading() -> ResponseReturnValue:
+    """
+    Return the most recent reading using the canonical ReadingResponse schema.
+
+    This endpoint is used by integration tests and should reflect the same
+    schema as other reading responses, without inventing a separate shape.
+    """
+    logger.debug(
+        "api_get_latest_reading_requested",
+        extra={"path": request.path, "method": request.method},
+    )
+
+    row = db.session.query(LogExpReading).order_by(desc(LogExpReading.timestamp)).first()
+
+    if row is None:
+        logger.debug("api_get_latest_reading_no_rows")
+        return jsonify({"error": "no readings available"}), 404
+
+    response = ReadingResponse(**row.to_dict())
+    payload = response.model_dump()
+
+    logger.debug(
+        "api_get_latest_reading_returning",
+        extra={"id": payload.get("id"), "device_id": payload.get("device_id")},
+    )
+
+    return jsonify(payload), 200
 
 
 @bp_api.get("/readings.json")
@@ -110,6 +144,48 @@ def geiger_live() -> Any:
             extra={"error": str(e)},
         )
         return jsonify({"error": str(e)}), 500
+
+
+@bp_api.post("/geiger/push")
+def geiger_push() -> Any:
+    """
+    Accepts remote Geiger readings pushed from pi-log devices.
+    Expected JSON payload matches ReadingCreate schema.
+    """
+    logger.debug(
+        "api_geiger_push_requested",
+        extra={"path": request.path, "method": request.method},
+    )
+
+    payload = request.get_json(force=True, silent=True) or {}
+
+    try:
+        validated = ReadingCreate(**payload)
+    except Exception as e:
+        logger.debug(
+            "api_geiger_push_validation_failed",
+            extra={"error": str(e)},
+        )
+        return jsonify({"error": str(e)}), 400
+
+    reading = LogExpReading(
+        counts_per_second=validated.counts_per_second,
+        counts_per_minute=validated.counts_per_minute,
+        microsieverts_per_hour=validated.microsieverts_per_hour,
+        mode=validated.mode,
+        device_id=getattr(validated, "device_id", None),
+    )
+
+    db.session.add(reading)
+    db.session.commit()
+
+    logger.debug(
+        "api_geiger_push_committed",
+        extra={"id": reading.id},
+    )
+
+    response = ReadingResponse(**reading.to_dict())
+    return jsonify(response.model_dump()), 201
 
 
 @bp_api.get("/geiger/test")

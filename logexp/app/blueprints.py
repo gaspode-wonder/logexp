@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from flask import Flask
 
+# Import ingestion blueprint at module level (do NOT register here)
+from logexp.app.ingestion import bp as ingestion_api_bp
 from logexp.app.logging_setup import get_logger
 
 logger = get_logger("logexp.blueprints")
@@ -31,9 +33,11 @@ def register_blueprints(app: Flask) -> None:
     from .bp.settings import bp_settings
     from .bp.ui import bp_ui
 
+    # Deterministic registration order
     for bp, name in [
         (bp_ui, "ui"),
         (bp_api, "api"),
+        (ingestion_api_bp, "ingestion_api"),
         (bp_settings, "settings"),
         (bp_diagnostics, "diagnostics"),
         (bp_analytics, "analytics"),

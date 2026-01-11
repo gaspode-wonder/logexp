@@ -1,3 +1,173 @@
+# LogExp Roadmap — Revised January 2026
+**Status: Active Project**
+**Line in the Sand:** LogExp v1 ends after Step 13 + Step 14 integration + automatic web‑server restart on reboot.
+After that point, LogExp becomes a stable component. All fleet‑level features move to Beamwarden.
+
+---
+
+# Step 12 — Type‑Safety, Config Hygiene, Observability
+**Status: ✔ Fully Completed**
+
+## 12A — Mypy + Type‑Safety
+- Added missing `__init__.py`
+- Added `mypy.ini`
+- Fixed duplicate module paths
+- Added type hints to ingestion + analytics
+
+## 12B — Config Hygiene
+- Centralized config keys
+- Added config validation + diagnostics
+- Regenerated Makefile with deterministic lanes
+
+## 12C — Logging + Observability
+- Structured logging under `logexp.*`
+- Request‑ID correlation
+- Analytics debug logging
+
+## 12D — Test Architecture Hardening
+- Deterministic analytics tests
+- Isolated poller tests
+- Config override fixtures
+
+## 12E — CI Stability Pass
+- CI‑HARD green
+- GitHub green
+- No timezone drift
+- No flaky tests
+
+---
+
+# Step 13 — Minimal Authentication Layer
+**Status: Pending**
+
+## Goal
+Introduce minimal Flask‑Login authentication without contaminating ingestion/analytics.
+
+## Exit Criteria
+- User model + migration
+- Login/logout flow
+- Protected route
+- Deterministic import order
+- No blueprint contamination
+- **No expansion beyond minimal auth — this is the final UI feature LogExp will ever receive**
+
+---
+
+# Step 14 — Pi → KEEP Full Integration
+**Status: Upcoming**
+
+## Goal
+Real ingestion from Beamrider‑0001 into containerized LogExp on **keep‑0001**.
+
+## Exit Criteria
+- Pi‑Log sends real readings
+- LogExp stores + analyzes correctly
+- Diagnostics reflect ingestion state
+- 10–30 minute stability run
+- Integration documentation
+- **Automatic restart of LogExp web server on reboot**
+  - systemd unit hardened
+  - `Restart=always`
+  - `WantedBy=multi-user.target`
+  - Verified on keep‑0001
+
+---
+
+# Step 15 — Container Resurrection + Postgres Alignment
+**Status: Active**
+
+## 15A — Align Postgres Versions
+- Upgrade container to Postgres 18
+- Align local Postgres.app
+- Validate migrations
+
+## 15B — Container Bring‑Up
+- Build ARM/x86 images
+- Deploy to keep‑0001
+- Validate healthchecks
+
+## 15C — Pi‑to‑Pi Networking
+- Beamrider‑0001 → keep‑0001 ingestion
+- Telemetry heartbeat
+- Diagnostics integration
+
+---
+
+# Step 16 — Telemetry + Node Awareness (Minimal)
+**Status: Planned**
+
+## Deliverables
+- `/api/telemetry` endpoint
+- `telemetry_events` table
+- Node heartbeat protocol
+- Diagnostics node‑status surface
+- Structured logs for telemetry
+
+**Note:**
+This is the *last* node‑awareness feature LogExp will own.
+All future fleet‑level telemetry moves to Beamwarden.
+
+---
+
+# Step 17 — Directory Consolidation & Architecture Simplification
+**Status: Planned**
+
+## Deliverables
+- Collapse legacy analytics/ingestion/diagnostics
+- Unified `services/` layer
+- Remove duplicate entrypoints
+- Architecture tests enforce purity
+
+---
+
+# Step 18 — Observability & Runtime Hardening
+**Status: Planned**
+
+## Deliverables
+- Expanded diagnostics
+- Runtime error isolation
+- Health indicators
+- Load testing
+- Observability documentation
+
+---
+
+# Step 19 — UI/UX Refresh (Optional)
+**Status: Deferred**
+
+## Deliverables
+- Dashboard cleanup
+- Live telemetry panel
+- Node status view
+- Settings page hardening
+
+---
+
+# Step 20 — LogExp v1 Release Candidate
+**Status: Future**
+
+## Deliverables
+- Full Beamrider → KEEP → UI pipeline validated
+- Container images versioned
+- Documentation complete
+- Beamwarden integration hooks defined
+- **LogExp v1 officially frozen**
+  - No new features
+  - Only bugfixes + security patches
+  - All future fleet features move to Beamwarden
+
+---
+
+# Line in the Sand (Explicit)
+After Step 13 + Step 14 + automatic restart support:
+
+**LogExp becomes a stable component, not a platform.**
+All future fleet‑level functionality — telemetry aggregation, node management, dashboards, orchestration — belongs to **Beamwarden**.
+
+
+
+---
+
 # LogExp Roadmap — Updated January 2026
 **Status: Active Project**
 **Line in the Sand:** Step 12 complete, container resurrection + Pi integration now the primary focus.
