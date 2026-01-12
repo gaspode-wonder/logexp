@@ -1,18 +1,12 @@
 # filename: ansible/roles/logexp_deploy/tasks/main.yml
-
 ---
-# Deploy LogExp container to Beamrider‑0002 with strict idempotence
+# Deploy LogExp container to keep‑0001 with strict idempotence
 # All registered variables use the logexp_deploy_ prefix.
+# Docker + Compose installation is handled by the pi_prep role.
 
 # ---------------------------------------------------------------------------
 # Ensure environment
 # ---------------------------------------------------------------------------
-
-- name: Ensure Docker is installed
-  ansible.builtin.package:
-    name: docker.io
-    state: present
-  become: true
 
 - name: Ensure /opt/logexp exists
   ansible.builtin.file:

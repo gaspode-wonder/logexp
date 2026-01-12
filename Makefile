@@ -1,14 +1,19 @@
+# filename: Makefile
 # =============================================================================
-# LogExp Makefile
-# Deterministic developer workflows with colorized output, timing, and CI parity
+# LogExp Makefile — Docker-first, parallel to pi-log
+# Deterministic developer workflows with CI parity and Ansible deployment
 # =============================================================================
 
 PYTHON := python3
 VENV := .venv
 ACTIVATE := . $(VENV)/bin/activate
 
-# Resolve site-packages path for the active venv (version‑agnostic)
-SITE_PACKAGES := $(shell $(PYTHON) -c "import site; print(site.getsitepackages()[0])")
+ANSIBLE_PLAYBOOK_DEPLOY := ansible/playbooks/deploy-logexp.yml
+ANSIBLE_PLAYBOOK_PROVISION := ansible/playbooks/provision-pi.yml
+INVENTORY := ansible/inventory/hosts.ini
+
+DOCKER_IMAGE := logexp:latest
+COMPOSE_PI := docker-compose.pi.yml
 
 # ANSI Colors
 GREEN := \033[1;32m
@@ -17,7 +22,6 @@ YELLOW := \033[1;33m
 RED := \033[1;31m
 RESET := \033[0m
 
-# Timing wrapper
 define timed
 	@start=$$(date +%s); \
 	echo -e "$(BLUE)>>> $(1)...$(RESET)"; \
@@ -34,193 +38,102 @@ define timed
 endef
 
 # =============================================================================
-# Bootstrap & CI Parity
+# Bootstrap & CI
 # =============================================================================
 
-bootstrap: ## Onboard a new maintainer with a fresh environment
+bootstrap:
 	$(call timed,"Bootstrapping development environment", \
 		$(PYTHON) -m venv $(VENV) && \
-		$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt && \
-		echo "/Users/jebbaugh/git/personal/active/logexp" > $(SITE_PACKAGES)/logexp.pth && \
-		PYTHONPATH=. python scripts/ci_diagnostics.py \
+		$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt \
 	)
 
-ci: ## Mirror GitHub Actions core lane (fast, no nuking)
+ci:
 	$(call timed,"CI: Creating virtual environment", $(PYTHON) -m venv $(VENV))
 	$(call timed,"CI: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
-	$(call timed,"CI: Environment parity check", $(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py)
-	$(call timed,"CI: Diagnostics", $(ACTIVATE) && PYTHONPATH=. python scripts/ci_diagnostics.py)
-	$(call timed,"CI: Database migrations", $(ACTIVATE) && PYTHONPATH=. FLASK_APP=logexp.app:create_app SQLALCHEMY_DATABASE_URI=sqlite:///ci.db flask db upgrade)
-	$(call timed,"CI: Running pytest", $(ACTIVATE) && PYTHONPATH=. SQLALCHEMY_DATABASE_URI=sqlite:///ci.db pytest -vv)
+	$(call timed,"CI: Running pytest", $(ACTIVATE) && pytest -vv)
 
-ci-local: ci ## Alias for CI parity
-
-ci-clean: ## CI with clean workspace and fresh venv (no lint/typing gates)
-	$(call timed,"CI-CLEAN: git clean -xdf", git clean -xdf)
-	$(call timed,"CI-CLEAN: Removing virtual environment", rm -rf $(VENV))
-	$(call timed,"CI-CLEAN: Creating virtual environment", $(PYTHON) -m venv $(VENV))
-	$(call timed,"CI-CLEAN: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
-	$(call timed,"CI-CLEAN: Environment parity check", $(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py)
-	$(call timed,"CI-CLEAN: Diagnostics", $(ACTIVATE) && PYTHONPATH=. python scripts/ci_diagnostics.py)
-	$(call timed,"CI-CLEAN: Database migrations", $(ACTIVATE) && PYTHONPATH=. FLASK_APP=logexp.app:create_app SQLALCHEMY_DATABASE_URI=sqlite:///ci.db flask db upgrade)
-	$(call timed,"CI-CLEAN: Running pytest", $(ACTIVATE) && PYTHONPATH=. SQLALCHEMY_DATABASE_URI=sqlite:///ci.db pytest -vv)
-
-# =============================================================================
-# CI-HARD — Full clean-room CI with strict gates
-# =============================================================================
-
-ci-hard: ## Full clean-room CI: nuked workspace + strict lint/typing + full pytest
-	$(call timed,"CI-HARD: git clean -xdf", git clean -xdf)
-	$(call timed,"CI-HARD: Removing virtual environment", rm -rf $(VENV))
-	$(call timed,"CI-HARD: Creating virtual environment", $(PYTHON) -m venv $(VENV))
-	$(call timed,"CI-HARD: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
-
-	$(call timed,"CI-HARD: Environment parity check", \
-		export ANALYTICS_ENABLED=true && \
-		export ANALYTICS_WINDOW_SECONDS=60 && \
-		export LOCAL_TIMEZONE=UTC && \
-		$(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py \
-	)
-
-	$(call timed,"CI-HARD: Diagnostics", \
-		export ANALYTICS_ENABLED=true && \
-		export ANALYTICS_WINDOW_SECONDS=60 && \
-		export LOCAL_TIMEZONE=UTC && \
-		$(ACTIVATE) && PYTHONPATH=. python scripts/ci_diagnostics.py \
-	)
-
-	$(call timed,"CI-HARD: Database migrations", \
-		export ANALYTICS_ENABLED=true && \
-		export ANALYTICS_WINDOW_SECONDS=60 && \
-		export LOCAL_TIMEZONE=UTC && \
-		$(ACTIVATE) && FLASK_APP=logexp.app:create_app SQLALCHEMY_DATABASE_URI=sqlite:///ci.db flask db upgrade \
-	)
-
-	$(call timed,"CI-HARD: Ruff lint", $(ACTIVATE) && ruff check .)
-	$(call timed,"CI-HARD: Black format check", $(ACTIVATE) && black --check .)
-	$(call timed,"CI-HARD: Mypy strict typecheck", $(ACTIVATE) && mypy --strict .)
-
-	$(call timed,"CI-HARD: Running pytest", \
-		export ANALYTICS_ENABLED=true && \
-		export ANALYTICS_WINDOW_SECONDS=60 && \
-		export LOCAL_TIMEZONE=UTC && \
-		$(ACTIVATE) && PYTHONPATH=. SQLALCHEMY_DATABASE_URI=sqlite:///ci.db pytest -vv \
-	)
-
-# =============================================================================
-# Application Development
-# =============================================================================
-
-dev: ## Run Flask with full environment setup
-	$(call timed,"Starting Flask development server", \
-		$(ACTIVATE) && \
-		export FLASK_APP=logexp.app:create_app && \
-		export FLASK_ENV=development && \
-		flask run --reload \
-	)
-
-dev-fast: ## Run Flask quickly assuming venv already exists
-	$(call timed,"Starting Flask (fast mode)", \
-		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask run --reload \
-	)
-
-shell: ## Open Flask shell with app context
-	$(call timed,"Opening Flask shell", \
-		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask shell \
-	)
-
-# =============================================================================
-# Linting, Formatting, Typing
-# =============================================================================
+test:
+	$(call timed,"Running pytest", $(ACTIVATE) && pytest -vv)
 
 lint:
-	$(call timed,"flake8", $(ACTIVATE) && flake8 logexp)
-	$(call timed,"black --check", $(ACTIVATE) && black --check logexp)
-	$(call timed,"isort --check-only", $(ACTIVATE) && isort --check-only logexp)
-	$(call timed,"mypy", $(ACTIVATE) && mypy logexp)
-
-format:
-	$(call timed,"black", $(ACTIVATE) && black logexp)
-	$(call timed,"isort", $(ACTIVATE) && isort logexp)
-
-check-format:
-	$(call timed,"black --check", $(ACTIVATE) && black --check .)
-	$(call timed,"isort --check-only", $(ACTIVATE) && isort --check-only .)
-
-check-lint:
-	$(call timed,"flake8", $(ACTIVATE) && flake8 .)
-
-check-mypy:
-	$(call timed,"mypy --strict", $(ACTIVATE) && mypy --strict logexp)
+	$(call timed,"Ruff lint", $(ACTIVATE) && ruff check .)
 
 typecheck:
-	$(call timed,"mypy", $(ACTIVATE) && mypy .)
+	$(call timed,"Mypy strict typecheck", $(ACTIVATE) && mypy --strict logexp)
 
 # =============================================================================
-# Database Management
+# Docker lifecycle
 # =============================================================================
 
-db-reset:
-	$(call timed,"Resetting development DB", \
-		rm -f logexp/app/data/readings.db && \
-		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask db upgrade \
-	)
+docker-build:
+	$(call timed,"Building Docker image", docker build -t $(DOCKER_IMAGE) .)
 
-test-db:
-	$(call timed,"Rebuilding test DB", \
-		$(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py \
-	)
+up-pi:
+	$(call timed,"docker compose up (pi)", docker compose -f $(COMPOSE_PI) up --build)
 
-db-migrate:
-	$(call timed,"Creating migration", \
-		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask db migrate \
-	)
-
-db-upgrade:
-	$(call timed,"Applying migrations", \
-		$(ACTIVATE) && FLASK_APP=logexp.app:create_app flask db upgrade \
+down:
+	$(call timed,"Stopping all compose stacks", \
+		docker compose -f $(COMPOSE_PI) down || true \
 	)
 
 # =============================================================================
-# Testing
+# Provisioning (new)
 # =============================================================================
 
-test-clean:
-	$(call timed,"Cleaning __pycache__", find logexp -type d -name "__pycache__" -exec rm -rf {} +)
-	$(call timed,"git clean -xdf", git clean -xdf)
-	$(call timed,"Creating virtual environment", $(PYTHON) -m venv $(VENV))
-	$(call timed,"Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
-	$(call timed,"Creating logexp.pth", echo "/Users/jebbaugh/git/personal/active/logexp" > $(SITE_PACKAGES)/logexp.pth)
-	$(call timed,"Rebuilding test DB", $(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py)
-	$(call timed,"Running pytest", $(ACTIVATE) && PYTHONPATH=. pytest -vv)
+preflight:
+	$(call timed,"Running preflight checks on KEEP-0001", \
+		ansible-playbook $(ANSIBLE_PLAYBOOK_PROVISION) -i $(INVENTORY) --tags preflight \
+	)
 
-test-architecture:
-	$(call timed,"Architecture tests", $(ACTIVATE) && pytest tests/architecture -q)
+provision:
+	$(call timed,"Provisioning KEEP-0001 Docker + Compose v2", \
+		ansible-playbook $(ANSIBLE_PLAYBOOK_PROVISION) -i $(INVENTORY) \
+	)
 
-test-smart:
-	$(call timed,"Smart pytest", $(ACTIVATE) && pytest --lf --ff -q)
+pipeline:
+	$(call timed,"Full pipeline: provision + deploy", \
+		make provision && make deploy \
+	)
 
 # =============================================================================
-# Developer Utilities
+# Deployment
+# =============================================================================
+
+deploy:
+	$(call timed,"Deploying LogExp to KEEP-0001", \
+		ansible-playbook $(ANSIBLE_PLAYBOOK_DEPLOY) -i $(INVENTORY) \
+	)
+
+logs:
+	$(call timed,"Tailing LogExp logs on KEEP-0001", \
+		ssh jeb@keep-0001.local "docker logs \$$(docker ps --filter 'name=logexp-logexp' --format '{{.Names}}') --tail 200 -f" \
+	)
+
+restart:
+	$(call timed,"Restarting LogExp container on KEEP-0001", \
+		ssh jeb@keep-0001.local "docker restart \$$(docker ps --filter 'name=logexp-logexp' --format '{{.Names}}')" \
+	)
+
+# =============================================================================
+# Utilities
 # =============================================================================
 
 doctor:
 	$(call timed,"Doctor checks", \
 		$(PYTHON) --version && \
 		(test -d $(VENV) && echo "Venv OK" || echo "Venv missing") && \
-		$(ACTIVATE) && python -c "import flask; print('Flask OK')" && \
-		(if lsof -i :5000 >/dev/null 2>&1; then echo 'Port 5000 in use'; else echo 'Port 5000 free'; fi) && \
-		(test -f logexp/app/data/readings.db && echo "DB exists" || echo "DB missing") \
+		(if docker info >/dev/null 2>&1; then echo 'Docker OK'; else echo 'Docker not running'; fi) \
 	)
 
-check-env:
-	$(call timed,"Environment parity", $(ACTIVATE) && python scripts/check_env_parity.py)
+inventory:
+	$(call timed,"Showing resolved Ansible inventory", \
+		ansible-inventory -i $(INVENTORY) --list \
+	)
 
-log-demo:
-	$(call timed,"Log demo", $(ACTIVATE) && PYTHONPATH=. python scripts/log_demo.py)
-
-analytics-demo:
-	$(call timed,"Analytics demo", $(ACTIVATE) && PYTHONPATH=. python scripts/analytics_demo.py)
+ping:
+	$(call timed,"Pinging KEEP-0001 via Ansible", \
+		ansible -i $(INVENTORY) all -m ping \
+	)
 
 help:
 	@echo ""
@@ -228,80 +141,3 @@ help:
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?##' Makefile | sed 's/:.*##/: /' | column -t -s ':'
 	@echo ""
-
-test-all: ## Run linting, typing, and full test suite
-	$(call timed,"Ruff lint", $(ACTIVATE) && ruff check .)
-	$(call timed,"Black format check", $(ACTIVATE) && black --check .)
-	$(call timed,"Mypy strict typecheck", $(ACTIVATE) && mypy --strict .)
-	$(call timed,"Pytest full suite", $(ACTIVATE) && pytest -vv)
-
-	@echo ""
-	@echo "$(YELLOW)Reminder: run 'v' to activate your environment$(RESET)"
-	@echo ""
-
-# Makefile
-PYTHON := python
-PIP := python -m pip
-
-PROJECT_NAME := logexp
-DOCKER_IMAGE := logexp:test
-
-.PHONY: help
-help:
-	@echo "Common commands:"
-	@echo "  make bootstrap       - Install dev dependencies (editable)"
-	@echo "  make lint            - Run ruff linting"
-	@echo "  make test            - Run pytest"
-	@echo "  make ci              - Run lint + tests (local CI)"
-	@echo "  make docker-build    - Build Docker image"
-	@echo "  make docker-shell    - Shell into Docker container"
-	@echo "  make up-linux        - docker-compose up for linux"
-	@echo "  make up-mac          - docker-compose up for mac"
-	@echo "  make up-pi           - docker-compose up for pi"
-	@echo "  make down            - Stop all compose stacks"
-
-.PHONY: bootstrap
-bootstrap:
-	$(PIP) install --upgrade pip
-	$(PIP) install -e .
-	$(PIP) install -r requirements.txt
-
-.PHONY: lint
-lint:
-	ruff check .
-
-.PHONY: test
-test:
-	pytest -vv
-
-.PHONY: ci
-ci: lint test
-
-.PHONY: docker-build
-docker-build:
-	docker build -t $(DOCKER_IMAGE) .
-
-.PHONY: docker-shell
-docker-shell:
-	docker run --rm -it \
-		-e DATABASE_URL="postgresql://logexp:logexp@postgres:5432/logexp" \
-		$(DOCKER_IMAGE) \
-		/bin/bash
-
-.PHONY: up-linux
-up-linux:
-	docker compose -f docker-compose.linux.yml up --build
-
-.PHONY: up-mac
-up-mac:
-	docker compose -f docker-compose.mac.yml up --build
-
-.PHONY: up-pi
-up-pi:
-	docker compose -f docker-compose.pi.yml up --build
-
-.PHONY: down
-down:
-	docker compose -f docker-compose.linux.yml down || true
-	docker compose -f docker-compose.mac.yml down || true
-	docker compose -f docker-compose.pi.yml down || true

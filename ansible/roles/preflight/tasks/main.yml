@@ -1,0 +1,36 @@
+# filename: ansible/roles/preflight/tasks/main.yml
+---
+# Preflight checks for LogExp deployment
+# Ensures the Pi is reachable, Docker is functional, and Compose is available.
+# All registered variables use the preflight_ prefix.
+
+# ---------------------------------------------------------------------------
+# Connectivity
+# ---------------------------------------------------------------------------
+
+- name: Check SSH connectivity
+  ansible.builtin.ping:
+  register: preflight_ping
+  changed_when: false
+
+# ---------------------------------------------------------------------------
+# Docker engine check
+# ---------------------------------------------------------------------------
+
+- name: Check Docker engine availability
+  ansible.builtin.command: docker info
+  register: preflight_docker_info
+  failed_when: preflight_docker_info.rc != 0
+  changed_when: false
+  become: true
+
+# ---------------------------------------------------------------------------
+# Docker Compose check
+# ---------------------------------------------------------------------------
+
+- name: Check Docker Compose availability
+  ansible.builtin.command: docker compose version
+  register: preflight_compose_version
+  failed_when: preflight_compose_version.rc != 0
+  changed_when: false
+  become: true

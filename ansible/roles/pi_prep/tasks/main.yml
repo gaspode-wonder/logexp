@@ -1,0 +1,48 @@
+# filename: ansible/roles/pi_prep/tasks/main.yml
+---
+# Prepare Raspberry Pis for LogExp deployment
+# Ensures Docker + Compose v2 are installed and ready.
+# All registered variables use the pi_prep_ prefix.
+
+# ---------------------------------------------------------------------------
+# Docker installation
+# ---------------------------------------------------------------------------
+
+- name: Ensure Docker engine is installed
+  ansible.builtin.package:
+    name: docker.io
+    state: present
+  become: true
+
+# ---------------------------------------------------------------------------
+# Docker Compose v2 plugin installation
+# ---------------------------------------------------------------------------
+
+- name: Ensure Docker CLI plugin directory exists
+  ansible.builtin.file:
+    path: /usr/lib/docker/cli-plugins
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Check if docker compose plugin already exists
+  ansible.builtin.stat:
+    path: /usr/lib/docker/cli-plugins/docker-compose
+  register: pi_prep_compose_plugin
+  become: true
+
+- name: Install Docker Compose v2 plugin for ARM64
+  ansible.builtin.get_url:
+    url: https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-aarch64
+    dest: /usr/lib/docker/cli-plugins/docker-compose
+    mode: "0755"
+  when: not pi_prep_compose_plugin.stat.exists
+  become: true
+
+- name: Verify docker compose works
+  ansible.builtin.command: docker compose version
+  register: pi_prep_compose_version
+  changed_when: false
+  become: true

@@ -1,0 +1,11 @@
+# filename: ansible/playbooks/provision-pi.yml
+---
+# Provision Raspberry Pis for LogExp deployment
+# Runs preflight, installs Docker + Compose, and prepares the environment.
+
+- hosts: logexp
+  become: true
+  roles:
+    - pi_prep
+    - preflight
+

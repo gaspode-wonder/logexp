@@ -1,6 +1,6 @@
 # filename: ansible/playbooks/deploy-logexp.yml
 ---
-# Deploy LogExp to Beamrider‑0002 (or any host in the logexp group)
+# Deploy LogExp to keep‑0001 (or any host in the logexp group)
 
 - name: Deploy LogExp application
   hosts: logexp
@@ -8,4 +8,5 @@
   gather_facts: false
 
   roles:
+    - pi_prep
     - logexp_deploy
