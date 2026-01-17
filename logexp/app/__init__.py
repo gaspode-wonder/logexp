@@ -1,14 +1,9 @@
 # filename: logexp/app/__init__.py
-# Canonical application factory for LogExp.
-# Provides deterministic config layering, extension initialization,
-# ingestion/analytics contracts, and structured logging behavior.
 
 from __future__ import annotations
 
 import datetime
-import os
 import sqlite3
-import sys
 from typing import Any, Dict, Optional, Tuple
 
 from flask import render_template
@@ -25,131 +20,64 @@ from logexp.app.typing import LogExpFlask, LogExpRequest
 logger = get_logger("logexp.app")
 
 
-# ---------------------------------------------------------------------------
-# SQLite timezone support
-# ---------------------------------------------------------------------------
-
-
 def configure_sqlite_timezone_support(app: LogExpFlask) -> None:
-    """
-    Ensures SQLite stores and returns timezone-aware datetimes.
-
-    This function only configures sqlite3's adapters/converters.
-    Engine options (including detect_types) are managed centrally
-    in logexp.app.config.load_config() based on the URI prefix.
-    """
-
     def adapt_datetime(dt: datetime.datetime) -> str:
         return dt.isoformat()
 
     def convert_datetime(val: Any) -> Optional[datetime.datetime]:
         if val is None:
             return None
-        if isinstance(val, datetime.datetime):
-            return val
         if isinstance(val, bytes):
             val = val.decode()
-        if isinstance(val, str):
-            return datetime.datetime.fromisoformat(val)
-        raise TypeError(f"Unexpected type for datetime conversion: {type(val)}")
+        return datetime.datetime.fromisoformat(val)
 
     sqlite3.register_adapter(datetime.datetime, adapt_datetime)
     sqlite3.register_converter("timestamp", convert_datetime)
-
     logger.debug("sqlite_timezone_support_enabled")
 
 
-# ---------------------------------------------------------------------------
-# Application Factory
-# ---------------------------------------------------------------------------
-
-
 def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
-    """
-    Central application factory.
-
-    Contract:
-      - Deterministic config layering
-      - No side effects at import time
-      - Extensions initialized in a stable, predictable order
-      - Ingestion and analytics controlled by explicit config flags
-    """
-
     logger.debug("app_factory_start")
 
-    # Typed Flask subclass (declares config_obj and poller)
     app: LogExpFlask = LogExpFlask(__name__)
-
-    # Typed Request subclass (declares request_id)
     app.request_class = LogExpRequest
 
-    # 1. Load config (single source of truth)
+    # 1. Load config
     app.config_obj = load_config(overrides=overrides or {})
     app.config.update(app.config_obj)
-
-    logger.debug(
-        "config_loaded",
-        extra={"keys": list(app.config_obj.keys())},
-    )
-
-    # ----------------------------------------------------------------------
-    # DATABASE FALLBACK
-    # ----------------------------------------------------------------------
-    has_uri = bool(app.config.get("SQLALCHEMY_DATABASE_URI"))
-    has_binds = bool(app.config.get("SQLALCHEMY_BINDS"))
-
-    if not has_uri and not has_binds:
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-        logger.debug("database_fallback_applied", extra={"uri": "sqlite:///:memory:"})
-    else:
-        logger.debug(
-            "database_config_present",
-            extra={"has_uri": has_uri, "has_binds": has_binds},
-        )
+    logger.debug("config_loaded")
 
     # 2. SQLite timezone support
-    # Safe to call unconditionally: config.load_config() already controls
-    # SQLALCHEMY_ENGINE_OPTIONS based on URI (sqlite vs postgres).
     configure_sqlite_timezone_support(app)
 
     # 3. Structured logging
     configure_logging()
     logger.debug("structured_logging_configured")
 
-    # 3b. Request ID middleware (Step‑12C)
+    # 4. Request ID middleware
     request_id_middleware(app)
     logger.debug("request_id_middleware_enabled")
 
-    # 4. Initialize extensions
+    # 5. Initialize extensions
     db.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db, directory="migrations")
     logger.debug("extensions_initialized")
 
-    # 5. Register blueprints
+    # 6. Register blueprints
     register_blueprints(app)
     logger.debug("blueprints_registered")
 
-    # 6. Register CLI commands
+    # 7. Register CLI
     register_cli(app)
     logger.debug("cli_commands_registered")
 
-    # 7. Poller startup REMOVED — now handled in wsgi.py
-    app.logger.info(
-        "Poller startup moved to wsgi.py (START_POLLER, gunicorn, shell, tests respected)."
-    )
-
-    # ----------------------------------------------------------------------
-    # 7. Error handlers
-    # ----------------------------------------------------------------------
-
+    # 8. Error handlers
     @app.errorhandler(404)
     def not_found_error(error: Exception) -> Tuple[str, int]:
-        logger.debug("error_404_triggered")
         return render_template("errors/404.html"), 404
 
     @app.errorhandler(403)
     def forbidden_error(error: Exception) -> Tuple[str, int]:
-        logger.debug("error_403_triggered")
         return render_template("errors/403.html"), 403
 
     @app.errorhandler(500)
@@ -157,40 +85,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
         logger.error("error_500_triggered", extra={"error": str(error)})
         return render_template("errors/500.html"), 500
 
-    # ----------------------------------------------------------------------
-    # 8. Teardown: stop poller safely in tests
-    # ----------------------------------------------------------------------
-
-    @app.teardown_appcontext
-    def shutdown_poller(exception: Optional[BaseException] = None) -> None:
-        poller = getattr(app, "poller", None)
-        if app.config_obj.get("TESTING", False) and poller is not None:
-            try:
-                poller.stop()
-                logger.debug("poller_stopped_in_teardown")
-            except RuntimeError:
-                logger.debug("poller_stop_called_from_within_thread")
-
-    # ----------------------------------------------------------------------
-    # 9. Startup Diagnostics Banner
-    # ----------------------------------------------------------------------
-
-    logger.info(
-        "startup_diagnostics",
-        extra={
-            "cwd": os.getcwd(),
-            "python": sys.executable,
-            "version": sys.version,
-            "filtered_env": {
-                k: v
-                for k, v in os.environ.items()
-                if any(x in k for x in ["SQL", "FLASK", "PYTHON", "TZ", "ANALYTICS"])
-            },
-        },
-    )
-
     logger.debug("app_factory_complete")
-
     return app
 
 
