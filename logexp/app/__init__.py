@@ -60,7 +60,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
 
     # 5. Initialize extensions
     db.init_app(app)
-    migrate.init_app(app, db, directory="logexp/migrations")
+    migrate.init_app(app, db, directory="migrations")
     logger.debug("extensions_initialized")
 
     # 6. Register blueprints
