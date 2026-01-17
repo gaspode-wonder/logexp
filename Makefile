@@ -12,7 +12,7 @@
 	preflight provision pipeline deploy logs-pi restart db-shell \
 	doctor inventory ping help
 
-PYTHON := python3
+PYTHON := python3.10
 VENV := .venv
 ACTIVATE := . $(VENV)/bin/activate
 

@@ -19,7 +19,7 @@ packages = ["logexp"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-extend-select = ["I"]  # import sorting
+extend-select = ["I"]
 fix = true
 
 [tool.ruff.format]
@@ -45,7 +45,6 @@ markers = [
     "integration: marks tests as integration tests",
 ]
 
-
 # ------------------------------------------------------------------------------
 # COVERAGE — canonical
 # ------------------------------------------------------------------------------
@@ -67,7 +66,6 @@ explicit_package_bases = true
 namespace_packages = true
 plugins = ["sqlalchemy.ext.mypy.plugin"]
 
-# Strictness
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
@@ -80,7 +78,6 @@ strict_optional = true
 show_error_codes = true
 pretty = true
 
-# Third‑party libraries without stubs
 ignore_missing_imports = true
 
 # ------------------------------------------------------------------------------
@@ -99,11 +96,12 @@ ignore_missing_imports = true
 module = "tests.fixtures.*"
 ignore_errors = true
 
-# Alembic migrations
+# Alembic migrations (correct package path)
 [[tool.mypy.overrides]]
-module = "migrations.*"
+module = "logexp.migrations.*"
 ignore_errors = true
 
+# CLI — dynamic click commands
 [[tool.mypy.overrides]]
 module = "logexp.app.cli"
 ignore_errors = true

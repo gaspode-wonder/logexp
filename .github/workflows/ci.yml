@@ -1,4 +1,4 @@
-# .github/workflows/ci.yml
+# filename: .github/workflows/ci.yml
 name: CI
 
 on:
@@ -7,21 +7,21 @@ on:
     pull_request:
         branches: ["**"]
 
+env:
+    PYTHON_VERSION: "3.10.14"
+    DATABASE_URL: ""
+    SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
+    LOCAL_TIMEZONE: "UTC"
+    GEIGER_THRESHOLD: "0.1"
+    START_POLLER: "False"
+    LOGEXP_NODE_ID: "ci-node"
+    TELEMETRY_ENABLED: "True"
+    TELEMETRY_INTERVAL_SECONDS: "30"
+
 jobs:
     lint-and-tests:
         name: Lint + Unit Tests + Config Schema
         runs-on: ubuntu-latest
-
-        env:
-            PYTHON_VERSION: "3.10.14"
-            DATABASE_URL: ""
-            SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
-            LOCAL_TIMEZONE: "UTC"
-            GEIGER_THRESHOLD: "0.1"
-            START_POLLER: "False"
-            LOGEXP_NODE_ID: "ci-node"
-            TELEMETRY_ENABLED: "True"
-            TELEMETRY_INTERVAL_SECONDS: "30"
 
         steps:
             - name: Checkout
@@ -120,7 +120,7 @@ jobs:
             - name: Set up Python
               uses: actions/setup-python@v5
               with:
-                  python-version: "3.10.14"
+                  python-version: "${{ env.PYTHON_VERSION }}"
 
             - name: Install dependencies
               run: |
