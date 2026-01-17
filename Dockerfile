@@ -1,67 +1,76 @@
 # filename: Dockerfile
-# Canonical multi‑stage build for LogExp.
-# Ensures deterministic dependency installation, explicit migration inclusion,
-# and production‑grade runtime environment.
 
-# =========================
-# Build stage
-# =========================
+# =============================================================================
+# BUILDER STAGE — install build dependencies, compile wheels, isolate artifacts
+# =============================================================================
 FROM python:3.10-slim AS builder
 
-WORKDIR /opt/logexp
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
+# System deps required for building psycopg2-binary, numpy, matplotlib, etc.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    gcc \
     libpq-dev \
+    libffi-dev \
+    libssl-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libjpeg-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies first for caching
-COPY docker-requirements.txt .
-RUN pip install --prefix=/install --no-cache-dir -r docker-requirements.txt
-
-# =========================
-# Runtime stage
-# =========================
-FROM python:3.10-slim AS runtime
 
 WORKDIR /opt/logexp
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Install pip + wheel tooling
+RUN pip install --upgrade pip setuptools wheel
 
+# Copy project metadata + requirements first for caching
+COPY pyproject.toml .
+COPY requirements.txt .
+
+# Build wheels for all dependencies
+RUN pip wheel --wheel-dir /opt/wheels -r requirements.txt
+
+
+# =============================================================================
+# RUNTIME STAGE — minimal, production-grade Python environment
+# =============================================================================
+FROM python:3.10-slim AS runtime
+
+# System runtime deps (no compilers)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    curl \
+    libxml2 \
+    libxslt1.1 \
+    libjpeg62-turbo \
+    zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed Python packages from builder
-COPY --from=builder /install /usr/local
+WORKDIR /opt/logexp
+
+# Install wheels built in the builder stage
+COPY --from=builder /opt/wheels /opt/wheels
+RUN pip install --no-cache-dir /opt/wheels/*
 
 # Copy application code
 COPY logexp /opt/logexp/logexp
-COPY docker /opt/logexp/docker
-COPY gunicorn.conf.py /opt/logexp/gunicorn.conf.py
-COPY wsgi.py /opt/logexp/wsgi.py
-COPY alembic.ini /opt/logexp/alembic.ini
 
-# Explicitly copy migrations (critical for schema sync)
+# Copy migrations explicitly
 COPY logexp/migrations /opt/logexp/logexp/migrations
 
-# Explicitly copy instance directory (SQLite dev/test/CI)
-COPY instance /opt/logexp/instance
+# No instance/ directory — removed because you do not use SQLite files in Docker
+# (CI uses in-memory SQLite; production uses Postgres)
+# COPY instance /opt/logexp/instance   ← intentionally removed
 
-# Gunicorn + Flask config
-ENV FLASK_APP=logexp.app
-ENV FLASK_ENV=production
+# Gunicorn config (if you add one later)
+# COPY gunicorn.conf.py /opt/logexp/gunicorn.conf.py
 
-# Entrypoint (handles migrations + seeding)
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Environment defaults (can be overridden at runtime)
+ENV FLASK_APP="logexp.app:create_app" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-EXPOSE 5000
+# Expose Flask/Gunicorn port
+EXPOSE 8000
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]
+# Default command: run Gunicorn with your Flask factory
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "logexp.app:create_app"]
