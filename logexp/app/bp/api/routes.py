@@ -1,10 +1,11 @@
-# filename: logexp/app/bp/api/routes.py
-
+# logexp/app/bp/api/route.py
 from __future__ import annotations
 
 from typing import Any
 
 from flask import current_app, jsonify, request
+from flask.typing import ResponseReturnValue
+from sqlalchemy import desc
 
 from logexp.app import db
 from logexp.app.bp.api import bp_api
@@ -24,7 +25,8 @@ def get_readings() -> Any:
     )
 
     readings = db.session.query(LogExpReading).order_by(LogExpReading.timestamp.asc()).all()
-    responses = [ReadingResponse(**r.to_dict()).model_dump() for r in readings]
+
+    responses = [ReadingResponse(**r.to_dict()).model_dump(exclude_none=False) for r in readings]
 
     logger.debug(
         "api_get_readings_returning",
@@ -57,6 +59,7 @@ def create_reading() -> Any:
         counts_per_minute=validated.counts_per_minute,
         microsieverts_per_hour=validated.microsieverts_per_hour,
         mode=validated.mode,
+        device_id=validated.device_id,
     )
 
     db.session.add(reading)
@@ -68,7 +71,31 @@ def create_reading() -> Any:
     )
 
     response = ReadingResponse(**reading.to_dict())
-    return jsonify(response.model_dump()), 201
+    return jsonify(response.model_dump(exclude_none=False)), 201
+
+
+@bp_api.get("/readings/latest")
+def get_latest_reading() -> ResponseReturnValue:
+    logger.debug(
+        "api_get_latest_reading_requested",
+        extra={"path": request.path, "method": request.method},
+    )
+
+    row = db.session.query(LogExpReading).order_by(desc(LogExpReading.timestamp)).first()
+
+    if row is None:
+        logger.debug("api_get_latest_reading_no_rows")
+        return jsonify({"error": "no readings available"}), 404
+
+    response = ReadingResponse(**row.to_dict())
+    payload = response.model_dump(exclude_none=False)
+
+    logger.debug(
+        "api_get_latest_reading_returning",
+        extra={"id": payload.get("id"), "device_id": payload.get("device_id")},
+    )
+
+    return jsonify(payload), 200
 
 
 @bp_api.get("/readings.json")
@@ -110,6 +137,44 @@ def geiger_live() -> Any:
             extra={"error": str(e)},
         )
         return jsonify({"error": str(e)}), 500
+
+
+@bp_api.post("/geiger/push")
+def geiger_push() -> Any:
+    logger.debug(
+        "api_geiger_push_requested",
+        extra={"path": request.path, "method": request.method},
+    )
+
+    payload = request.get_json(force=True, silent=True) or {}
+
+    try:
+        validated = ReadingCreate(**payload)
+    except Exception as e:
+        logger.debug(
+            "api_geiger_push_validation_failed",
+            extra={"error": str(e)},
+        )
+        return jsonify({"error": str(e)}), 400
+
+    reading = LogExpReading(
+        counts_per_second=validated.counts_per_second,
+        counts_per_minute=validated.counts_per_minute,
+        microsieverts_per_hour=validated.microsieverts_per_hour,
+        mode=validated.mode,
+        device_id=validated.device_id,
+    )
+
+    db.session.add(reading)
+    db.session.commit()
+
+    logger.debug(
+        "api_geiger_push_committed",
+        extra={"id": reading.id},
+    )
+
+    response = ReadingResponse(**reading.to_dict())
+    return jsonify(response.model_dump(exclude_none=False)), 201
 
 
 @bp_api.get("/geiger/test")
@@ -207,12 +272,6 @@ def health() -> Any:
 
 @bp_api.get("/diagnostics")
 def diagnostics_api() -> Any:
-    """
-    Unified diagnostics API endpoint.
-
-    Aggregates config, ingestion, poller, analytics, and database diagnostics
-    into a single JSON payload suitable for the UI and CI smoke tests.
-    """
     logger.debug(
         "api_diagnostics_requested",
         extra={"path": request.path, "method": request.method},

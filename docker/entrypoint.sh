@@ -40,22 +40,22 @@ fi
 echo "$(timestamp) | env_ok | key=DATABASE_URL"
 
 # ---------------------------------------------------------------------------
-# Run database migrations
+# Optional migrations
 # ---------------------------------------------------------------------------
 
-echo "$(timestamp) | migration_start"
-flask db upgrade
-echo "$(timestamp) | migration_complete"
+if [ "$RUN_MIGRATIONS" = "true" ]; then
+  echo "$(timestamp) | migration_start"
+  flask db upgrade
+  echo "$(timestamp) | migration_complete"
 
-# ---------------------------------------------------------------------------
-# Seed data (idempotent)
-# ---------------------------------------------------------------------------
-
-echo "$(timestamp) | seed_start"
-if ! flask seed-data; then
-  echo "$(timestamp) | seed_nonfatal_failure"
+  echo "$(timestamp) | seed_start"
+  if ! flask seed-data; then
+    echo "$(timestamp) | seed_nonfatal_failure"
+  fi
+  echo "$(timestamp) | seed_complete"
+else
+  echo "$(timestamp) | migrations_skipped | reason=RUN_MIGRATIONS_not_true"
 fi
-echo "$(timestamp) | seed_complete"
 
 # ---------------------------------------------------------------------------
 # Start application

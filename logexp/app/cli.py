@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from flask import current_app
+from flask import Flask, current_app
 
 from logexp.app.extensions import db
 
 
-def register_cli(app):
+def register_cli(app: Flask) -> None:
     @app.cli.command("geiger-start")
     def geiger_start() -> None:
         poller = getattr(current_app, "poller", None)

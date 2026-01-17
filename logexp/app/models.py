@@ -21,10 +21,8 @@ logger = get_logger("logexp.models")
 class LogExpReading(Base):
     __tablename__ = "logexp_readings"
 
-    # --- SQLAlchemy 2.0 typed columns ---
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # Canonical SQLite‑safe UTC datetime type
     timestamp: Mapped[datetime] = mapped_column(
         UTCDateTime(),
         nullable=False,
@@ -35,7 +33,8 @@ class LogExpReading(Base):
     microsieverts_per_hour: Mapped[float] = mapped_column(nullable=False)
     mode: Mapped[str] = mapped_column(String(10), nullable=False)
 
-    # --- Typed initializer ---
+    device_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+
     def __init__(
         self,
         *,
@@ -45,6 +44,7 @@ class LogExpReading(Base):
         mode: str,
         timestamp: Optional[datetime] = None,
         id: Optional[int] = None,
+        device_id: Optional[str] = None,
     ) -> None:
         logger.debug(
             "logexp_reading_init",
@@ -55,13 +55,13 @@ class LogExpReading(Base):
                 "mode": mode,
                 "timestamp_provided": timestamp is not None,
                 "id_provided": id is not None,
+                "device_id": device_id,
             },
         )
 
         if id is not None:
             self.id = id
 
-        # Canonical UTC-aware timestamp handling
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
         elif timestamp.tzinfo is None:
@@ -70,15 +70,13 @@ class LogExpReading(Base):
             timestamp = timestamp.astimezone(timezone.utc)
 
         self.timestamp = timestamp
-
         self.counts_per_second = counts_per_second
         self.counts_per_minute = counts_per_minute
         self.microsieverts_per_hour = microsieverts_per_hour
         self.mode = mode
+        self.device_id = device_id
 
-    # --- Serialization ---
     def to_dict(self) -> Dict[str, Any]:
-        # Explicit cast so mypy knows config_obj exists
         typed_app = cast(LogExpFlask, current_app)
 
         tz_name = typed_app.config_obj.get("LOCAL_TIMEZONE", "UTC")
@@ -102,8 +100,8 @@ class LogExpReading(Base):
             "counts_per_minute": self.counts_per_minute,
             "microsieverts_per_hour": self.microsieverts_per_hour,
             "mode": self.mode,
+            "device_id": self.device_id,
         }
 
 
-# Backward‑compatible alias expected by tests and services
 Reading = LogExpReading

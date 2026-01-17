@@ -18,8 +18,6 @@ logger = get_logger("logexp.blueprints")
 def register_blueprints(app: Flask) -> None:
     """
     Register all application blueprints in a deterministic order.
-
-    Imports are intentionally local to avoid circular dependencies.
     """
     logger.debug("blueprint_registration_start")
 
@@ -31,6 +29,7 @@ def register_blueprints(app: Flask) -> None:
     from .bp.settings import bp_settings
     from .bp.ui import bp_ui
 
+    # Deterministic registration order
     for bp, name in [
         (bp_ui, "ui"),
         (bp_api, "api"),
