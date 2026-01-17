@@ -9,20 +9,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from logexp.app.logging_setup import get_logger
 
-# Explicit environment variable contract for CI and maintainers
-REQUIRED_ENV_VARS: dict[str, str] = {
-    "SQLALCHEMY_DATABASE_URI": "Database connection string",
-    "LOCAL_TIMEZONE": "Local timezone name",
-}
-
-OPTIONAL_ENV_VARS: dict[str, str] = {
-    "GEIGER_THRESHOLD": "Float threshold for diagnostics",
-    "START_POLLER": "Enable/disable hardware poller",
-    "LOGEXP_NODE_ID": "Node identifier for ingestion",
-    "TELEMETRY_ENABLED": "Enable telemetry",
-    "TELEMETRY_INTERVAL_SECONDS": "Telemetry interval",
-}
-
 logger = get_logger("logexp.config")
 
 # ---------------------------------------------------------------------------
@@ -30,10 +16,9 @@ logger = get_logger("logexp.config")
 # ---------------------------------------------------------------------------
 
 DEFAULTS: Dict[str, Any] = {
-    # Core
     "TESTING": False,
     "SECRET_KEY": "dev",
-    # Database
+    # Database — resolved in load_config()
     "SQLALCHEMY_DATABASE_URI": None,
     "SQLALCHEMY_TRACK_MODIFICATIONS": False,
     # Geiger / Poller
@@ -66,7 +51,6 @@ ENV_MAP: Dict[str, Tuple[str, Callable[[str], Any]]] = {
     "LOCAL_TIMEZONE": ("LOCAL_TIMEZONE", str),
     "ANALYTICS_WINDOW_SECONDS": ("ANALYTICS_WINDOW_SECONDS", int),
     "ANALYTICS_ENABLED": ("ANALYTICS_ENABLED", lambda v: v.lower() == "true"),
-    # Telemetry
     "LOGEXP_NODE_ID": ("LOGEXP_NODE_ID", str),
     "TELEMETRY_ENABLED": ("TELEMETRY_ENABLED", lambda v: v.lower() == "true"),
     "TELEMETRY_INTERVAL_SECONDS": ("TELEMETRY_INTERVAL_SECONDS", int),
@@ -84,61 +68,70 @@ def load_config(overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
     # 1. Apply environment variables
     for key, (env_var, caster) in ENV_MAP.items():
-        raw: Optional[str] = os.environ.get(env_var)
+        raw = os.environ.get(env_var)
         if raw is not None:
             try:
                 config[key] = caster(raw)
-                logger.debug(
-                    "config_env_applied",
-                    extra={"key": key, "env_var": env_var, "value": config[key]},
-                )
+                logger.debug("config_env_applied", extra={"key": key, "value": config[key]})
             except Exception as exc:
-                logger.error(
-                    "config_env_invalid",
-                    extra={"env_var": env_var, "raw": raw, "error": str(exc)},
-                )
-                raise ValueError(f"Invalid value for {env_var}: {raw!r}")
+                logger.error("config_env_invalid", extra={"env_var": env_var, "raw": raw})
+                raise ValueError(f"Invalid value for {env_var}: {raw!r}") from exc
 
-    # 2. Apply explicit overrides
+    # 2. Apply explicit overrides (treat overrides like env vars)
     if overrides:
-        logger.debug(
-            "config_overrides_applied",
-            extra={"override_keys": list(overrides.keys())},
-        )
-        config.update(overrides)
+        for key, value in overrides.items():
+            # Allow boolean override for START_POLLER
+            if key == "START_POLLER" and isinstance(value, bool):
+                config[key] = value
+                continue
 
-    # 3. Normalize GEIGER_THRESHOLD to float
-    try:
-        config["GEIGER_THRESHOLD"] = float(config["GEIGER_THRESHOLD"])
-    except Exception:
-        raise ValueError(f"Invalid value for GEIGER_THRESHOLD: {config['GEIGER_THRESHOLD']!r}")
+            # Allow boolean overrides for boolean env vars
+            if key in ("ANALYTICS_ENABLED", "TELEMETRY_ENABLED") and isinstance(value, bool):
+                config[key] = value
+                continue
 
-    # 4. Normalize START_POLLER to boolean
-    val = config.get("START_POLLER")
-    if isinstance(val, str):
-        config["START_POLLER"] = val.strip().lower() in ("1", "true", "yes", "on")
+            if key in ENV_MAP:
+                _, caster = ENV_MAP[key]
+                try:
+                    config[key] = caster(value)
+                except Exception as exc:
+                    logger.error("config_override_invalid", extra={"key": key, "value": value})
+                    raise ValueError(f"Invalid override for {key}: {value!r}") from exc
+            else:
+                config[key] = value
+
+        logger.debug("config_overrides_applied", extra={"override_keys": list(overrides.keys())})
+
+    # ----------------------------------------------------------------------
+    # 3. Resolve SQLALCHEMY_DATABASE_URI deterministically
+    # ----------------------------------------------------------------------
+    uri = config.get("SQLALCHEMY_DATABASE_URI")
+
+    if uri:
+        resolved = uri
+
     else:
-        config["START_POLLER"] = bool(val)
+        instance_path = os.path.join(os.getcwd(), "instance")
+        os.makedirs(instance_path, exist_ok=True)
 
-    # 5. Normalize TELEMETRY_ENABLED to boolean
-    tval = config.get("TELEMETRY_ENABLED")
-    if isinstance(tval, str):
-        config["TELEMETRY_ENABLED"] = tval.strip().lower() in ("1", "true", "yes", "on")
-    else:
-        config["TELEMETRY_ENABLED"] = bool(tval)
+        if config.get("TESTING"):
+            db_path = os.path.join(instance_path, "test.db")
+        elif os.environ.get("CI", "").lower() == "true":
+            db_path = os.path.join(instance_path, "ci.db")
+        elif os.environ.get("FLASK_ENV") == "production":
+            raise RuntimeError("Production requires SQLALCHEMY_DATABASE_URI to be set")
+        else:
+            db_path = os.path.join(instance_path, "dev.db")
 
-    # 6. Normalize TELEMETRY_INTERVAL_SECONDS to int
-    try:
-        config["TELEMETRY_INTERVAL_SECONDS"] = int(config["TELEMETRY_INTERVAL_SECONDS"])
-    except Exception:
-        raise ValueError(
-            f"Invalid value for TELEMETRY_INTERVAL_SECONDS: "
-            f"{config['TELEMETRY_INTERVAL_SECONDS']!r}"
-        )
+        resolved = f"sqlite:///{db_path}"
 
-    # 7. Apply engine options based on database backend
-    uri = str(config.get("SQLALCHEMY_DATABASE_URI") or "")
-    if uri.startswith("sqlite://"):
+    config["SQLALCHEMY_DATABASE_URI"] = resolved
+    logger.debug("database_uri_resolved", extra={"uri": resolved})
+
+    # ----------------------------------------------------------------------
+    # 4. Engine options (SQLite detect_types)
+    # ----------------------------------------------------------------------
+    if resolved.startswith("sqlite://"):
         import sqlite3
 
         config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -147,9 +140,16 @@ def load_config(overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     else:
         config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
 
-    logger.debug(
-        "config_load_complete",
-        extra={"final_keys": list(config.keys())},
-    )
-
+    logger.debug("config_load_complete")
     return config
+
+
+# Backward‑compatible env var documentation contract for tests
+
+REQUIRED_ENV_VARS = {
+    "SQLALCHEMY_DATABASE_URI": "Database connection string (required in production)",
+}
+
+OPTIONAL_ENV_VARS = {
+    key: f"Environment variable for {key}" for key in ENV_MAP.keys() if key not in REQUIRED_ENV_VARS
+}
