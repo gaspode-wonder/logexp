@@ -1,53 +1,41 @@
-# docker-compose.linux.yml — LogExp on Linux host
-
+# filename: docker-compose-linux.yml
 version: "3.9"
 
 services:
   postgres:
     image: postgres:18
+    container_name: logexp-postgres-linux
     environment:
       POSTGRES_USER: logexp
       POSTGRES_PASSWORD: logexp
       POSTGRES_DB: logexp
-    volumes:
-      - logexp_db_data_v3:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    volumes:
+      - logexp-postgres-linux-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U logexp -d logexp"]
+      test: [ "CMD-SHELL", "pg_isready -U logexp -d logexp" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   logexp:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: logexp:latest
+    container_name: logexp-linux
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://logexp:logexp@postgres:5432/logexp"
-      SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@postgres:5432/logexp"
-      LOCAL_TIMEZONE: "UTC"
-      GEIGER_THRESHOLD: "0.1"
+      FLASK_ENV: development
+      SQLALCHEMY_DATABASE_URI: postgresql://logexp:logexp@postgres:5432/logexp
+      LOCAL_TIMEZONE: UTC
+      GEIGER_THRESHOLD: "50.0"
       START_POLLER: "False"
-      LOGEXP_NODE_ID: "linux-node"
-      TELEMETRY_ENABLED: "True"
-      TELEMETRY_INTERVAL_SECONDS: "30"
+      LOGEXP_NODE_ID: "linux-dev"
+      TELEMETRY_ENABLED: "False"
+      TELEMETRY_INTERVAL_SECONDS: "60"
     ports:
       - "8000:8000"
-    command:
-      - gunicorn
-      - -b
-      - 0.0.0.0:8000
-      - logexp.app:create_app()
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
 
 volumes:
-  logexp_db_data_v3:
+  logexp-postgres-linux-data:

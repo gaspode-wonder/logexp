@@ -1,65 +1,30 @@
-#!/bin/sh
-set -e
-set -o pipefail
+# filename: docker/entrypoint.sh
+#!/usr/bin/env bash
+set -euo pipefail
 
-timestamp() {
-  date +"%Y-%m-%d %H:%M:%S"
-}
+echo "[$(date --iso-8601=seconds)] entrypoint: starting container"
 
-echo "$(timestamp) | entrypoint_debug_start"
+# Wait for Postgres if using a Postgres URI
+if [[ "${SQLALCHEMY_DATABASE_URI:-}" == postgresql* ]]; then
+  echo "[$(date --iso-8601=seconds)] entrypoint: waiting for Postgres..."
+  until python - << 'PYCODE'
+import os, time
+import sqlalchemy as sa
 
-# ---------------------------------------------------------------------------
-# Environment + runtime diagnostics
-# ---------------------------------------------------------------------------
-
-echo "$(timestamp) | diag_uid_gid | uid=$(id -u) gid=$(id -g)"
-echo "$(timestamp) | diag_pwd | pwd=$(pwd)"
-echo "$(timestamp) | diag_python | python=$(python3 --version 2>/dev/null || true)"
-
-echo "$(timestamp) | diag_env_begin"
-env | sort
-echo "$(timestamp) | diag_env_end"
-
-echo "$(timestamp) | diag_filtered_env_begin"
-env | sort | grep -E "SQL|FLASK|PYTHON|TZ|ANALYTICS" || true
-echo "$(timestamp) | diag_filtered_env_end"
-
-echo "$(timestamp) | diag_pip_freeze_begin"
-pip freeze 2>/dev/null || echo "$(timestamp) | diag_pip_freeze_unavailable"
-echo "$(timestamp) | diag_pip_freeze_end"
-
-# ---------------------------------------------------------------------------
-# Validate required environment variables
-# ---------------------------------------------------------------------------
-
-if [ -z "$DATABASE_URL" ]; then
-  echo "$(timestamp) | error_missing_env | key=DATABASE_URL"
-  exit 1
+uri = os.environ["SQLALCHEMY_DATABASE_URI"]
+engine = sa.create_engine(uri, pool_pre_ping=True)
+with engine.connect() as conn:
+    conn.execute(sa.text("SELECT 1"))
+PYCODE
+  do
+    echo "[$(date --iso-8601=seconds)] entrypoint: Postgres not ready, retrying..."
+    sleep 2
+  done
+  echo "[$(date --iso-8601=seconds)] entrypoint: Postgres is ready"
 fi
 
-echo "$(timestamp) | env_ok | key=DATABASE_URL"
-
-# ---------------------------------------------------------------------------
-# Run database migrations
-# ---------------------------------------------------------------------------
-
-echo "$(timestamp) | migration_start"
+echo "[$(date --iso-8601=seconds)] entrypoint: running migrations"
 flask db upgrade
-echo "$(timestamp) | migration_complete"
 
-# ---------------------------------------------------------------------------
-# Seed data (idempotent)
-# ---------------------------------------------------------------------------
-
-echo "$(timestamp) | seed_start"
-if ! flask seed-data; then
-  echo "$(timestamp) | seed_nonfatal_failure"
-fi
-echo "$(timestamp) | seed_complete"
-
-# ---------------------------------------------------------------------------
-# Start application
-# ---------------------------------------------------------------------------
-
-echo "$(timestamp) | exec_start | cmd=$*"
+echo "[$(date --iso-8601=seconds)] entrypoint: starting app: $*"
 exec "$@"

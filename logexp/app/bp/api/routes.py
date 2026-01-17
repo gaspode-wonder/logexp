@@ -1,5 +1,4 @@
-# filename: logexp/app/bp/api/routes.py
-
+# logexp/app/bp/api/route.py
 from __future__ import annotations
 
 from typing import Any
@@ -27,7 +26,7 @@ def get_readings() -> Any:
 
     readings = db.session.query(LogExpReading).order_by(LogExpReading.timestamp.asc()).all()
 
-    responses = [ReadingResponse(**r.to_dict()).model_dump() for r in readings]
+    responses = [ReadingResponse(**r.to_dict()).model_dump(exclude_none=False) for r in readings]
 
     logger.debug(
         "api_get_readings_returning",
@@ -60,7 +59,7 @@ def create_reading() -> Any:
         counts_per_minute=validated.counts_per_minute,
         microsieverts_per_hour=validated.microsieverts_per_hour,
         mode=validated.mode,
-        device_id=getattr(validated, "device_id", None),
+        device_id=validated.device_id,
     )
 
     db.session.add(reading)
@@ -72,17 +71,11 @@ def create_reading() -> Any:
     )
 
     response = ReadingResponse(**reading.to_dict())
-    return jsonify(response.model_dump()), 201
+    return jsonify(response.model_dump(exclude_none=False)), 201
 
 
 @bp_api.get("/readings/latest")
 def get_latest_reading() -> ResponseReturnValue:
-    """
-    Return the most recent reading using the canonical ReadingResponse schema.
-
-    This endpoint is used by integration tests and should reflect the same
-    schema as other reading responses, without inventing a separate shape.
-    """
     logger.debug(
         "api_get_latest_reading_requested",
         extra={"path": request.path, "method": request.method},
@@ -95,7 +88,7 @@ def get_latest_reading() -> ResponseReturnValue:
         return jsonify({"error": "no readings available"}), 404
 
     response = ReadingResponse(**row.to_dict())
-    payload = response.model_dump()
+    payload = response.model_dump(exclude_none=False)
 
     logger.debug(
         "api_get_latest_reading_returning",
@@ -148,10 +141,6 @@ def geiger_live() -> Any:
 
 @bp_api.post("/geiger/push")
 def geiger_push() -> Any:
-    """
-    Accepts remote Geiger readings pushed from pi-log devices.
-    Expected JSON payload matches ReadingCreate schema.
-    """
     logger.debug(
         "api_geiger_push_requested",
         extra={"path": request.path, "method": request.method},
@@ -173,7 +162,7 @@ def geiger_push() -> Any:
         counts_per_minute=validated.counts_per_minute,
         microsieverts_per_hour=validated.microsieverts_per_hour,
         mode=validated.mode,
-        device_id=getattr(validated, "device_id", None),
+        device_id=validated.device_id,
     )
 
     db.session.add(reading)
@@ -185,7 +174,7 @@ def geiger_push() -> Any:
     )
 
     response = ReadingResponse(**reading.to_dict())
-    return jsonify(response.model_dump()), 201
+    return jsonify(response.model_dump(exclude_none=False)), 201
 
 
 @bp_api.get("/geiger/test")
@@ -283,12 +272,6 @@ def health() -> Any:
 
 @bp_api.get("/diagnostics")
 def diagnostics_api() -> Any:
-    """
-    Unified diagnostics API endpoint.
-
-    Aggregates config, ingestion, poller, analytics, and database diagnostics
-    into a single JSON payload suitable for the UI and CI smoke tests.
-    """
     logger.debug(
         "api_diagnostics_requested",
         extra={"path": request.path, "method": request.method},

@@ -20,7 +20,7 @@ def test_config_accepts_canonical_values() -> None:
     env = {
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "LOCAL_TIMEZONE": "UTC",
-        "GEIGER_THRESHOLD": "0.1",
+        "GEIGER_THRESHOLD": "50.0",
         "START_POLLER": "False",
         "LOGEXP_NODE_ID": "test-node",
         "TELEMETRY_ENABLED": "True",
@@ -32,7 +32,7 @@ def test_config_accepts_canonical_values() -> None:
     assert cfg["SQLALCHEMY_DATABASE_URI"].startswith("sqlite://")
     assert cfg["LOCAL_TIMEZONE"] == "UTC"
     assert isinstance(cfg["GEIGER_THRESHOLD"], float)
-    assert cfg["GEIGER_THRESHOLD"] == 0.1
+    assert cfg["GEIGER_THRESHOLD"] == 50.0
     assert cfg["START_POLLER"] is False
     assert cfg["LOGEXP_NODE_ID"] == "test-node"
     assert cfg["TELEMETRY_ENABLED"] is True

@@ -1,4 +1,7 @@
 # filename: Dockerfile
+# Canonical multi‑stage build for LogExp.
+# Ensures deterministic dependency installation, explicit migration inclusion,
+# and production‑grade runtime environment.
 
 # =========================
 # Build stage
@@ -34,18 +37,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages
+# Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
 
-# Copy app code
-COPY . .
+# Copy application code
+COPY logexp /opt/logexp/logexp
+COPY docker /opt/logexp/docker
+COPY gunicorn.conf.py /opt/logexp/gunicorn.conf.py
+COPY wsgi.py /opt/logexp/wsgi.py
+COPY alembic.ini /opt/logexp/alembic.ini
 
-# Gunicorn config (already in repo root)
-# FLASK_APP used by flask CLI, gunicorn uses wsgi:app
+# Explicitly copy migrations (critical for schema sync)
+COPY logexp/migrations /opt/logexp/logexp/migrations
+
+# Explicitly copy instance directory (SQLite dev/test/CI)
+COPY instance /opt/logexp/instance
+
+# Gunicorn + Flask config
 ENV FLASK_APP=logexp.app
 ENV FLASK_ENV=production
 
-# Entrypoint (migrations + seeding)
+# Entrypoint (handles migrations + seeding)
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
