@@ -19,6 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY docker-requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir -r docker-requirements.txt
 
+# Copy full application source into builder stage
+COPY . .
+
 # =========================
 # Runtime stage
 # =========================
@@ -34,14 +37,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages
+# Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
-# Copy app code
-COPY . .
+# Copy full application tree from builder (NOT from runtime context)
+COPY --from=builder /opt/logexp /opt/logexp
 
 # Gunicorn config (already in repo root)
-# FLASK_APP used by flask CLI, gunicorn uses wsgi:app
 ENV FLASK_APP=logexp.app
 ENV FLASK_ENV=production
 
