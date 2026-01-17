@@ -5,7 +5,7 @@
 # =============================================================================
 
 .PHONY: \
-	bootstrap ci test lint typecheck \
+	bootstrap ci ci-hard test test-clean lint typecheck format format-check \
 	guard-build-context \
 	docker-build docker-build-no-cache image-export deploy-image \
 	up-pi down image-pipeline \
@@ -68,22 +68,43 @@ guard-build-context: ## Ensure Docker build context is large enough (prevents ac
 bootstrap: ## Create venv and install development dependencies
 	$(call timed,"Bootstrapping development environment", \
 		$(PYTHON) -m venv $(VENV) && \
-		$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt \
+		$(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt && \
+		black --version \
 	)
 
-ci: ## Run full CI pipeline (venv + deps + pytest)
+ci: ## Run full CI pipeline (venv + deps + black + pytest)
 	$(call timed,"CI: Creating virtual environment", $(PYTHON) -m venv $(VENV))
 	$(call timed,"CI: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
+	$(call timed,"CI: Running Black", $(ACTIVATE) && black --check .)
 	$(call timed,"CI: Running pytest", $(ACTIVATE) && pytest -vv)
+
+ci-hard: ## Full clean-room CI: remove venv, recreate, install, format-check, lint, typecheck, pytest
+	$(call timed,"CI-HARD: Removing existing venv", rm -rf $(VENV))
+	$(call timed,"CI-HARD: Creating fresh venv", $(PYTHON) -m venv $(VENV))
+	$(call timed,"CI-HARD: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
+	$(call timed,"CI-HARD: Black format check", $(ACTIVATE) && black --check .)
+	$(call timed,"CI-HARD: Ruff lint", $(ACTIVATE) && ruff check .)
+	$(call timed,"CI-HARD: Mypy strict typecheck", $(ACTIVATE) && mypy --strict logexp)
+	$(call timed,"CI-HARD: Running pytest", $(ACTIVATE) && pytest -vv)
 
 test: ## Run pytest locally
 	$(call timed,"Running pytest", $(ACTIVATE) && pytest -vv)
+
+test-clean: ## Remove caches and run pytest cleanly
+	$(call timed,"TEST-CLEAN: Removing caches", rm -rf .pytest_cache && find . -name '*.pyc' -delete)
+	$(call timed,"TEST-CLEAN: Running pytest", $(ACTIVATE) && pytest -vv)
 
 lint: ## Run Ruff linter
 	$(call timed,"Ruff lint", $(ACTIVATE) && ruff check .)
 
 typecheck: ## Run mypy strict typechecking
 	$(call timed,"Mypy strict typecheck", $(ACTIVATE) && mypy --strict logexp)
+
+format: ## Run Black autoformatter
+	$(call timed,"Black format", $(ACTIVATE) && black .)
+
+format-check: ## Run Black in check-only mode
+	$(call timed,"Black format check", $(ACTIVATE) && black --check .)
 
 # =============================================================================
 # Docker lifecycle
