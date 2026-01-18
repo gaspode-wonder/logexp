@@ -1,11 +1,35 @@
+# filename: .gitignore
+
+# --- Python environments ---
 .venv/
+venv/
+env/
+
+# --- Python bytecode ---
 __pycache__/
 *.pyc
+
+# --- Flask instance data ---
 instance/
+
+# --- SQLite databases ---
 *.sqlite3
+
+# --- Environment files ---
 .env
+
+# --- macOS metadata ---
 .DS_Store
+
+# --- VS Code ---
 .vscode/
+
+# --- Project artifacts ---
 analytics.png
 notes.md
 PR_BODY.md
+
+# --- Archives ---
+*.tar
+*.gz
+logexp-prod.tar.gz
