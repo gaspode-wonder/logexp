@@ -10,11 +10,11 @@ services:
       POSTGRES_PASSWORD: logexp
       POSTGRES_DB: logexp
     volumes:
-      - logexp_db_data_v3:/var/lib/postgresql/data
+      - logexp_db_data_v3:/var/lib/postgresql/
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U logexp -d logexp"]
+      test: [ "CMD-SHELL", "pg_isready -U logexp -d logexp" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +31,7 @@ services:
       SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@postgres:5432/logexp"
       LOCAL_TIMEZONE: "UTC"
       GEIGER_THRESHOLD: "0.1"
-      START_POLLER: "False"        # Pi server does NOT poll hardware
+      START_POLLER: "False" # Pi server does NOT poll hardware
       LOGEXP_NODE_ID: "pi-node"
       TELEMETRY_ENABLED: "True"
       TELEMETRY_INTERVAL_SECONDS: "30"
@@ -43,7 +43,7 @@ services:
       - 0.0.0.0:8000
       - logexp.app:create_app()
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 5
