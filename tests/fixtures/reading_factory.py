@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from typing import Iterable, List, Tuple
 
 import pytest
-from analytics.engine import ReadingSample
 
+from analytics.engine import ReadingSample
 from app.extensions import db
 from app.models import LogExpReading
 

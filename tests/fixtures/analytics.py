@@ -3,6 +3,7 @@
 import datetime as dt
 
 import pytest
+
 from analytics.engine import AnalyticsEngine, ReadingSample
 
 

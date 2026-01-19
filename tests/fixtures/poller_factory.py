@@ -6,11 +6,11 @@ Fixtures for constructing Poller instances in a deterministic, test-safe way.
 
 from typing import Any, Iterable, Optional
 
-import poller as poller_module
 import pytest
+
+import poller as poller_module
 from poller import Poller
 from poller_config import PollerConfig
-
 from tests.fixtures.poller.fake_ingestion import FakeIngestion
 from tests.fixtures.poller.fake_serial import FakeSerial
 

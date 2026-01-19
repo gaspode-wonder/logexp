@@ -1,7 +1,7 @@
 # tests/test_logging.py
 import logging
 
-from logexp.app import create_app
+from app import create_app
 
 
 def test_structured_logging_outputs_valid_json(caplog):

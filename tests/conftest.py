@@ -39,11 +39,6 @@ from app.extensions import db
 from tests.fixtures.analytics import shift, ts_base  # noqa: F401
 from tests.fixtures.analytics_engine import analytics_engine  # noqa: F401
 from tests.fixtures.poller_factory import make_poller  # noqa: F401
-from tests.fixtures.reading_factory import (
-    make_batch,
-    make_reading,
-    reading_factory,
-)  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Flask application fixtures

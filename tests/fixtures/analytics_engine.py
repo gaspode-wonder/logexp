@@ -7,6 +7,7 @@ Fixtures for the pure AnalyticsEngine.
 from datetime import datetime, timedelta, timezone
 
 import pytest
+
 from analytics.engine import AnalyticsEngine, ReadingSample
 
 

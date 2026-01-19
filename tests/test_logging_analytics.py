@@ -2,10 +2,10 @@
 import logging
 from datetime import datetime, timezone
 
-from logexp.app import create_app
-from logexp.app.extensions import db
-from logexp.app.ingestion import ingest_readings
-from logexp.app.services.analytics import run_analytics
+from app import create_app
+from app.extensions import db
+from app.ingestion import ingest_readings
+from app.services.analytics import run_analytics
 
 
 def test_ingestion_logging_contract(caplog):
