@@ -9,7 +9,8 @@ import time
 from typing import Any, Dict
 
 from flask import Response, jsonify, request
-from logexp.app.logging_setup import get_logger
+
+from app.logging_setup import get_logger
 
 from . import bp_diagnostics_runtime
 

@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from flask import render_template, request
-from logexp.app.bp.docs import bp_docs
-from logexp.app.logging_setup import get_logger
+
+from app.bp.docs import bp_docs
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.docs")
 

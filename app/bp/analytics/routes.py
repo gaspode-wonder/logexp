@@ -6,12 +6,13 @@ import datetime
 from typing import Any
 
 from flask import Response, render_template, request
-from logexp.app import db
-from logexp.app.bp.analytics import bp_analytics
-from logexp.app.logging_setup import get_logger
-from logexp.app.services.analytics import compute_window, run_analytics
-from logexp.app.services.analytics_export import export_readings_to_csv
-from logexp.app.services.analytics_readings import summarize_readings
+
+from app.bp.analytics import bp_analytics
+from app.extensions import db
+from app.logging_setup import get_logger
+from app.services.analytics import compute_window, run_analytics
+from app.services.analytics_export import export_readings_to_csv
+from app.services.analytics_readings import summarize_readings
 
 logger = get_logger("logexp.analytics")
 

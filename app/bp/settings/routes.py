@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from flask import current_app, redirect, render_template, request, url_for
-from logexp.app.bp.settings import bp_settings
-from logexp.app.geiger import list_serial_ports
-from logexp.app.logging_setup import get_logger
+
+from app.bp.settings import bp_settings
+from app.geiger import list_serial_ports
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.settings")
 

@@ -8,7 +8,8 @@ a clean, explicit, modern blueprint registration mechanism.
 from __future__ import annotations
 
 from flask import Flask
-from logexp.app.logging_setup import get_logger
+
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.blueprints")
 

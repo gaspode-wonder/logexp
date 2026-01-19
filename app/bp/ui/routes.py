@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from flask import current_app, redirect, render_template, request, url_for
-from logexp.app.bp.ui import bp_ui
-from logexp.app.extensions import db
-from logexp.app.logging_setup import get_logger
-from logexp.app.models import LogExpReading
+
+from app.bp.ui import bp_ui
+from app.extensions import db
+from app.logging_setup import get_logger
+from app.models import LogExpReading
 
 logger = get_logger("logexp.ui")
 

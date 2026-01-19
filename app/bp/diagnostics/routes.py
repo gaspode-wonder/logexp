@@ -6,10 +6,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from flask import jsonify, render_template
-from logexp.app.logging_setup import get_logger
-from logexp.app.services.analytics_diagnostics import get_analytics_status
-from logexp.app.services.database_diagnostics import get_database_status
-from logexp.app.services.ingestion import get_ingestion_status
+
+from app.logging_setup import get_logger
+from app.services.analytics_diagnostics import get_analytics_status
+from app.services.database_diagnostics import get_database_status
+from app.services.ingestion import get_ingestion_status
 
 # Import the singleton blueprint defined in __init__.py
 from . import bp_diagnostics

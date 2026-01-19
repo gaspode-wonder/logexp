@@ -5,13 +5,14 @@ from typing import Any
 
 from flask import current_app, jsonify, request
 from flask.typing import ResponseReturnValue
-from logexp.app import db
-from logexp.app.bp.api import bp_api
-from logexp.app.geiger import list_serial_ports, read_geiger, try_port
-from logexp.app.logging_setup import get_logger
-from logexp.app.models import LogExpReading
-from logexp.app.schemas import ReadingCreate, ReadingResponse
 from sqlalchemy import desc
+
+from app.bp.api import bp_api
+from app.extensions import db
+from app.geiger import list_serial_ports, read_geiger, try_port
+from app.logging_setup import get_logger
+from app.models import LogExpReading
+from app.schemas import ReadingCreate, ReadingResponse
 
 logger = get_logger("logexp.api")
 
@@ -278,10 +279,10 @@ def diagnostics_api() -> Any:
 
     from datetime import datetime, timezone
 
-    from logexp.app.services.analytics_diagnostics import get_analytics_status
-    from logexp.app.services.database_diagnostics import get_database_status
-    from logexp.app.services.ingestion import get_ingestion_status
-    from logexp.app.services.poller import get_poller_status
+    from app.services.analytics_diagnostics import get_analytics_status
+    from app.services.database_diagnostics import get_database_status
+    from app.services.ingestion import get_ingestion_status
+    from app.services.poller import get_poller_status
 
     config = getattr(current_app, "config_obj", {})
     now = datetime.now(timezone.utc)

@@ -1,28 +1,30 @@
-# filename: logexp/app/auth/routes.py
+# filename: app/auth/routes.py
+
+from __future__ import annotations
 
 from flask import jsonify, request, session
-from logexp.app.auth import bp_auth
-from logexp.app.auth.decorators import login_required
-from logexp.app.models import User
+from flask.typing import ResponseReturnValue
+
+from app.auth import bp_auth
+from app.auth.decorators import login_required
+from app.models import User
 
 
 @bp_auth.post("/login")
-def login():
-    data = request.get_json() or {}
+def login() -> ResponseReturnValue:
+    data = request.get_json(silent=True) or {}
     username = data.get("username")
     password = data.get("password")
 
     if not username or not password:
         return jsonify({"error": "Missing credentials"}), 400
 
-    # Step 1: allow union type here
+    # Query returns User | None
     result = User.query.filter_by(username=username).first()
 
-    # Step 2: eliminate the None branch
     if result is None:
         return jsonify({"error": "Invalid username or password"}), 401
 
-    # Step 3: rebind to a concrete type
     user: User = result
 
     if not user.check_password(password):
@@ -33,13 +35,17 @@ def login():
 
 
 @bp_auth.post("/logout")
-def logout():
+def logout() -> ResponseReturnValue:
     session.pop("user_id", None)
     return jsonify({"message": "Logged out"})
 
 
 @bp_auth.get("/me")
 @login_required
-def me():
-    user = User.query.get(session["user_id"])
+def me() -> ResponseReturnValue:
+    from app.auth.current_user import current_user
+
+    user = current_user()
+    assert user is not None  # login_required guarantees this
+
     return jsonify({"username": user.username})
