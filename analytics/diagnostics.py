@@ -6,7 +6,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from logexp.app.logging_setup import get_logger
+from app.logging_setup import get_logger
 
 from .engine import AnalyticsEngine, AnalyticsResult, ReadingSample
 

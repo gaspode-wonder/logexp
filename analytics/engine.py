@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
-from logexp.app.logging_setup import get_logger
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.analytics")
 

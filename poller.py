@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Union
 
 import serial
-from logexp.app.logging_setup import get_logger
-from logexp.poller_config import PollerConfig
+from poller_config import PollerConfig
+
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.poller")
 
@@ -90,7 +91,7 @@ class Poller:
             return self._poll_serial()
 
         # Defensive branch: unreachable in type space but valid at runtime.
-        logger.error(  # type: ignore[unreachable]
+        logger.error(
             "unknown_poller_mode",
             extra={"mode": self.config.mode},
         )

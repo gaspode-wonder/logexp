@@ -9,7 +9,7 @@ and safe for ingestion into the database.
 
 from __future__ import annotations
 
-from logexp.app.logging_setup import get_logger
+from app.logging_setup import get_logger
 
 log = get_logger("logexp.validation.ingestion_validator")
 

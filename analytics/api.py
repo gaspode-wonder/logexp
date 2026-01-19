@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Iterable, List
 
-from logexp.app.logging_setup import get_logger
+from app.logging_setup import get_logger
 
 from .engine import AnalyticsEngine, AnalyticsResult, ReadingSample
 

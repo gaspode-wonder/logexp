@@ -6,11 +6,11 @@ Fixtures for constructing Poller instances in a deterministic, test-safe way.
 
 from typing import Any, Iterable, Optional
 
+import poller as poller_module
 import pytest
+from poller import Poller
+from poller_config import PollerConfig
 
-import logexp.poller as poller_module
-from logexp.poller import Poller
-from logexp.poller_config import PollerConfig
 from tests.fixtures.poller.fake_ingestion import FakeIngestion
 from tests.fixtures.poller.fake_serial import FakeSerial
 
@@ -20,12 +20,6 @@ def make_poller(monkeypatch):
     """
     Factory fixture for creating Poller instances with controlled config
     and deterministic ingestion behavior.
-
-    Supports:
-      - config: PollerConfig (preferred, required going forward)
-      - fake_serial_items: iterable of bytes or items for FakeSerial
-      - ingestion: custom ingestion object (overrides FakeIngestion)
-      - fail_ingestion: bool to force ingestion failures via FakeIngestion
     """
 
     def _make(
@@ -34,12 +28,9 @@ def make_poller(monkeypatch):
         ingestion: Optional[Any] = None,
         fail_ingestion: bool = False,
     ) -> Poller:
-        # Default config: fake mode with default frame value
         if config is None:
             config = PollerConfig(mode="fake")
 
-        # If tests provide fake_serial_items, patch serial.Serial and ensure
-        # a non-empty serial_port so Poller enters "serial" mode.
         if fake_serial_items is not None:
 
             def _fake_serial(*args: Any, **kwargs: Any) -> FakeSerial:
@@ -50,12 +41,7 @@ def make_poller(monkeypatch):
             if config.mode == "serial" and not config.serial_port:
                 config.serial_port = "/dev/ttyFAKE"
 
-        # Ingestion: either a custom ingestion or our FakeIngestion
-        if ingestion is not None:
-            ingestion_impl = ingestion
-        else:
-            ingestion_impl = FakeIngestion(should_fail=fail_ingestion)
-
+        ingestion_impl = ingestion or FakeIngestion(should_fail=fail_ingestion)
         return Poller(config, ingestion_impl)
 
     return _make

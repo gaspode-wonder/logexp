@@ -6,10 +6,11 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, cast
 
 from flask import current_app
-from logexp.app.extensions import db
-from logexp.app.models import LogExpReading
 from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
+
+from app.extensions import db
+from app.models import LogExpReading
 
 # ----------------------------------------------------------------------
 # Logger MUST be named "logexp.analytics" to satisfy test expectations.

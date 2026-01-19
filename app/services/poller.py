@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from flask import current_app
-from logexp.app.logging_setup import get_logger
+
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.poller")
 

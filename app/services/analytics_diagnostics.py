@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from flask import current_app
-from logexp.app.logging_setup import get_logger
-from logexp.app.services.analytics_readings import load_recent_readings, summarize_readings
+
+from app.logging_setup import get_logger
+from app.services.analytics_readings import load_recent_readings, summarize_readings
 
 logger = get_logger("logexp.analytics_diagnostics")
 

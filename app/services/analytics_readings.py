@@ -10,9 +10,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Iterable, List, Sequence
 
-from logexp.app.extensions import db
-from logexp.app.models import Reading
 from sqlalchemy import select
+
+from app.extensions import db
+from app.models import Reading
 
 
 def load_recent_readings(window_seconds: int) -> List[Reading]:

@@ -1,13 +1,23 @@
 # filename: tests/conftest.py
 
 """
-Global pytest fixtures for LogExp.
+Global pytest fixtures for the Beamfoundry application.
 
 Ensures:
 - Flask app + DB fixtures are available
 - analytics + poller fixtures are imported
 - reading_factory is available
 """
+
+# ---------------------------------------------------------------------------
+# Ensure project root is importable (fixes pytest discovery in VS Code)
+# ---------------------------------------------------------------------------
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 # ---------------------------------------------------------------------------
 # Standard imports
@@ -18,22 +28,22 @@ from freezegun import freeze_time
 # ---------------------------------------------------------------------------
 # Application imports
 # ---------------------------------------------------------------------------
-from logexp.app import create_app
-from logexp.app.extensions import db
-from tests.fixtures.analytics import shift, ts_base  # noqa: F401
-from tests.fixtures.analytics_engine import analytics_engine  # noqa: F401
-from tests.fixtures.poller_factory import make_poller  # noqa: F401
+from app import create_app
+from app.extensions import db
 
 # ---------------------------------------------------------------------------
 # Fixture imports (import NAMES, not modules)
 # These imports are intentionally unused — pytest registers fixtures by name.
 # Ruff must be silenced with noqa: F401.
 # ---------------------------------------------------------------------------
-from tests.fixtures.reading_factory import (  # noqa: F401
+from tests.fixtures.analytics import shift, ts_base  # noqa: F401
+from tests.fixtures.analytics_engine import analytics_engine  # noqa: F401
+from tests.fixtures.poller_factory import make_poller  # noqa: F401
+from tests.fixtures.reading_factory import (
     make_batch,
     make_reading,
     reading_factory,
-)
+)  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Flask application fixtures

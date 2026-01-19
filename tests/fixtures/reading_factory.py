@@ -6,10 +6,10 @@ from datetime import datetime, timezone
 from typing import Iterable, List, Tuple
 
 import pytest
+from analytics.engine import ReadingSample
 
-from logexp.analytics.engine import ReadingSample
-from logexp.app.extensions import db
-from logexp.app.models import LogExpReading
+from app.extensions import db
+from app.models import LogExpReading
 
 # ---------------------------------------------------------------------------
 # DB-backed factory for integration tests (unit/test_analytics.py, etc.)

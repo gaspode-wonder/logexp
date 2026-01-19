@@ -6,10 +6,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, cast
 
 from flask import current_app
-from logexp.app.extensions import db
-from logexp.app.logging_setup import get_logger
-from logexp.app.models import LogExpReading
-from logexp.app.typing import LogExpFlask
+
+from app.extensions import db
+from app.logging_setup import get_logger
+from app.models import LogExpReading
+from app.typing import LogExpFlask
 
 logger = get_logger("logexp.ingestion")
 
@@ -86,7 +87,7 @@ def ingest_reading(payload: Dict[str, Any]) -> Optional[LogExpReading]:
 
 
 def load_historical_readings(limit: Optional[int] = None) -> Any:
-    from logexp.app.models import LogExpReading
+    from app.models import LogExpReading
 
     query = db.session.query(LogExpReading).order_by(LogExpReading.timestamp.desc())
     if limit:

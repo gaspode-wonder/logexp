@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Any, Dict, cast
 
 from flask import current_app
-from logexp.app.extensions import db
-from logexp.app.logging_setup import get_logger
-from logexp.app.typing import LogExpFlask
 from sqlalchemy import text
+
+from app.extensions import db
+from app.logging_setup import get_logger
+from app.typing import LogExpFlask
 
 logger = get_logger("logexp.database_diagnostics")
 

@@ -3,8 +3,7 @@
 import datetime as dt
 
 import pytest
-
-from logexp.analytics.engine import AnalyticsEngine, ReadingSample
+from analytics.engine import AnalyticsEngine, ReadingSample
 
 
 @pytest.fixture

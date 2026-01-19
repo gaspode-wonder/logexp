@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import cast
 from zoneinfo import ZoneInfo
 
-from logexp.app.logging_setup import get_logger
+from app.logging_setup import get_logger
 
 log = get_logger("logexp.validation.config_validator")
 
