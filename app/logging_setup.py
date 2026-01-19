@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from typing import List
 
-from logexp.app.logging import StructuredFormatter
+from app.logging import StructuredFormatter
 
 # Dedicated logger for setup events
 _setup_logger = logging.getLogger("logexp.logging.setup")
