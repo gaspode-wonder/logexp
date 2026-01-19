@@ -7,7 +7,7 @@ import threading
 import time
 from typing import Any, Optional
 
-from logexp.app.logging_setup import get_logger
+from app.logging_setup import get_logger
 
 
 class GeigerPoller:
@@ -108,9 +108,9 @@ class GeigerPoller:
         """
         with self.app.app_context():
             # Lazy imports to avoid circular dependencies
-            from logexp.app.extensions import db
-            from logexp.app.geiger import parse_geiger_line, read_geiger
-            from logexp.app.ingestion import ingest_reading
+            from app.extensions import db
+            from app.geiger import parse_geiger_line, read_geiger
+            from app.ingestion import ingest_reading
 
             config: dict[str, Any] = self.app.config_obj
 

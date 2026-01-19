@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from logexp.poller_config import PollerConfig
+from poller_config import PollerConfig
 
 
 def _make_serial_poller(make_poller: Any, fake_items: Iterable[Any]) -> Any:

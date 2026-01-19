@@ -1,6 +1,6 @@
 # filename: tests/unit/poller/test_diagnostics.py
 
-from logexp.poller_config import PollerConfig
+from poller_config import PollerConfig
 
 
 def test_diagnostics_fake_mode(make_poller):

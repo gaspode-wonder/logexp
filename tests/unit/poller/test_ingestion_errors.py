@@ -1,6 +1,7 @@
 # filename: tests/unit/poller/test_ingestion_errors.py
 
-from logexp.poller_config import PollerConfig
+from poller_config import PollerConfig
+
 from tests.fixtures.poller.fake_ingestion import FakeIngestion
 
 

@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Union
 
 import serial
-from poller_config import PollerConfig
 
 from app.logging_setup import get_logger
+from poller_config import PollerConfig
 
 logger = get_logger("logexp.poller")
 
