@@ -349,7 +349,7 @@ LogExp contains two analytics layers:
    - DB‑free
    - future ingestion/control‑plane foundation
 
-2. **Legacy DB Analytics** (`logexp.app.services.analytics`)
+2. **Legacy DB Analytics** (`app.services.analytics`)
    - SQLAlchemy queries
    - legacy dict output
    - transitional compatibility layer

@@ -381,7 +381,7 @@ Just say the word.
 
 ### Beamwarden
 - **Inventory:** Source of truth for nodes (Pi‑Log, LogExp instances, other roles).
-- **Telemetry:** Receives and aggregates telemetry from LogExp and/or Pi‑Log.
+- **Telemetry:** Receives and aggregates telemetry from beamfoundry and/or Pi‑Log.
 - **Orchestration:** Manages deployments, upgrades, and configuration.
 - **Security:** SSH keys, roles, audit trails.
 

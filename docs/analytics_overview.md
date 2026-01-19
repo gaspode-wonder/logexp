@@ -5,7 +5,7 @@ This document defines the canonical architecture for analytics in LogExp.
 It formalizes the separation between:
 
 1. The **pure in‑memory analytics engine** (`logexp.analytics.engine`)
-2. The **legacy DB‑backed analytics pipeline** (`logexp.app.services.analytics`)
+2. The **legacy DB‑backed analytics pipeline** (`app.services.analytics`)
 
 These layers serve different purposes and must not be merged.
 
@@ -45,7 +45,7 @@ The pure engine is the **future** of analytics in LogExp.
 
 ## 2. Legacy DB Analytics Pipeline (Compatibility Layer)
 
-**Module:** `logexp.app.services.analytics`
+**Module:** `app.services.analytics`
 **Type:** Transitional adapter
 **Input:** SQLAlchemy `LogExpReading` rows
 **Output:** Legacy dict shape:
@@ -125,7 +125,7 @@ This map clarifies the two analytics layers and their boundaries.
 
 ### 4.2 Legacy DB Analytics (Compatibility Layer)
 
-**Module:** `logexp.app.services.analytics`
+**Module:** `app.services.analytics`
 **Functions:**
 
 - `compute_window`
