@@ -2,7 +2,7 @@
 
 import pytest
 
-from logexp.app.models import LogExpReading
+from app.models import LogExpReading
 
 
 @pytest.mark.usefixtures("test_client")

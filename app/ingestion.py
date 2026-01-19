@@ -1,7 +1,7 @@
 """
 Compatibility shim for legacy import paths.
 
-Modern ingestion lives in logexp.app.services.ingestion.
+Modern ingestion lives in app.services.ingestion.
 This module ONLY provides:
   - legacy payload normalization
   - legacy payload translation
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List
 
-from logexp.app.services.ingestion import ingest_reading
+from app.services.ingestion import ingest_reading
 
 # ---------------------------------------------------------------------------
 # Legacy payload normalization + translation

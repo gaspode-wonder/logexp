@@ -4,8 +4,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from logexp.app.logging_setup import get_logger
 from pydantic import BaseModel, Field
+
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.schemas")
 

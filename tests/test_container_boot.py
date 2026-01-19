@@ -2,7 +2,7 @@
 
 import os
 
-from logexp.app import create_app
+from app import create_app
 
 
 def test_create_app_smoke() -> None:

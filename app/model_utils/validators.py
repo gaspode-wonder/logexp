@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from logexp.app.logging_setup import get_logger
 from sqlalchemy.orm import validates
+
+from app.logging_setup import get_logger
 
 log = get_logger(__name__)
 

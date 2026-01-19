@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from logexp.app.models import LogExpReading
+from app.models import LogExpReading
 
 
 def test_timestamp_serialization_is_utc():

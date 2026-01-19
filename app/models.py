@@ -1,4 +1,4 @@
-# filename: logexp/app/models.py
+# filename: app/models.py
 
 from __future__ import annotations
 
@@ -8,18 +8,24 @@ from zoneinfo import ZoneInfo
 
 from flask import current_app
 from flask_login import UserMixin
-from logexp.app.db_types import UTCDateTime
-from logexp.app.extensions import Base, db
-from logexp.app.logging_setup import get_logger
-from logexp.app.typing import LogExpFlask
-from sqlalchemy import String
+from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from werkzeug.security import check_password_hash, generate_password_hash
+
+from app.db_types import UTCDateTime
+from app.extensions import db
+from app.logging_setup import get_logger
+from app.typing import LogExpFlask
 
 logger = get_logger("logexp.models")
 
 
-class LogExpReading(Base):
+# ---------------------------------------------------------------------------
+# LogExpReading
+# ---------------------------------------------------------------------------
+
+
+class LogExpReading(db.Model):
     __tablename__ = "logexp_readings"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -109,21 +115,25 @@ Reading = LogExpReading
 
 
 # ---------------------------------------------------------------------------
-# User model for authentication
+# User model — unified under Flask-SQLAlchemy
 # ---------------------------------------------------------------------------
 
 
 class User(db.Model, UserMixin):
     __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-    created_at = db.Column(
-        db.DateTime(timezone=True),
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+
+    def __init__(self, username: str, password_hash: str) -> None:
+        self.username = username
+        self.password_hash = password_hash
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)

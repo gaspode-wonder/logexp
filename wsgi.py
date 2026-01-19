@@ -9,8 +9,8 @@ running the actual server (not tests, not shell, not CLI).
 
 from __future__ import annotations
 
-from logexp.app import create_app
-from logexp.app.logging_setup import get_logger
+from app import create_app
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.wsgi")
 
@@ -21,7 +21,7 @@ logger.debug("wsgi_app_created")
 if app.config_obj.get("START_POLLER", False):
     logger.debug("wsgi_poller_start_requested")
 
-    from logexp.app.poller import GeigerPoller
+    from app.poller import GeigerPoller
 
     poller = GeigerPoller(app)
     poller.start()

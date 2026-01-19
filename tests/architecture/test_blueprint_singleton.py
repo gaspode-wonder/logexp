@@ -1,5 +1,5 @@
-import logexp.app.bp.diagnostics as pkg
-import logexp.app.bp.diagnostics.routes as routes
+import app.bp.diagnostics as pkg
+import app.bp.diagnostics.routes as routes
 
 
 def test_diagnostics_blueprint_is_singleton():

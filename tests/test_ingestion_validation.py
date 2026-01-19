@@ -1,6 +1,6 @@
 # filename: tests/test_ingestion_validation.py
 
-from logexp.validation.ingestion_validator import validate_ingestion_payload
+from validation.ingestion_validator import validate_ingestion_payload
 
 
 def test_null_field_rejected():

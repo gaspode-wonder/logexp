@@ -3,7 +3,7 @@
 import os
 from typing import Any, Dict
 
-from logexp.app.config import load_config
+from app.config import load_config
 
 
 def _with_env(overrides: Dict[str, str]) -> Dict[str, Any]:

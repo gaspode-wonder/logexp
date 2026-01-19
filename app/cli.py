@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from flask import Flask, current_app
-from logexp.app.extensions import db
+
+from app.extensions import db
 
 
 def register_cli(app: Flask) -> None:
@@ -27,7 +28,7 @@ def register_cli(app: Flask) -> None:
 
     @app.cli.command("seed-data")
     def seed_data() -> None:
-        from logexp.seeds import seed_data
+        from seeds import seed_data
 
         seed_data.run(app)
         current_app.logger.info("Database seeded (idempotent).")

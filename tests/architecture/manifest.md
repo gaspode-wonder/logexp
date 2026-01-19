@@ -23,7 +23,7 @@ They protect the *shape* of the system.
    duplicate module identity.
 
 3. **Ensure import‑time safety**
-   No module in `logexp.app.services` should raise an exception at import
+   No module in `app.services` should raise an exception at import
    time. Import‑time failures silently break blueprints and diagnostics.
 
 4. **Ensure diagnostics stability**
@@ -32,7 +32,7 @@ They protect the *shape* of the system.
 
 5. **Ensure module identity uniqueness**
    A module should only be imported under a single identity. Multiple
-   identities (e.g., `logexp.app.bp.diagnostics` vs `logexp.bp.diagnostics`)
+   identities (e.g., `app.bp.diagnostics` vs `logexp.bp.diagnostics`)
    create duplicate namespaces and break blueprint registration.
 
 6. **Ensure blueprint definitions live in the correct place**

@@ -1,5 +1,5 @@
 # test/test_routes.py
-from logexp.seeds.seed_data import seed_test_data
+from seeds.seed_data import seed_test_data
 
 
 def test_health_endpoint(test_app, test_client):

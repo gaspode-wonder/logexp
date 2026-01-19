@@ -1,7 +1,7 @@
 import importlib
 import pkgutil
 
-import logexp.app.services as services
+import app.services as services
 
 
 def test_service_modules_import_cleanly():

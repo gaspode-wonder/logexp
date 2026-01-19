@@ -4,8 +4,8 @@
 
 import datetime
 
-from logexp.app.extensions import db
-from logexp.app.services.analytics import compute_window, run_analytics
+from app.extensions import db
+from app.services.analytics import compute_window, run_analytics
 
 FIXED_NOW = datetime.datetime(2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
 

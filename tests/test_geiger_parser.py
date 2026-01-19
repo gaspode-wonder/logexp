@@ -1,5 +1,5 @@
 # tests/test_geiger_parser.py
-from logexp.app.geiger import parse_geiger_line
+from app.geiger import parse_geiger_line
 
 
 def test_slow_mode_default():

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from logexp.app import create_app
+from app import create_app
 
 
 def main() -> None:

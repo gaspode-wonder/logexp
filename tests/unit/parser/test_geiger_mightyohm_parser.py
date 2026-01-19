@@ -1,6 +1,6 @@
 # filename: tests/unit/parser/test_mightyohm_parser.py
 
-from logexp.parsers.mightyohm import parse_mightyohm_csv
+from parsers.mightyohm import parse_mightyohm_csv
 
 
 def test_mightyohm_valid_line():

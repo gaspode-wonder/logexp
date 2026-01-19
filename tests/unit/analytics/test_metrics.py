@@ -2,7 +2,7 @@
 
 import datetime as dt
 
-from logexp.analytics.engine import AnalyticsEngine, ReadingSample
+from analytics.engine import AnalyticsEngine, ReadingSample
 
 
 def test_metrics_empty_window():

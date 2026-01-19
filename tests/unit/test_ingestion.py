@@ -1,8 +1,8 @@
 # test/unit/test_ingestion.py
 import pytest
 
-from logexp.app.ingestion import ingest_reading
-from logexp.app.models import LogExpReading
+from app.ingestion import ingest_reading
+from app.models import LogExpReading
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def test_ingest_reading_rollback_on_error(test_app, db_session, monkeypatch, par
     def boom():
         raise RuntimeError("forced commit failure")
 
-    monkeypatch.setattr("logexp.app.extensions.db.session.commit", boom)
+    monkeypatch.setattr("app.extensions.db.session.commit", boom)
 
     with test_app.app_context():
         with pytest.raises(RuntimeError):

@@ -10,13 +10,13 @@ import importlib
 import sys
 
 BLUEPRINT_PACKAGES = [
-    "logexp.app.bp.ui",
-    "logexp.app.bp.api",
-    "logexp.app.bp.settings",
-    "logexp.app.bp.diagnostics",
-    "logexp.app.bp.analytics",
-    "logexp.app.bp.docs",
-    "logexp.app.bp.about",
+    "app.bp.ui",
+    "app.bp.api",
+    "app.bp.settings",
+    "app.bp.diagnostics",
+    "app.bp.analytics",
+    "app.bp.docs",
+    "app.bp.about",
 ]
 
 

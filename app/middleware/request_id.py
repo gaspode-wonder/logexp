@@ -6,8 +6,9 @@ import uuid
 from typing import cast
 
 from flask import Flask, Response, request
-from logexp.app.logging_setup import get_logger
-from logexp.app.typing import LogExpRequest
+
+from app.logging_setup import get_logger
+from app.typing import LogExpRequest
 
 logger = get_logger("logexp.middleware.request_id")
 

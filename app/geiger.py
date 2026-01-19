@@ -6,7 +6,8 @@ from typing import Any, Dict, List
 
 import serial
 import serial.tools.list_ports
-from logexp.app.logging_setup import get_logger
+
+from app.logging_setup import get_logger
 
 logger = get_logger("logexp.geiger")
 

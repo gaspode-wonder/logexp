@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_no_blueprint_redefinition():
-    routes_path = Path("logexp/app/bp/diagnostics/routes.py")
+    routes_path = Path("app/bp/diagnostics/routes.py")
     tree = ast.parse(routes_path.read_text())
 
     for node in ast.walk(tree):

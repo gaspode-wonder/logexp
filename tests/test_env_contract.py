@@ -1,6 +1,6 @@
 # tests/test_env_contract.py
 
-from logexp.app.config import OPTIONAL_ENV_VARS, REQUIRED_ENV_VARS
+from app.config import OPTIONAL_ENV_VARS, REQUIRED_ENV_VARS
 
 
 def test_required_env_vars_are_documented_and_unique() -> None:
