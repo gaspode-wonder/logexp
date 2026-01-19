@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from logexp.app import create_app
-from logexp.app.extensions import db
+from app import create_app
+from app.extensions import db
 
 
 def main() -> None:

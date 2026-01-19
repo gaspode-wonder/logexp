@@ -1,11 +1,12 @@
-# filename: logexp/seeds/seed_data.py
+# filename: /seeds/seed_data.py
 
 from __future__ import annotations
 
 from flask import Flask
-from logexp.app.extensions import db
-from logexp.app.logging_setup import get_logger
-from logexp.app.models import LogExpReading
+
+from app.extensions import db
+from app.logging_setup import get_logger
+from app.models import LogExpReading
 
 logger = get_logger("logexp.seeds")
 
