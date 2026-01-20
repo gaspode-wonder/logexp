@@ -9,12 +9,13 @@ import time
 from typing import Any, Dict
 
 from flask import Response, jsonify, request
+from flask_login import login_required
 
 from app.logging_setup import get_logger
 
 from . import bp_diagnostics_runtime
 
-logger = get_logger("logexp.diagnostics.runtime")
+logger = get_logger("beamfoundry.diagnostics.runtime")
 
 
 def _filtered_env() -> Dict[str, str]:
@@ -31,6 +32,7 @@ def _filtered_env() -> Dict[str, str]:
 
 
 @bp_diagnostics_runtime.get("/")
+@login_required
 def runtime_diagnostics() -> Response:
     """Return runtime diagnostics as JSON."""
     logger.debug(

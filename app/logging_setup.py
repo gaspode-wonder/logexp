@@ -28,7 +28,7 @@ def configure_logging() -> None:
     handler.setFormatter(StructuredFormatter())
 
     namespaces: List[str] = [
-        "logexp.app",
+        "beamfoundry.app",
         "logexp.ingestion",
         "logexp.analytics",
         "logexp.validation",

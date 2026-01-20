@@ -5,15 +5,17 @@ from __future__ import annotations
 from typing import Any
 
 from flask import current_app, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from app.bp.settings import bp_settings
 from app.geiger import list_serial_ports
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.settings")
+logger = get_logger("beamfoundry.settings")
 
 
 @bp_settings.get("/")
+@login_required
 def settings_index() -> Any:
     logger.debug(
         "settings_index_requested",

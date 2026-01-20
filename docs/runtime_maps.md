@@ -43,7 +43,7 @@ entrypoint.sh
 
 gunicorn
 └── loads wsgi:app
-    └── imports logexp.app:create_app()
+    └── imports beamfoundry.app:create_app()
         └── initializes Flask app
         └── initializes SQLAlchemy
         └── loads blueprints
@@ -58,7 +58,7 @@ Container
 
 # Runtime Environment Variable Map
 
-FLASK_APP=logexp.app:create_app
+FLASK_APP=beamfoundry.app:create_app
 FLASK_ENV=production
 DATABASE_URL=postgresql+psycopg2://...
 RUN_MIGRATIONS=true|false

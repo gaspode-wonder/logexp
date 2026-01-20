@@ -1,7 +1,6 @@
 # filename: tests/unit/poller/test_poll_forever.py
 
 from poller_config import PollerConfig
-
 from tests.fixtures.poller.fake_ingestion import FakeIngestion
 
 

@@ -10,7 +10,7 @@ from flask import Flask, Response, request
 from app.logging_setup import get_logger
 from app.typing import LogExpRequest
 
-logger = get_logger("logexp.middleware.request_id")
+logger = get_logger("beamfoundry.middleware.request_id")
 
 
 def request_id_middleware(app: Flask) -> None:

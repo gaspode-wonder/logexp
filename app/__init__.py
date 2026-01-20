@@ -7,6 +7,7 @@ import sqlite3
 from typing import Any, Dict, Optional, Tuple
 
 from flask import render_template
+from flask_login import LoginManager
 
 from app import models  # noqa: F401
 from app.blueprints import register_blueprints
@@ -15,9 +16,13 @@ from app.config import load_config
 from app.extensions import db, migrate
 from app.logging_setup import configure_logging, get_logger
 from app.middleware.request_id import request_id_middleware
+from app.models import User
 from app.typing import LogExpFlask, LogExpRequest
 
 logger = get_logger("app")
+
+login_manager = LoginManager()
+login_manager.login_view = "ui.login_page"
 
 
 def configure_sqlite_timezone_support(app: LogExpFlask) -> None:
@@ -46,6 +51,10 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
     app.config.update(app.config_obj)
     logger.debug("config_loaded")
 
+    if app.config.get("TESTING"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        logger.debug("testing_in_memory_db_enabled")
+
     configure_sqlite_timezone_support(app)
 
     configure_logging()
@@ -56,6 +65,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
 
     db.init_app(app)
     migrate.init_app(app, db, directory="migrations")
+    login_manager.init_app(app)
     logger.debug("extensions_initialized")
 
     register_blueprints(app)
@@ -85,4 +95,9 @@ def wsgi_app() -> LogExpFlask:
     return create_app()
 
 
-__all__ = ["db", "create_app", "wsgi_app"]
+@login_manager.user_loader
+def load_user(user_id: str) -> User | None:
+    return db.session.get(User, int(user_id))
+
+
+__all__ = ["db", "create_app", "wsgi_app", "login_manager"]

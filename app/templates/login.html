@@ -1,21 +1,42 @@
-# filename: logexp/app/templates/login.html
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container" style="padding: 2rem;">
-    <h1>Login</h1>
-    <form method="post" action="/auth/login">
-        <div style="margin-bottom: 1rem;">
-            <label for="username">Username</label><br>
-            <input type="text" id="username" name="username" required>
-        </div>
+<h2>Login</h2>
 
-        <div style="margin-bottom: 1rem;">
-            <label for="password">Password</label><br>
-            <input type="password" id="password" name="password" required>
-        </div>
+<form id="login-form">
+    <label for="username">Username</label>
+    <input type="text" id="username" required>
 
-        <button type="submit">Log In</button>
-    </form>
-</div>
+    <label for="password">Password</label>
+    <input type="password" id="password" required>
+
+    <button type="button" id="login-button">Log In</button>
+</form>
+
+<div id="login-error" style="color: red; display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById("login-button").addEventListener("click", async () => {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const response = await fetch("/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            window.location.href = "/readings";
+        } else {
+            const err = document.getElementById("login-error");
+            err.textContent = data.error || "Login failed";
+            err.style.display = "block";
+        }
+    });
+</script>
 {% endblock %}

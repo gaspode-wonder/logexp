@@ -24,7 +24,7 @@ class GeigerPoller:
         self.interval: int = interval
 
         # Subsystem logger (Step‑12C)
-        self.logger = get_logger("logexp.poller")
+        self.logger = get_logger("beamfoundry.poller")
 
         # Lifecycle state
         self._running: bool = False

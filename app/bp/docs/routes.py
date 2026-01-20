@@ -5,14 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 from flask import render_template, request
+from flask_login import login_required
 
 from app.bp.docs import bp_docs
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.docs")
+logger = get_logger("beamfoundry.docs")
 
 
 @bp_docs.route("/")
+@login_required
 def docs_index() -> Any:
     logger.debug(
         "docs_index_requested",

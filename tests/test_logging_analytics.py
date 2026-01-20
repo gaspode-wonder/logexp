@@ -1,27 +1,21 @@
-# tests/test_logging_analytics.py
+# filename: tests/test_logging_analytics.py
+
 import logging
 from datetime import datetime, timezone
 
-from app import create_app
-from app.extensions import db
 from app.ingestion import ingest_readings
 from app.services.analytics import run_analytics
 
 
-def test_ingestion_logging_contract(caplog):
-    app = create_app(
-        {
-            "TESTING": True,
-            "START_POLLER": False,
-        }
-    )
-
+def test_ingestion_logging_contract(caplog, test_app):
+    """
+    Validate that ingestion emits the correct structured log messages.
+    """
     caplog.set_level(logging.INFO)
 
-    with app.app_context():
-        db.create_all()
+    with test_app.app_context():
         ingest_readings(
-            db.session,
+            test_app.extensions["sqlalchemy"].db.session,
             readings=[{"value": 1}],
             cutoff_ts=datetime.now(timezone.utc),
         )
@@ -35,18 +29,14 @@ def test_ingestion_logging_contract(caplog):
     assert "logexp.ingestion" in names
 
 
-def test_analytics_logging_contract(caplog):
-    app = create_app(
-        {
-            "TESTING": True,
-            "START_POLLER": False,
-        }
-    )
-
+def test_analytics_logging_contract(caplog, test_app):
+    """
+    Validate that analytics emits the correct structured log messages.
+    """
     caplog.set_level(logging.INFO)
 
-    with app.app_context():
-        run_analytics(db.session)
+    with test_app.app_context():
+        run_analytics(test_app.extensions["sqlalchemy"].db.session)
 
     messages = [r.getMessage() for r in caplog.records]
 

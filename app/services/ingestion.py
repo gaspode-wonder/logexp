@@ -12,7 +12,7 @@ from app.logging_setup import get_logger
 from app.models import LogExpReading
 from app.typing import LogExpFlask
 
-logger = get_logger("logexp.ingestion")
+logger = get_logger("beamfoundry.ingestion")
 
 
 def get_config() -> Dict[str, Any]:

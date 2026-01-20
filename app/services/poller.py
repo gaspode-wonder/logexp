@@ -8,7 +8,7 @@ from flask import current_app
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.poller")
+logger = get_logger("beamfoundry.poller")
 
 
 def get_poller_status() -> Dict[str, Optional[Any]]:

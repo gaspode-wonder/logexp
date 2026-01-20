@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.timestamps")
+logger = get_logger("beamfoundry.timestamps")
 
 UTC: ZoneInfo = ZoneInfo("UTC")
 

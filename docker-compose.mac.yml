@@ -41,7 +41,7 @@ services:
       - gunicorn
       - -b
       - 0.0.0.0:5000
-      - logexp.app:create_app()
+      - beamfoundry.app:create_app()
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost:5000/api/health || exit 1" ]
       interval: 15s

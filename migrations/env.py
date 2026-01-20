@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from alembic import context
+
 from app.extensions import db
 
 # Alembic Config object

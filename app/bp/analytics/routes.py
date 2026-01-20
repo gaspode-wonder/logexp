@@ -6,6 +6,7 @@ import datetime
 from typing import Any
 
 from flask import Response, render_template, request
+from flask_login import login_required
 
 from app.bp.analytics import bp_analytics
 from app.extensions import db
@@ -14,10 +15,11 @@ from app.services.analytics import compute_window, run_analytics
 from app.services.analytics_export import export_readings_to_csv
 from app.services.analytics_readings import summarize_readings
 
-logger = get_logger("logexp.analytics")
+logger = get_logger("beamfoundry.analytics")
 
 
 @bp_analytics.route("/", methods=["GET"])
+@login_required
 def analytics_index() -> Any:
     logger.debug(
         "analytics_index_requested",

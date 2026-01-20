@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.analytics")
+logger = get_logger("beamfoundry.analytics")
 
 
 def moving_average(values: Iterable[float], smoothing_factor: float) -> Optional[float]:

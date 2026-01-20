@@ -86,7 +86,7 @@ jobs:
                     -e TELEMETRY_ENABLED=${TELEMETRY_ENABLED} \
                     -e TELEMETRY_INTERVAL_SECONDS=${TELEMETRY_INTERVAL_SECONDS} \
                     logexp:test \
-                    flask --app logexp.app:create_app routes
+                    flask --app beamfoundry.app:create_app routes
 
 
     postgres-migrations:
@@ -145,7 +145,7 @@ jobs:
                   exit 1
 
             - name: Run migrations
-              run: flask --app logexp.app db upgrade
+              run: flask --app beamfoundry.app db upgrade
 
             - name: Smoke test DB connectivity
               run: |

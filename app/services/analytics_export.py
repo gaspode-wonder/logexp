@@ -8,7 +8,7 @@ from typing import Any, Iterable
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.analytics")
+logger = get_logger("beamfoundry.analytics")
 
 
 def export_readings_to_csv(readings: Iterable[Any]) -> str:

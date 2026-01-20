@@ -12,7 +12,7 @@ from __future__ import annotations
 from app import create_app
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.wsgi")
+logger = get_logger("beamfoundry.wsgi")
 
 app = create_app()
 logger.debug("wsgi_app_created")

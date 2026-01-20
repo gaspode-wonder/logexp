@@ -9,40 +9,22 @@ Ensures:
 - reading_factory is available
 """
 
-# ---------------------------------------------------------------------------
-# Ensure project root is importable (fixes pytest discovery in VS Code)
-# ---------------------------------------------------------------------------
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-# ---------------------------------------------------------------------------
-# Standard imports
-# ---------------------------------------------------------------------------
 import pytest
+from flask_migrate import upgrade
 from freezegun import freeze_time
 
-# ---------------------------------------------------------------------------
-# Application imports
-# ---------------------------------------------------------------------------
 from app import create_app
 from app.extensions import db
-
-# ---------------------------------------------------------------------------
-# Fixture imports (import NAMES, not modules)
-# These imports are intentionally unused — pytest registers fixtures by name.
-# Ruff must be silenced with noqa: F401.
-# ---------------------------------------------------------------------------
 from tests.fixtures.analytics import shift, ts_base  # noqa: F401
 from tests.fixtures.analytics_engine import analytics_engine  # noqa: F401
 from tests.fixtures.poller_factory import make_poller  # noqa: F401
 
-# ---------------------------------------------------------------------------
-# Flask application fixtures
-# ---------------------------------------------------------------------------
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 @pytest.fixture(scope="function")
@@ -62,7 +44,7 @@ def test_app():
 
     with app.app_context():
         db.drop_all()
-        db.create_all()
+        upgrade()
 
         yield app
 
@@ -91,11 +73,6 @@ def test_client(test_app):
     Provide a Flask test client.
     """
     return test_app.test_client()
-
-
-# ---------------------------------------------------------------------------
-# Time freezer
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture

@@ -1,17 +1,18 @@
-# filename: logexp/app/bp/ui/routes.py
+# filename: app/bp/ui/routes.py
 
 from __future__ import annotations
 
 from typing import Any
 
 from flask import current_app, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
 
 from app.bp.ui import bp_ui
 from app.extensions import db
 from app.logging_setup import get_logger
 from app.models import LogExpReading
 
-logger = get_logger("logexp.ui")
+logger = get_logger("beamfoundry.ui")
 
 
 @bp_ui.route("/")
@@ -20,10 +21,22 @@ def index() -> Any:
         "ui_index_requested",
         extra={"path": request.path, "method": request.method},
     )
-    return redirect(url_for("ui.readings_index"))
+    if current_user.is_authenticated:
+        return redirect(url_for("ui.readings_index"))
+    return redirect(url_for("ui.login_page"))
+
+
+@bp_ui.get("/login")
+def login_page() -> Any:
+    logger.debug(
+        "ui_login_page_requested",
+        extra={"path": request.path, "method": request.method},
+    )
+    return render_template("login.html")
 
 
 @bp_ui.route("/readings")
+@login_required
 def readings_index() -> Any:
     logger.debug(
         "ui_readings_index_requested",

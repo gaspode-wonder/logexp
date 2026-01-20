@@ -5,6 +5,7 @@ from typing import Any
 
 from flask import current_app, jsonify, request
 from flask.typing import ResponseReturnValue
+from flask_login import login_required
 from sqlalchemy import desc
 
 from app.bp.api import bp_api
@@ -14,10 +15,11 @@ from app.logging_setup import get_logger
 from app.models import LogExpReading
 from app.schemas import ReadingCreate, ReadingResponse
 
-logger = get_logger("logexp.api")
+logger = get_logger("beamfoundry.api")
 
 
 @bp_api.get("/readings")
+@login_required
 def get_readings() -> Any:
     logger.debug(
         "api_get_readings_requested",

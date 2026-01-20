@@ -28,7 +28,7 @@ The following guarantees are enforced by design:
 
 Structured logging is enabled for the following namespaces:
 
-- `logexp.app`
+- `beamfoundry.app`
 - `logexp.ingestion`
 - `logexp.analytics`
 

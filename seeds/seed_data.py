@@ -8,7 +8,7 @@ from app.extensions import db
 from app.logging_setup import get_logger
 from app.models import LogExpReading
 
-logger = get_logger("logexp.seeds")
+logger = get_logger("beamfoundry.seeds")
 
 
 def run(app: Flask) -> None:

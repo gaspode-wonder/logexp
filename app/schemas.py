@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.schemas")
+logger = get_logger("beamfoundry.schemas")
 
 
 class ReadingCreate(BaseModel):

@@ -1,4 +1,4 @@
-# filename: logexp/poller.py
+# filename: poller.py
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import serial
 from app.logging_setup import get_logger
 from poller_config import PollerConfig
 
-logger = get_logger("logexp.poller")
+logger = get_logger("beamfoundry.poller")
 
 
 class Poller:
@@ -91,7 +91,7 @@ class Poller:
             return self._poll_serial()
 
         # Defensive branch: unreachable in type space but valid at runtime.
-        logger.error(
+        logger.error(  # type: ignore[unreachable]
             "unknown_poller_mode",
             extra={"mode": self.config.mode},
         )

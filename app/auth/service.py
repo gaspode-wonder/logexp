@@ -1,16 +1,14 @@
 # filename: app/auth/service.py
-
 from __future__ import annotations
 
-from typing import Optional, cast
+from typing import Optional
 
 from app.extensions import db
 from app.models import User
 
 
 def authenticate(username: str, password: str) -> Optional[User]:
-    result = User.query.filter_by(username=username).first()
-    user = cast(Optional[User], result)
+    user = db.session.query(User).filter_by(username=username).first()
 
     if user is None:
         return None
@@ -20,8 +18,8 @@ def authenticate(username: str, password: str) -> Optional[User]:
 
 
 def get_user_by_id(user_id: int) -> Optional[User]:
-    result = User.query.get(user_id)
-    return cast(Optional[User], result)
+    # SQLAlchemy 2.0‑native get()
+    return db.session.get(User, user_id)
 
 
 def create_user(username: str, password: str) -> User:

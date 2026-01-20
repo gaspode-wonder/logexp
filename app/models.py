@@ -12,12 +12,11 @@ from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.db_types import UTCDateTime
-from app.extensions import db
+from app.db_types import Base, UTCDateTime
 from app.logging_setup import get_logger
 from app.typing import LogExpFlask
 
-logger = get_logger("logexp.models")
+logger = get_logger("beamfoundry.models")
 
 
 # ---------------------------------------------------------------------------
@@ -25,7 +24,7 @@ logger = get_logger("logexp.models")
 # ---------------------------------------------------------------------------
 
 
-class LogExpReading(db.Model):
+class LogExpReading(Base):
     __tablename__ = "logexp_readings"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -119,7 +118,7 @@ Reading = LogExpReading
 # ---------------------------------------------------------------------------
 
 
-class User(db.Model, UserMixin):
+class User(Base, UserMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -140,3 +139,11 @@ class User(db.Model, UserMixin):
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
+
+    # Flask-Login compatibility attributes
+    is_authenticated: bool = True
+    is_active: bool = True
+    is_anonymous: bool = False
+
+    def get_id(self) -> str:
+        return str(self.id)

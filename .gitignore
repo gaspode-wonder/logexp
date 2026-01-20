@@ -33,3 +33,6 @@ PR_BODY.md
 *.tar
 *.gz
 logexp-prod.tar.gz
+
+# --- Web dev ---
+cookies.txt

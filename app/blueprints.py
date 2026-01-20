@@ -11,7 +11,7 @@ from flask import Flask
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.blueprints")
+logger = get_logger("beamfoundry.blueprints")
 
 
 def register_blueprints(app: Flask) -> None:

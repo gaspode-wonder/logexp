@@ -9,7 +9,7 @@ from flask import current_app
 from app.logging_setup import get_logger
 from app.services.analytics_readings import load_recent_readings, summarize_readings
 
-logger = get_logger("logexp.analytics_diagnostics")
+logger = get_logger("beamfoundry.analytics_diagnostics")
 
 
 def run_analytics_diagnostics() -> Dict[str, Any]:

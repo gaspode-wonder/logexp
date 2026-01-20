@@ -55,7 +55,7 @@ COPY wsgi.py .
 # Install the package in editable mode (safe because metadata is present)
 RUN pip install -e .
 
-ENV FLASK_APP=logexp.app:create_app
+ENV FLASK_APP=beamfoundry.app:create_app
 ENV FLASK_ENV=production
 
 # Entrypoint

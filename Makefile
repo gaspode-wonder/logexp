@@ -69,6 +69,10 @@ ci-local: ci
 
 ci-clean:
 	$(call timed,"CI-CLEAN: git clean -xdf", git clean -xdf)
+	$(call timed,"CI-HARD: Removing Python bytecode caches", \
+		find . -name "*.pyc" -delete && \
+		find . -name "__pycache__" -type d -exec rm -rf {} + \
+	)
 	$(call timed,"CI-CLEAN: Removing virtual environment", rm -rf $(VENV))
 	$(call timed,"CI-CLEAN: Creating virtual environment", $(PYTHON) -m venv $(VENV))
 	$(call timed,"CI-CLEAN: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -r requirements.txt)
@@ -96,6 +100,10 @@ ci-clean:
 
 ci-hard:
 	$(call timed,"CI-HARD: git clean -xdf", git clean -xdf)
+	$(call timed,"CI-HARD: Removing Python bytecode caches", \
+		find . -name "*.pyc" -delete && \
+		find . -name "__pycache__" -type d -exec rm -rf {} + \
+	)
 	$(call timed,"CI-HARD: Removing virtual environment", rm -rf $(VENV))
 	$(call timed,"CI-HARD: Creating virtual environment", $(PYTHON) -m venv $(VENV))
 	$(call timed,"CI-HARD: Installing dependencies", \

@@ -5,7 +5,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.types import DateTime, TypeDecorator
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class UTCDateTime(TypeDecorator[datetime]):

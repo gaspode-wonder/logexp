@@ -40,8 +40,8 @@ def main() -> None:
         except Exception as e:
             print(f"FAILED to import {name}: {e}")
 
-    try_import("logexp")
-    try_import("logexp.app")
+    try_import("beamfoundry")
+    try_import("beamfoundry.app")
 
     print_header("Python Executable")
     print(sys.executable)

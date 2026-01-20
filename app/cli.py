@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from flask import Flask, current_app
+from flask_migrate import upgrade
 
 from app.extensions import db
 
@@ -37,5 +38,5 @@ def register_cli(app: Flask) -> None:
     def clear_db() -> None:
         with app.app_context():
             db.drop_all()
-            db.create_all()
-            current_app.logger.info("Test database cleared and recreated.")
+            upgrade()
+            current_app.logger.info("Test database cleared and rebuilt via migrations.")

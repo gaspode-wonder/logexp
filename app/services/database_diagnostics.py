@@ -11,7 +11,7 @@ from app.extensions import db
 from app.logging_setup import get_logger
 from app.typing import LogExpFlask
 
-logger = get_logger("logexp.database_diagnostics")
+logger = get_logger("beamfoundry.database_diagnostics")
 
 
 def get_config() -> Dict[str, Any]:

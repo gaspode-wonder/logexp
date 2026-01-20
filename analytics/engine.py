@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.analytics")
+logger = get_logger("beamfoundry.analytics")
 
 
 @dataclass

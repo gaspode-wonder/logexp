@@ -9,7 +9,7 @@ from flask import render_template, request
 from app.bp.about import bp_about
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.about")
+logger = get_logger("beamfoundry.about")
 
 
 @bp_about.route("/")

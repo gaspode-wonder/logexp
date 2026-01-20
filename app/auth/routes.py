@@ -2,50 +2,82 @@
 
 from __future__ import annotations
 
-from flask import jsonify, request, session
-from flask.typing import ResponseReturnValue
+from typing import Any, Tuple
+
+from flask import jsonify, request
+from flask_login import (
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+)
 
 from app.auth import bp_auth
-from app.auth.decorators import login_required
-from app.models import User
+from app.extensions import db
+from app.logging_setup import get_logger
+from app.models import User  # adjust if your user model is named differently
+
+logger = get_logger("beamfoundry.auth")
 
 
 @bp_auth.post("/login")
-def login() -> ResponseReturnValue:
-    data = request.get_json(silent=True) or {}
-    username = data.get("username")
-    password = data.get("password")
+def login() -> Tuple[Any, int]:
+    logger.debug(
+        "auth_login_requested",
+        extra={"path": request.path, "method": request.method},
+    )
+
+    payload = request.get_json(silent=True) or {}
+    username = payload.get("username")
+    password = payload.get("password")
 
     if not username or not password:
-        return jsonify({"error": "Missing credentials"}), 400
+        logger.debug("auth_login_missing_credentials")
+        return jsonify({"error": "username and password required"}), 400
 
-    # Query returns User | None
-    result = User.query.filter_by(username=username).first()
+    user = db.session.query(User).filter_by(username=username).first()
 
-    if result is None:
-        return jsonify({"error": "Invalid username or password"}), 401
+    if user is None or not user.check_password(password):
+        logger.debug(
+            "auth_login_invalid_credentials",
+            extra={"username": username},
+        )
+        return jsonify({"error": "invalid credentials"}), 401
 
-    user: User = result
-
-    if not user.check_password(password):
-        return jsonify({"error": "Invalid username or password"}), 401
-
-    session["user_id"] = user.id
-    return jsonify({"message": "Logged in", "user": user.username})
+    login_user(user)
+    logger.debug(
+        "auth_login_success",
+        extra={"user_id": user.id, "username": user.username},
+    )
+    return jsonify({"status": "ok"}), 200
 
 
 @bp_auth.post("/logout")
-def logout() -> ResponseReturnValue:
-    session.pop("user_id", None)
-    return jsonify({"message": "Logged out"})
+@login_required
+def logout() -> Tuple[Any, int]:
+    logger.debug(
+        "auth_logout_requested",
+        extra={"path": request.path, "method": request.method, "user_id": current_user.get_id()},
+    )
+    logout_user()
+    logger.debug("auth_logout_success")
+    return jsonify({"status": "logged_out"}), 200
 
 
 @bp_auth.get("/me")
 @login_required
-def me() -> ResponseReturnValue:
-    from app.auth.current_user import current_user
+def me() -> Tuple[Any, int]:
+    logger.debug(
+        "auth_me_requested",
+        extra={"path": request.path, "method": request.method, "user_id": current_user.get_id()},
+    )
 
-    user = current_user()
-    assert user is not None  # login_required guarantees this
-
-    return jsonify({"username": user.username})
+    return (
+        jsonify(
+            {
+                "id": current_user.id,
+                "username": current_user.username,
+            }
+        ),
+        200,
+    )

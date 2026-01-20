@@ -4,7 +4,7 @@ import logging
 
 from app.logging_setup import get_logger
 
-logger = get_logger("logexp.logging.config_legacy")
+logger = get_logger("beamfoundry.logging.config_legacy")
 
 
 def configure_logging() -> None:

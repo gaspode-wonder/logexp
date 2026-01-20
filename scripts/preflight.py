@@ -19,9 +19,9 @@ try:
     import logexp
 
     print("logexp:", logexp.__file__)
-    import logexp.app as logexp_app
+    import beamfoundry.app as logexp_app
 
-    print("logexp.app:", logexp_app.__file__)
+    print("beamfoundry.app:", logexp_app.__file__)
 except Exception as e:
     print("Import error:", e)
 

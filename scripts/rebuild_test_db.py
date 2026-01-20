@@ -1,17 +1,10 @@
-#!/usr/bin/env python3
-
 # filename: scripts/rebuild_test_db.py
-
-# """
-# Rebuild the LogExp test database schema.
-#
-# Creates an application with TESTING=True and START_POLLER=False,
-# drops all tables, recreates them, and exits cleanly.
-# """
 
 from __future__ import annotations
 
 from typing import Any, Dict
+
+from flask_migrate import upgrade
 
 from app import create_app
 from app.extensions import db
@@ -27,9 +20,9 @@ def main() -> None:
 
     with app.app_context():
         db.drop_all()
-        db.create_all()
+        upgrade()
 
-    print("Test DB rebuilt.")
+    print("Test DB rebuilt via migrations.")
 
 
 if __name__ == "__main__":

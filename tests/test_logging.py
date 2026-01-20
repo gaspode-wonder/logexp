@@ -12,12 +12,12 @@ def test_structured_logging_outputs_valid_json(caplog):
         }
     )
 
-    caplog.set_level(logging.INFO, logger="logexp.app")
+    caplog.set_level(logging.INFO, logger="beamfoundry.app")
 
     with app.app_context():
         app.logger.info("test message")
 
     record = next(r for r in caplog.records if r.getMessage() == "test message")
 
-    assert record.name == "logexp.app"
+    assert record.name == "beamfoundry.app"
     assert record.levelname == "INFO"

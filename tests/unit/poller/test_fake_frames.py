@@ -1,7 +1,6 @@
 # filename: tests/unit/poller/test_fake_frames.py
 
 from poller_config import PollerConfig
-
 from tests.fixtures.poller.fake_ingestion import FakeIngestion
 
 
