@@ -1,0 +1,116 @@
+# filename: pyproject.toml
+
+[project]
+name = "logexp"
+version = "0.1.0"
+description = "LogExp"
+requires-python = ">=3.10, <3.11"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+# ------------------------------------------------------------------------------
+# RUFF — linter + formatter (replaces flake8, isort, pycodestyle, pyflakes)
+# ------------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-select = ["I"]  # import sorting
+fix = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# ------------------------------------------------------------------------------
+# BLACK — optional, kept for editor compatibility
+# ------------------------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+# ------------------------------------------------------------------------------
+# PYTEST — deterministic test discovery
+# ------------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests",
+]
+
+# ------------------------------------------------------------------------------
+# COVERAGE — canonical
+# ------------------------------------------------------------------------------
+[tool.coverage.run]
+branch = true
+source = ["logexp"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+# ------------------------------------------------------------------------------
+# MYPY — strict, modern, SQLAlchemy‑2.0‑compatible
+# ------------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.10"
+mypy_path = ".,app/stubs"
+explicit_package_bases = true
+namespace_packages = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+# Strictness
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+show_error_codes = true
+pretty = true
+
+# Third‑party libraries without stubs
+ignore_missing_imports = true
+
+# ------------------------------------------------------------------------------
+# MYPY OVERRIDES — minimal, correct, no SQLAlchemy suppression
+# ------------------------------------------------------------------------------
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.fixtures.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "migrations.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "app.cli"
+ignore_errors = true
+
+# ------------------------------------------------------------------------------
+# PYLANCE — silence false positives for Flask + SQLAlchemy
+# ------------------------------------------------------------------------------
+[tool.pylance]
+typeCheckingMode = "basic"
+reportMissingTypeStubs = "none"
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownParameterType = "none"
+reportUnknownLambdaType = "none"

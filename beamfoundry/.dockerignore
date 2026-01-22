@@ -1,0 +1,60 @@
+# --- Python environments ---
+.venv/
+venv/
+env/
+
+# --- Python bytecode ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Flask instance data ---
+instance/
+
+# --- Environment files ---
+.env
+.env.*
+
+# --- macOS metadata ---
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Editor configs ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Git metadata ---
+.git/
+.gitattributes
+.gitignore
+
+# --- Local tooling & dev-only artifacts ---
+Makefile
+*.log
+
+# --- Archives (prevent massive accidental context bloat) ---
+*.tar
+*.gz
+*.zip
+logexp-prod.tar.gz
+
+# --- Tests, docs, dev-only directories ---
+tests/
+docs/
+scripts/
+notebooks/
+examples/
+
+# --- SQLite / local DBs ---
+*.sqlite
+*.sqlite3
+*.db
+
+# --- OS/editor swap files ---
+*.swp
+*.swo
+*~

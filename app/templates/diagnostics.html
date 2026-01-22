@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Diagnostics - LogExp{% endblock %}
+
+{% block sidebar %}
+  <h3>Diagnostics Navigation</h3>
+  <ul>
+    <li><a href="{{ url_for('diagnostics.diagnostics_index') }}">Diagnostics Home</a></li>
+    <li><a href="{{ url_for('diagnostics.diagnostics_test') }}">Geiger Test (JSON)</a></li>
+    <li><a href="{{ url_for('api.poller_status') }}">Poller Status (API)</a></li>
+  </ul>
+{% endblock %}
+
+{% block content %}
+  <h2>Diagnostics</h2>
+
+  <p><strong>Poller Status:</strong> <span id="poller-status">{{ poller_status }}</span></p>
+
+  <div id="poller-controls">
+    <button onclick="startPoller()">Start Poller</button>
+    <button onclick="stopPoller()">Stop Poller</button>
+    <button onclick="checkPollerStatus()">Check Poller Status</button>
+    <p id="poller-result"></p>
+  </div>
+
+  <!-- ========================= -->
+  <!-- CONFIGURATION SECTION     -->
+  <!-- ========================= -->
+  <h2>Configuration</h2>
+  <table class="table table-striped table-sm">
+      <thead>
+          <tr>
+              <th>Key</th>
+              <th>Value</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for key, value in config|dictsort %}
+          <tr>
+              <td>{{ key }}</td>
+              <td>{{ value }}</td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+
+  <!-- ========================= -->
+  <!-- ANALYTICS SECTION         -->
+  <!-- ========================= -->
+  <h2>Analytics Status</h2>
+  <table class="table table-striped table-sm">
+      <tr><th>Window (minutes)</th><td>{{ analytics.window_minutes }}</td></tr>
+      <tr><th>Window Start</th><td>{{ analytics.window_start }}</td></tr>
+      <tr><th>Window End</th><td>{{ analytics.window_end }}</td></tr>
+      <tr><th>Samples in Window</th><td>{{ analytics.count }}</td></tr>
+      <tr><th>Last Computed</th><td>{{ analytics.last_computed_at }}</td></tr>
+  </table>
+
+  <!-- ========================= -->
+  <!-- DATABASE SECTION          -->
+  <!-- ========================= -->
+  <h2>Database Status</h2>
+  <table class="table table-striped table-sm">
+      <tr><th>URI</th><td>{{ database.uri }}</td></tr>
+      <tr><th>Engine</th><td>{{ database.engine }}</td></tr>
+      <tr><th>Connected</th><td>{{ database.connected }}</td></tr>
+      <tr><th>Readings Count</th><td>{{ database.readings_count }}</td></tr>
+      <tr><th>Last Reading At</th><td>{{ database.last_reading_at }}</td></tr>
+      <tr><th>Migration Revision</th><td>{{ database.migration_revision }}</td></tr>
+      <tr><th>Schema OK</th><td>{{ database.schema_ok }}</td></tr>
+  </table>
+
+  <!-- ========================= -->
+  <!-- GEIGER TEST SECTION       -->
+  <!-- ========================= -->
+  <h3>Geiger Counter Test</h3>
+  <p>Click below to run a quick test of the Geiger endpoint:</p>
+  <button onclick="runGeigerTest()">Run Geiger Test</button>
+  <p id="geiger-result"></p>
+
+  <script>
+    function updatePollerStatus(status) {
+      const el = document.getElementById("poller-status");
+      el.innerText = status;
+      el.className = status === "running" ? "status-running" : "status-stopped";
+    }
+
+    async function startPoller() {
+      const response = await fetch("{{ url_for('api.poller_start') }}", {method: "POST"});
+      const data = await response.json();
+      updatePollerStatus(data.status);
+      document.getElementById("poller-result").innerText = "Poller: " + data.status;
+    }
+
+    async function stopPoller() {
+      const response = await fetch("{{ url_for('api.poller_stop') }}", {method: "POST"});
+      const data = await response.json();
+      updatePollerStatus(data.status);
+      document.getElementById("poller-result").innerText = "Poller: " + data.status;
+    }
+
+    async function checkPollerStatus() {
+      const response = await fetch("{{ url_for('api.poller_status') }}");
+      const data = await response.json();
+      updatePollerStatus(data.status);
+    }
+
+    async function runGeigerTest() {
+      const response = await fetch("{{ url_for('diagnostics.diagnostics_test') }}");
+      if (response.ok) {
+        const data = await response.json();
+        document.getElementById("geiger-result").innerText = "Geiger Test: " + data.status;
+      } else {
+        document.getElementById("geiger-result").innerText = "Geiger Test failed";
+      }
+    }
+
+    updatePollerStatus("{{ poller_status }}");
+  </script>
+{% endblock %}
+
+{% block pager %}
+  <a href="{{ url_for('ui.index') }}" class="prev">← Home</a>
+  <a href="{{ url_for('docs.docs_index') }}" class="next">Docs →</a>
+{% endblock %}
