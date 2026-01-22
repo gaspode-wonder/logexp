@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: logexp
       POSTGRES_DB: logexp
     volumes:
-      - logexp_db_data_v3:/var/lib/postgresql/
+      - logexp_db_data_v3:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -42,7 +42,7 @@ services:
       - gunicorn
       - -b
       - 0.0.0.0:8000
-      - beamfoundry.app:create_app()
+      - logexp.app:create_app()
 
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1" ]
