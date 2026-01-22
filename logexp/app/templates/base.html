@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}LogExp{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+  <!-- Floating Sidebar -->
+  <aside id="sidebar">
+    {% include "_sidebar.html" %}
+  </aside>
+
+  <!-- Main Content -->
+  <main id="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  {% include "_footer.html" %}
+</body>
+</html>

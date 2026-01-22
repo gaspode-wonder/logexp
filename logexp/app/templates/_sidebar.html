@@ -1,0 +1,14 @@
+<nav class="nav flex-column">
+  <a class="nav-link" href="{{ url_for('ui.readings_index') }}">📊 Readings</a>
+  <a class="nav-link" href="{{ url_for('settings.settings_index') }}">⚙️ Settings</a>
+  <a class="nav-link" href="{{ url_for('diagnostics.diagnostics_index') }}">🧪 Diagnostics</a>
+  <a class="nav-link" href="{{ url_for('analytics.analytics_index') }}">📈 Analytics</a>
+
+  <!-- Divider -->
+  <hr class="sidebar-divider">
+
+  <!-- Info Section -->
+  <div class="sidebar-heading">Info</div>
+  <a class="nav-link" href="{{ url_for('docs.docs_index') }}">📖 Docs</a>
+  <a class="nav-link" href="{{ url_for('about.about_index') }}">ℹ️ About</a>
+</nav>

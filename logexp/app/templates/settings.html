@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Settings - LogExp{% endblock %}
+
+{% block sidebar %}
+  <h3>Settings Navigation</h3>
+  <ul>
+    <li><a href="{{ url_for('ui.index') }}">Home</a></li>
+    <li><a href="{{ url_for('ui.readings_index') }}">Readings</a></li>
+    <li><a href="{{ url_for('diagnostics.diagnostics_index') }}">Diagnostics</a></li>
+    <li><a href="{{ url_for('docs.docs_index') }}">Docs</a></li>
+  </ul>
+{% endblock %}
+
+{% block content %}
+  <h1>Device Settings</h1>
+  <p>Configure the Geiger counter connection below.</p>
+
+  <form method="post" action="{{ url_for('settings.update_settings') }}">
+    <label for="port">Serial Port:</label>
+    <select name="port" id="port">
+      {% for port in ports %}
+        <option value="{{ port }}" {% if port == configured_port %}selected{% endif %}>
+          {{ port }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <label for="baudrate">Baudrate:</label>
+    <input type="number" name="baudrate" id="baudrate" value="{{ baudrate }}" min="1200" step="1200">
+
+    <button type="submit">Save Settings</button>
+  </form>
+
+  <h2>Current Configuration</h2>
+  <ul>
+    <li><strong>Port:</strong> {{ configured_port }}</li>
+    <li><strong>Baudrate:</strong> {{ baudrate }}</li>
+  </ul>
+{% endblock %}
+
+{% block pager %}
+  <a href="{{ url_for('ui.index') }}" class="prev">← Home</a>
+  <a href="{{ url_for('diagnostics.diagnostics_index') }}" class="next">Diagnostics →</a>
+{% endblock %}
