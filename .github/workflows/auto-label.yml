@@ -1,3 +1,4 @@
+# filename: .github/workflows/auto-label.yml
 name: Auto‑Label Pull Requests
 
 on:
@@ -36,36 +37,61 @@ jobs:
             for (const file of files) {
               const path = file.filename;
 
-              // Backend / ingestion / poller
+              //
+              // Backend / ingestion / poller / geiger
+              //
               if (path.startsWith("logexp/app/poller") ||
                   path.startsWith("logexp/app/ingestion") ||
-                  path.startsWith("logexp/app/geiger")) {
+                  path.startsWith("logexp/app/geiger") ||
+                  path.startsWith("logexp/app/services/poller") ||
+                  path.startsWith("logexp/app/services/ingestion")) {
                 labelsToAdd.add("backend");
               }
 
+              //
               // Config system
-              if (path.startsWith("logexp/app/config")) {
+              //
+              if (path.startsWith("logexp/app/config") ||
+                  path.startsWith("logexp/app/validation")) {
                 labelsToAdd.add("architecture");
                 labelsToAdd.add("environment");
               }
 
-              // Analytics
-              if (path.startsWith("logexp/app/analytics")) {
+              //
+              // Analytics (DB + pure engine)
+              //
+              if (path.startsWith("logexp/app/services/analytics") ||
+                  path.startsWith("logexp/analytics")) {
                 labelsToAdd.add("backend");
                 labelsToAdd.add("observability");
               }
 
+              //
+              // Blueprints / UI / routes
+              //
+              if (path.startsWith("logexp/app/bp") ||
+                  path.startsWith("logexp/app/templates") ||
+                  path.startsWith("logexp/app/static")) {
+                labelsToAdd.add("frontend");
+              }
+
+              //
               // Tests
+              //
               if (path.startsWith("tests/")) {
                 labelsToAdd.add("testing");
               }
 
-              // Docs
+              //
+              // Documentation
+              //
               if (path.endsWith(".md")) {
                 labelsToAdd.add("documentation");
               }
 
+              //
               // CI/CD
+              //
               if (path.startsWith(".github/workflows")) {
                 labelsToAdd.add("CI/CD");
               }
