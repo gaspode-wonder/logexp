@@ -1,36 +1,29 @@
-#!/usr/bin/env python3
-
 # filename: scripts/rebuild_test_db.py
-
-# """
-# Rebuild the LogExp test database schema.
-#
-# Creates an application with TESTING=True and START_POLLER=False,
-# drops all tables, recreates them, and exits cleanly.
-# """
 
 from __future__ import annotations
 
-from typing import Any, Dict
+import os
 
-from logexp.app import create_app
-from logexp.app.extensions import db
+from flask import Flask
+
+from beamfoundry import create_app
 
 
-def main() -> None:
-    overrides: Dict[str, Any] = {
-        "TESTING": True,
-        "START_POLLER": False,
-    }
+def main() -> int:
+    """Rebuild the test database from scratch."""
+    db_path = "ci.db"
+    if os.path.exists(db_path):
+        os.remove(db_path)
 
-    app = create_app(overrides)
-
+    app: Flask = create_app()
     with app.app_context():
-        db.drop_all()
-        db.create_all()
+        from flask_migrate import upgrade
 
-    print("Test DB rebuilt.")
+        upgrade()
+
+    print("Test DB rebuilt")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

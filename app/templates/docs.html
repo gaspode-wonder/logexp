@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Docs - LogExp{% endblock %}
+
+{% block content %}
+<h2>Documentation</h2>
+
+<p>Documentation and reference materials for LogExp.</p>
+
+<ul>
+    <li><a href="{{ url_for('docs.docs_index') }}">Overview</a></li>
+</ul>
+{% endblock %}
+
+{% block pager %}
+<a href="{{ url_for('ui.index') }}" class="prev">← Home</a>
+<a href="{{ url_for('settings.settings_index') }}" class="next">Settings →</a>
+{% endblock %}

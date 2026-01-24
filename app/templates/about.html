@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}About - LogExp{% endblock %}
+
+{% block content %}
+<h2>About</h2>
+
+<p>LogExp is a lightweight radiation logging and analytics system.</p>
+<p>This page provides information about the application and its purpose.</p>
+{% endblock %}
+
+{% block pager %}
+<a href="{{ url_for('ui.index') }}" class="prev">← Home</a>
+<a href="{{ url_for('docs.docs_index') }}" class="next">Docs →</a>
+{% endblock %}

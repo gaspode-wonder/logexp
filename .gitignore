@@ -8,28 +8,50 @@ env/
 # --- Python bytecode ---
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # --- Flask instance data ---
 instance/
 
-# --- SQLite databases ---
+# --- SQLite / local DBs ---
+*.sqlite
 *.sqlite3
+*.db
 
 # --- Environment files ---
 .env
+.env.*
 
 # --- macOS metadata ---
 .DS_Store
+.AppleDouble
+.LSOverride
 
-# --- VS Code ---
+# --- VS Code / JetBrains / Sublime ---
 .vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Logs ---
+*.log
 
 # --- Project artifacts ---
 analytics.png
 notes.md
 PR_BODY.md
 
-# --- Archives ---
+# --- Archives (prevent accidental context bloat) ---
 *.tar
 *.gz
+*.zip
 logexp-prod.tar.gz
+
+# --- Web dev ---
+cookies.txt
+
+# --- OS/editor swap files ---
+*.swp
+*.swo
+*~
