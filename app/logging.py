@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging as pylogging
 from datetime import datetime, timezone
+
 from .typing import Any
 
 logger = pylogging.getLogger("beamfoundry.logging")

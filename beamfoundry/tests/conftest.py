@@ -23,9 +23,11 @@ from app.extensions import db
 from .fixtures.analytics import shift, ts_base  # noqa: F401
 from .fixtures.analytics_engine import analytics_engine  # noqa: F401
 from .fixtures.poller_factory import make_poller  # noqa: F401
-from .fixtures.reading_factory import make_batch  # noqa: F401
-from .fixtures.reading_factory import make_reading, reading_factory
-from .helpers.analytics import shift as shift_fn  # noqa: F401
+from .fixtures.reading_factory import (
+    make_batch,  # noqa: F401
+    make_reading,  # noqa: F401
+    reading_factory,  # noqa: F401
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -87,11 +89,6 @@ def freezer():
     """
     with freeze_time() as frozen:
         yield frozen
-
-
-@pytest.fixture
-def shift():
-    return shift_fn
 
 
 @pytest.fixture

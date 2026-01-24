@@ -1,28 +1,22 @@
 # filename: scripts/log_demo.py
 
-# """
-# Minimal logging demo for LogExp.
-#
-# Creates an application with TESTING=True and START_POLLER=False
-# and emits a single structured log line.
-# """
-
 from __future__ import annotations
 
-from typing import Any, Dict
-
-from logexp.app import create_app
+from beamfoundry.logging_setup import get_logger
 
 
-def main() -> None:
-    overrides: Dict[str, Any] = {
-        "TESTING": True,
-        "START_POLLER": False,
-    }
+def main() -> int:
+    """Emit a few demo log messages to verify logging configuration."""
+    logger = get_logger("beamfoundry.demo")
 
-    app = create_app(overrides)
-    app.logger.info("demo log line")
+    logger.debug("Demo debug message")
+    logger.info("Demo info message")
+    logger.warning("Demo warning message")
+    logger.error("Demo error message")
+
+    print("Log demo complete")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

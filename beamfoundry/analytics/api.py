@@ -1,5 +1,3 @@
-# filename: logexp/analytics/api.py
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -44,6 +42,9 @@ def analyze(
     engine.add_readings(reading_samples)
     result: AnalyticsResult = engine.compute_metrics(now=now)
 
+    window_start = result.window_start.isoformat() if result.window_start else None
+    window_end = result.window_end.isoformat() if result.window_end else None
+
     logger.debug(
         "analytics_api_analyze_completed",
         extra={
@@ -51,8 +52,8 @@ def analyze(
             "average": result.average,
             "minimum": result.minimum,
             "maximum": result.maximum,
-            "window_start": result.window_start.isoformat(),
-            "window_end": result.window_end.isoformat(),
+            "window_start": window_start,
+            "window_end": window_end,
         },
     )
 

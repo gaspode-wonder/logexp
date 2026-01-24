@@ -7,8 +7,8 @@ from typing import Any
 from flask import render_template, request
 from flask_login import login_required
 
-from . import bp_docs
 from ...logging_setup import get_logger
+from . import bp_docs
 
 logger = get_logger("beamfoundry.docs")
 

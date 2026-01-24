@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import cast
+
 from flask import Flask, Response, request
 
 from ..logging_setup import get_logger

@@ -8,12 +8,12 @@ from typing import Any
 from flask import Response, render_template, request
 from flask_login import login_required
 
-from . import bp_analytics
 from ...extensions import db
 from ...logging_setup import get_logger
 from ...services.analytics import compute_window, run_analytics
 from ...services.analytics_export import export_readings_to_csv
 from ...services.analytics_readings import summarize_readings
+from . import bp_analytics
 
 logger = get_logger("beamfoundry.analytics")
 

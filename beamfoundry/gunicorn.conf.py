@@ -1,4 +1,4 @@
-# filename: gunicorn.conf.py
+# filename: beamfoundry/gunicorn.conf.py
 
 import logging as pylogging
 import sys
@@ -8,13 +8,13 @@ accesslog = "-"
 errorlog = "-"
 
 # Forward Python logs to stdout so Docker can capture them
-root = logging.getLogger()
-root.setLevel(logging.INFO)
+root = pylogging.getLogger()
+root.setLevel(pylogging.INFO)
 
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.INFO)
+handler = pylogging.StreamHandler(sys.stdout)
+handler.setLevel(pylogging.INFO)
 
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+formatter = pylogging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
 handler.setFormatter(formatter)
 
 root.addHandler(handler)

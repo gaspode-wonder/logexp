@@ -7,10 +7,10 @@ from typing import Any
 from flask import current_app, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from . import bp_ui
 from ...extensions import db
 from ...logging_setup import get_logger
 from ...models import LogExpReading
+from . import bp_ui
 
 logger = get_logger("beamfoundry.ui")
 

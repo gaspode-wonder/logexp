@@ -12,7 +12,6 @@ from flask import Response, jsonify, request
 from flask_login import login_required
 
 from ...logging_setup import get_logger
-
 from . import bp_diagnostics_runtime
 
 logger = get_logger("beamfoundry.diagnostics.runtime")

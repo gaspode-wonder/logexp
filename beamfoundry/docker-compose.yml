@@ -42,7 +42,7 @@ services:
       - gunicorn
       - -b
       - 0.0.0.0:8000
-      - beamfoundry.app:create_app()
+      - logexp.app:create_app()
 
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1" ]

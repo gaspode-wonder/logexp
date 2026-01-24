@@ -3,7 +3,7 @@
 ![Pre-commit](https://github.com/gaspode-wonder/logexp/actions/workflows/application-ci.yml/badge.svg?branch=main&event=push)
 ![CI](https://github.com/gaspode-wonder/logexp/actions/workflows/ci.yml/badge.svg)
 
-LogExp is a radiation logging and visualization platform that integrates a MightyOhm Geiger Counter with a Flask backend, Postgres storage, and a web UI. It supports real‑time polling, analytics, CSV export, diagnostics, and a production‑ready Docker deployment using Gunicorn.
+LogExp is a radiation logging and visualization platform that integrates a MightyOhm Geiger Counter with a Flask backend, Postgres storage, and a responsive web UI. It supports real‑time polling, analytics, CSV export, diagnostics, and a production‑ready Docker deployment using Gunicorn.
 
 ---
 
@@ -32,73 +32,105 @@ flask db upgrade
 ```bash
 flask run
 ```
+
 ---
+
 ## Continuous Integration (CI)
+
 LogExp uses GitHub Actions to enforce application correctness on every push and pull request.
+
 The CI pipeline runs:
--    Python 3.11
--    Dependency installation from requirements.txt
--    Full pytest suite
--    Import‑time validation of all modules
--    Deterministic, environment‑clean test execution
-The workflow file lives at:
+
+- Python 3.11
+- Dependency installation from `requirements.txt`
+- Full pytest suite
+- Import‑time validation of all modules
+- Deterministic, environment‑clean test execution
+
+Workflow file:
+
 ```
 .github/workflows/application-ci.yml
 ```
-A green CI run is required before any changes can be merged into `main`.
+
+A green CI run is required before merging into `main`.
+
 ---
+
 ## Branch Protection Rules
+
 The `main` branch is protected to ensure stability and reproducibility:
-- ✔️ Require pull request
-- ✔️ Require all status checks to pass
-- ✔️ Require Application CI
-- ✔️ Require branches to be up to date before merging
-- ✔️ No direct pushes to main
-This ensures that `main` always reflects a deployable, production‑ready state.
+
+- ✔ Require pull request
+- ✔ Require all status checks to pass
+- ✔ Require Application CI
+- ✔ Require branches to be up to date
+- ✔ No direct pushes to `main`
+
+This ensures `main` always reflects a deployable, production‑ready state.
+
 ---
+
 ## Working With Feature Branches
-All development must occur on feature branches:
+
+All development occurs on feature branches:
+
 ```bash
 git checkout -b feature/my-change
 ```
-When ready, open a pull request targeting `main`.
-## PR Requirements
+
+### PR Requirements
+
 - CI must pass
 - Code must import cleanly
-- Tests must be updated if behavior changes
+- Tests updated if behavior changes
 - No unpinned or implicit dependencies
 - No environment‑specific assumptions
+
 Once CI is green and the PR is approved, it can be merged.
+
 ---
+
 ## Running Tests Locally
-Before opening a PR, run the full test suite:
+
 ```bash
 pytest
 ```
-If your change introduces new dependencies, update:
+
+If you add a new dependency, update:
+
 ```
 requirements.txt
 ```
-and ensure the tests still pass in a clean environment.
+
+and ensure tests still pass in a clean environment.
+
 ---
+
 ## Dependency Management
+
 LogExp uses a **fully pinned, CI‑validated dependency set**:
+
 ```
 Flask==3.0.0
-Flask-Migrate==4.0.5
+Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
-matplotlib>=3.7,<3.11
+Flask-Login==0.6.3
+matplotlib==3.10.8
 psycopg2-binary==2.9.9
-pydantic==2.12.0
+pydantic==2.12.5
 python-dotenv==1.0.1
 pyserial==3.5
 pytest==8.2.1
 pytz==2025.2
 ```
-If you add a new import, you must add the corresponding package to `requirements.txt` and verify CI passes.
+
+If you add a new import, add the corresponding package and verify CI passes.
+
 ---
+
 ## Local Development Environment
-To ensure your environment matches CI:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -106,35 +138,30 @@ pip install --upgrade pip
 pip install -r requirements.txt
 pytest
 ```
-This mirrors the GitHub Actions environment and prevents “wOrKs On My MaChInE” drift.
+
+This mirrors CI and prevents environment drift.
+
 ---
+
 ## Pull Request Checklist
-Before submitting a PR:
+
 - [ ] Tests pass locally
 - [ ] Dependencies updated (if needed)
 - [ ] No stray debug prints or commented code
 - [ ] Code follows existing structure and conventions
 - [ ] CI passes on GitHub
----
-## Why This Matters
-LogExp is designed to be:
--    reproducible
--    deterministic
--    safe for collaborators
--    deployable at any time
--    free of environment drift
 
-The CI + branch protection workflow ensures that every contributor (including future you) works within a stable, predictable system.
 ---
+
 ## Production Deployment (Docker + Gunicorn)
 
 LogExp ships with a production‑grade Docker setup:
 
 - Multi‑stage Dockerfile (slim runtime)
-- Gunicorn application server (1 worker, thread‑safe for poller)
-- Automatic Alembic migrations on startup
+- Gunicorn application server
+- Automatic Alembic migrations
 - Idempotent database seeding (`flask seed-data`)
-- Poller disabled by default inside Docker (`START_POLLER=False`)
+- Poller disabled by default (`START_POLLER=False`)
 - Healthchecks for both Postgres and the Flask app
 
 ### Start the full stack
@@ -168,7 +195,7 @@ docker compose logs -f
 | Variable | Purpose | Default |
 |---------|---------|---------|
 | `SQLALCHEMY_DATABASE_URI` | Database connection string | Required |
-| `START_POLLER` | Enable hardware poller | `False` in Docker |
+| `START_POLLER` | Enable hardware poller | `False` |
 | `FLASK_ENV` | Flask environment | `production` |
 | `LOCAL_TIMEZONE` | UI timezone | `America/Chicago` |
 
@@ -178,8 +205,8 @@ docker compose logs -f
 
 ### Readings
 
-- `/readings` — Web UI table and chart
-- `/api/readings.json` — JSON readings
+- `/readings` — Web UI
+- `/api/readings.json` — JSON
 - `/api/readings.csv` — CSV export
 
 ### Poller Control
@@ -191,19 +218,19 @@ docker compose logs -f
 ### Diagnostics
 
 - `/api/geiger/test`
-- `/api/health` — Application healthcheck
+- `/api/health` — Healthcheck
 
 ---
 
 ## Poller Lifecycle
 
-The Geiger poller runs as a background thread and reads from a USB‑serial device.
+The Geiger poller runs as a background thread reading from a USB‑serial device.
 
-### In development
+### Development
 
 Poller starts automatically.
 
-### In Docker
+### Docker
 
 Poller is disabled unless explicitly enabled:
 
@@ -212,7 +239,7 @@ environment:
   START_POLLER: "True"
 ```
 
-### Manual control (CLI)
+### CLI Control
 
 ```bash
 flask geiger-start
@@ -223,13 +250,13 @@ flask geiger-stop
 
 ## Database Migrations and Seeding
 
-### Run migrations manually
+### Apply migrations
 
 ```bash
 flask db upgrade
 ```
 
-### Seed the database (idempotent)
+### Seed database (idempotent)
 
 ```bash
 flask seed-data
@@ -241,25 +268,45 @@ flask seed-data
 
 ```
 logexp/
-|-- app/
-|   |-- app_blueprints/
-|   |-- templates/
-|   |-- static/
-|   |-- poller.py
-|   |-- config.py
-|   |-- extensions.py
-|   |-- models.py
-|   |-- __init__.py
-|
-|-- seeds/
-|   |-- seed_data.py
-|
-|-- Dockerfile
-|-- docker-compose.yml
-|-- gunicorn.conf.py
-|-- README.md
+│
+├── app/
+│   ├── app_blueprints/        # Flask blueprints (UI, API, diagnostics)
+│   ├── templates/             # Jinja2 templates
+│   ├── static/                # CSS, JS, images
+│   ├── config.py              # Config + env var parsing
+│   ├── extensions.py          # SQLAlchemy, Migrate, LoginManager
+│   ├── models.py              # SQLAlchemy models
+│   ├── poller.py              # Geiger poller thread
+│   ├── services/              # DB analytics, telemetry, helpers
+│   ├── __init__.py            # create_app()
+│   └── wsgi.py                # WSGI entrypoint for Gunicorn
+│
+├── analytics/
+│   ├── engine.py              # Pure analytics engine (deterministic, DB‑free)
+│   └── types.py               # ReadingSample, Batch types
+│
+├── seeds/
+│   └── seed_data.py           # Idempotent database seeding
+│
+├── migrations/                # Alembic migrations
+│
+├── docker/                    # Entrypoint scripts, compose variants
+│   └── entrypoint.sh
+│
+├── tests/                     # Full pytest suite
+│
+├── docker-compose.yml         # Default compose (Linux/macOS)
+├── docker-compose.pi.yml      # Raspberry Pi deployment (KEEP‑0001)
+├── docker-compose.mac.yml     # macOS developer stack
+├── docker-compose.linux.yml   # Linux host stack
+│
+├── Dockerfile                 # Multi‑stage production build
+├── gunicorn.conf.py           # Gunicorn configuration
+├── pyproject.toml             # Package metadata + editable install
+├── requirements.txt           # Dev/test dependencies
+├── docker-requirements.txt    # Runtime-only dependencies
+└── README.md
 ```
-
 
 ---
 
@@ -313,25 +360,25 @@ flowchart TD
 | Mode | Server | Poller | Database | Notes |
 |------|--------|--------|----------|-------|
 | Dev | Flask dev server | Enabled | Local Postgres | Hot reload |
-| Prod | Gunicorn (Docker) | Disabled by default | Docker Postgres | Auto‑migrations and seeding |
+| Prod | Gunicorn (Docker) | Disabled by default | Docker Postgres | Auto‑migrations + seeding |
 
 ---
 
 ## Diagnostics
 
-### Test hardware connection
+### Hardware test
 
 ```bash
 curl http://localhost:5000/api/geiger/test
 ```
 
-### Check poller status
+### Poller status
 
 ```bash
 curl http://localhost:5000/api/poller/status
 ```
 
-### Check application health
+### Healthcheck
 
 ```bash
 curl http://localhost:5000/api/health
@@ -339,7 +386,7 @@ curl http://localhost:5000/api/health
 
 ---
 
-## Analytics Architecture (Step‑12D)
+## Analytics Architecture
 
 LogExp contains two analytics layers:
 
@@ -351,77 +398,69 @@ LogExp contains two analytics layers:
 
 2. **Legacy DB Analytics** (`logexp.app.services.analytics`)
    - SQLAlchemy queries
-   - legacy dict output
    - transitional compatibility layer
 
 These layers must remain separate.
 
 ### Fixture Boundaries
 
-- DB analytics tests use `reading_factory` (creates `LogExpReading` rows).
-- Pure engine tests use `make_reading` / `make_batch` (create `ReadingSample` objects).
+- DB analytics tests → `reading_factory`
+- Pure engine tests → `make_reading`, `make_batch`
 
 ### Do Not Merge These Worlds
 
-- Do not feed DB models into the pure engine.
-- Do not feed `ReadingSample` into DB analytics.
-- Do not collapse the two layers into one implementation.
+- Do not feed DB models into the pure engine
+- Do not feed `ReadingSample` into DB analytics
+- Do not collapse the two layers
 
 The pure engine is the future.
-The legacy DB analytics will be removed after ingestion migration.
 
 ---
 
 ## Runtime Contract
 
-LogExp runs in a strictly defined environment.
-The application, Docker image, and CI pipeline all share the same contract:
+### 1. Database Backend
 
-### **1. Database Backend**
-- **Postgres 18** is the canonical production database.
-- **SQLite** is used only for unit tests.
-- Engine options are isolated:
-  - SQLite → `detect_types` enabled
-  - Postgres → no SQLite engine options
+- **Postgres 18** is canonical
+- **SQLite** is test‑only
 
-### **2. Required Environment Variables**
-These must be present in all non‑test environments:
+### 2. Required Environment Variables
 
 | Variable | Description |
 |---------|-------------|
 | `SQLALCHEMY_DATABASE_URI` | Postgres connection string |
-| `LOCAL_TIMEZONE` | Local timezone name |
+| `LOCAL_TIMEZONE` | Local timezone |
 
-### **3. Optional Environment Variables**
-All optional variables are typed and normalized:
+### 3. Optional Environment Variables
 
 | Variable | Type | Purpose |
 |----------|------|---------|
 | `GEIGER_THRESHOLD` | float | Diagnostics threshold |
-| `START_POLLER` | bool | Hardware poller enable/disable |
+| `START_POLLER` | bool | Enable/disable poller |
 | `LOGEXP_NODE_ID` | str | Node identifier |
 | `TELEMETRY_ENABLED` | bool | Telemetry toggle |
 | `TELEMETRY_INTERVAL_SECONDS` | int | Telemetry interval |
 
-### **4. Containerized Startup**
-CI guarantees that:
-- the Docker image builds successfully
-- `create_app()` boots inside the container
-- environment variables are parsed correctly
-- no SQLite fallback occurs in container or migration jobs
+### 4. Containerized Startup
 
-### **5. Migrations**
+CI guarantees:
+
+- Docker image builds
+- `create_app()` boots
+- Env vars parsed correctly
+- No SQLite fallback in container
+
+### 5. Migrations
+
 - SQLite migrations validated via pytest
-- Postgres migrations validated via CI (`flask db upgrade`)
-- Alembic env is exercised under real Postgres 18
+- Postgres migrations validated via CI
+- Alembic env exercised under Postgres 18
 
-### **6. Deterministic Config Layering**
-Config is resolved in this order:
+### 6. Deterministic Config Layering
+
 1. Defaults
 2. Environment variables
-3. Explicit overrides (tests, CLI)
-
-This ensures reproducible behavior across local dev, CI, and production.
+3. Explicit overrides
 
 ---
 

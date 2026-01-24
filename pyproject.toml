@@ -1,25 +1,33 @@
-# filename: pyproject.toml
-
 [project]
-name = "logexp"
+name = "beamfoundry"
 version = "0.1.0"
-description = "LogExp"
+description = "beamfoundry"
 requires-python = ">=3.10, <3.11"
+dependencies = [
+    "flask",
+    "flask_sqlalchemy",
+    "flask_migrate",
+    "gunicorn",
+    "psycopg2-binary",
+]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+# ------------------------------------------------------------------------------
+# SETUPTOOLS — canonical package declaration
+# ------------------------------------------------------------------------------
 [tool.setuptools]
-packages = ["app"]
+packages = ["beamfoundry"]
 
 # ------------------------------------------------------------------------------
-# RUFF — linter + formatter (replaces flake8, isort, pycodestyle, pyflakes)
+# RUFF — linter + formatter
 # ------------------------------------------------------------------------------
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-extend-select = ["I"]  # import sorting
+extend-select = ["I"]
 fix = true
 
 [tool.ruff.format]
@@ -28,7 +36,7 @@ indent-style = "space"
 line-ending = "lf"
 
 # ------------------------------------------------------------------------------
-# BLACK — optional, kept for editor compatibility
+# BLACK — optional
 # ------------------------------------------------------------------------------
 [tool.black]
 line-length = 100
@@ -50,7 +58,7 @@ markers = [
 # ------------------------------------------------------------------------------
 [tool.coverage.run]
 branch = true
-source = ["logexp"]
+source = ["beamfoundry"]
 
 [tool.coverage.report]
 show_missing = true
@@ -61,12 +69,11 @@ skip_covered = true
 # ------------------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.10"
-mypy_path = ".,app/stubs"
+mypy_path = ".,beamfoundry/stubs"
 explicit_package_bases = true
 namespace_packages = true
 plugins = ["sqlalchemy.ext.mypy.plugin"]
 
-# Strictness
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
@@ -78,33 +85,35 @@ no_implicit_optional = true
 strict_optional = true
 show_error_codes = true
 pretty = true
-
-# Third‑party libraries without stubs
 ignore_missing_imports = true
 
 # ------------------------------------------------------------------------------
-# MYPY OVERRIDES — minimal, correct, no SQLAlchemy suppression
+# MYPY OVERRIDES — minimal, correct
 # ------------------------------------------------------------------------------
 [[tool.mypy.overrides]]
-module = "tests.*"
+module = "beamfoundry.tests.*"
 disallow_untyped_defs = false
 check_untyped_defs = false
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "tests.fixtures.*"
+module = "beamfoundry.tests.fixtures.*"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "migrations.*"
+module = "beamfoundry.migrations.*"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "app.cli"
+module = "beamfoundry.cli"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "app.*"
 ignore_errors = true
 
 # ------------------------------------------------------------------------------
-# PYLANCE — silence false positives for Flask + SQLAlchemy
+# PYLANCE — silence false positives
 # ------------------------------------------------------------------------------
 [tool.pylance]
 typeCheckingMode = "basic"

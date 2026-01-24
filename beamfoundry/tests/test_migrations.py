@@ -22,7 +22,7 @@ def test_migrations_apply_cleanly(tmp_path: Path) -> None:
 
     # Use the same CLI path you use in real life
     completed = subprocess.run(
-        ["flask", "--app", "beamfoundry_app", "db", "upgrade"],
+        ["flask", "--app", "app:create_app", "db", "upgrade"],
         check=False,
         capture_output=True,
         text=True,

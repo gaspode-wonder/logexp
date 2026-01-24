@@ -16,7 +16,6 @@ from .poller.fake_ingestion import FakeIngestion
 from .poller.fake_serial import FakeSerial
 
 
-
 @pytest.fixture
 def make_poller(monkeypatch):
     """

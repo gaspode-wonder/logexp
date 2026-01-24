@@ -7,9 +7,9 @@ from typing import Any
 from flask import current_app, redirect, render_template, request, url_for
 from flask_login import login_required
 
-from . import bp_settings
 from ...geiger import list_serial_ports
 from ...logging_setup import get_logger
+from . import bp_settings
 
 logger = get_logger("beamfoundry.settings")
 

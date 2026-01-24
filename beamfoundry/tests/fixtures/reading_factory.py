@@ -7,9 +7,9 @@ from typing import Iterable, List, Tuple
 
 import pytest
 
-from beamfoundry.analytics.engine import ReadingSample
 from app.extensions import db
 from app.models import LogExpReading
+from beamfoundry.analytics.engine import ReadingSample
 
 # ---------------------------------------------------------------------------
 # DB-backed factory for integration tests (unit/test_analytics.py, etc.)

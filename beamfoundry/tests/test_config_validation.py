@@ -1,6 +1,5 @@
 # filename: tests/test_config_validation.py
 import pytest
-
 from validation.config_validator import validate_config
 
 

@@ -1,8 +1,9 @@
 # filename: tests/unit/poller/test_poll_once.py
 
-from beamfoundry.poller import Poller
 from poller_config import PollerConfig
 from tests.fixtures.poller.fake_ingestion import FakeIngestion
+
+from beamfoundry.poller import Poller
 
 
 def test_poll_once_returns_none_when_disabled():

@@ -7,7 +7,6 @@ import threading
 import time
 from typing import Any, Optional
 
-from .poller_config import PollerConfig
 from .logging_setup import get_logger
 
 
