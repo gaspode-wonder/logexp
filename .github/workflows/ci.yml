@@ -84,7 +84,7 @@ jobs:
       - name: Build Docker image (no cache)
         run: docker build --no-cache -t logexp:test -f Dockerfile .
 
-      - name: Smoke test: ensure create_app boots
+      - name: "Smoke test: ensure create_app boots"
         run: |
           docker run --rm \
             -e DATABASE_URL=${DATABASE_URL} \
