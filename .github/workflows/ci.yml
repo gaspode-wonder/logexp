@@ -164,8 +164,13 @@ jobs:
           done
           exit 1
 
-      - name: "Run migrations"
-        run: flask --app beamfoundry:create_app db upgrade
+      - name: "Run migrations inside container"
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="${DATABASE_URL}" \
+            -e SQLALCHEMY_DATABASE_URI="${SQLALCHEMY_DATABASE_URI}" \
+            logexp:test \
+            flask --app beamfoundry:create_app db upgrade
 
       - name: "Smoke test DB connectivity"
         run: |
