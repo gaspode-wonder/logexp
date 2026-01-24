@@ -144,7 +144,7 @@ jobs:
                   exit 1
 
             - name: Run migrations
-              run: flask --app logexp.app db upgrade
+              run: flask --app beamfoundry:create_app db upgrade
 
             - name: Smoke test DB connectivity
               run: |
