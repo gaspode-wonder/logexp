@@ -20,9 +20,7 @@ def configure_logging() -> None:
     handler = pylogging.StreamHandler()
     handler.setLevel(pylogging.INFO)
 
-    formatter = pylogging.Formatter(
-        fmt="level=%(levelname)s subsystem=%(name)s msg=%(message)s"
-    )
+    formatter = pylogging.Formatter(fmt="level=%(levelname)s subsystem=%(name)s msg=%(message)s")
     handler.setFormatter(formatter)
 
     root.handlers.clear()

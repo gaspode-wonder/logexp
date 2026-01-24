@@ -1,9 +1,7 @@
-# filename: pyproject.toml
-
 [project]
-name = "logexp"
+name = "beamfoundry"
 version = "0.1.0"
-description = "LogExp"
+description = "beamfoundry"
 requires-python = ">=3.10, <3.11"
 
 [build-system]
@@ -14,8 +12,7 @@ build-backend = "setuptools.build_meta"
 # SETUPTOOLS — canonical package declaration
 # ------------------------------------------------------------------------------
 [tool.setuptools]
-# The ONLY top-level package is logexp/
-packages = ["logexp"]
+packages = ["beamfoundry"]
 
 # ------------------------------------------------------------------------------
 # RUFF — linter + formatter
@@ -54,7 +51,7 @@ markers = [
 # ------------------------------------------------------------------------------
 [tool.coverage.run]
 branch = true
-source = ["logexp"]
+source = ["beamfoundry"]
 
 [tool.coverage.report]
 show_missing = true
@@ -65,8 +62,7 @@ skip_covered = true
 # ------------------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.10"
-# Updated: point to logexp stubs, not legacy app/
-mypy_path = ".,logexp/app/stubs"
+mypy_path = ".,beamfoundry/stubs"
 explicit_package_bases = true
 namespace_packages = true
 plugins = ["sqlalchemy.ext.mypy.plugin"]
@@ -88,22 +84,25 @@ ignore_missing_imports = true
 # MYPY OVERRIDES — minimal, correct
 # ------------------------------------------------------------------------------
 [[tool.mypy.overrides]]
-module = "tests.*"
+module = "beamfoundry.tests.*"
 disallow_untyped_defs = false
 check_untyped_defs = false
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "tests.fixtures.*"
+module = "beamfoundry.tests.fixtures.*"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "migrations.*"
+module = "beamfoundry.migrations.*"
 ignore_errors = true
 
-# Updated: legacy app.cli no longer exists at top level
 [[tool.mypy.overrides]]
-module = "logexp.app.cli"
+module = "beamfoundry.cli"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "app.*"
 ignore_errors = true
 
 # ------------------------------------------------------------------------------

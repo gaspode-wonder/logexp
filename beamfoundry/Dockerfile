@@ -45,7 +45,7 @@ COPY --from=builder /install /usr/local
 
 COPY pyproject.toml .
 COPY logexp/ logexp/
-COPY migrations/ migrations/
+COPY beamfoundry/migrations/ beamfoundry/migrations/
 COPY alembic.ini .
 COPY gunicorn.conf.py .
 COPY wsgi.py .

@@ -5,15 +5,14 @@ from typing import Any
 
 from flask import current_app, jsonify, request
 from flask.typing import ResponseReturnValue
-from flask_login import login_required
 from sqlalchemy import desc
 
-from . import bp_api
 from ...extensions import db
 from ...geiger import list_serial_ports, read_geiger, try_port
 from ...logging_setup import get_logger
 from ...models import LogExpReading
 from ...schemas import ReadingCreate, ReadingResponse
+from . import bp_api
 
 logger = get_logger("beamfoundry.api")
 

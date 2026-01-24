@@ -41,12 +41,12 @@ class AnalyticsEngine:
     # -----------------------------
     # Stateful ingestion
     # -----------------------------
-    def add_reading(self, sample: ReadingSample):
+    def add_reading(self, sample: ReadingSample) -> None:
         if sample.timestamp.tzinfo is None:
             raise ValueError("timestamp must be timezone-aware")
         self._samples.append(sample)
 
-    def add_readings(self, samples: Iterable[ReadingSample]):
+    def add_readings(self, samples: Iterable[ReadingSample]) -> None:
         for s in samples:
             self.add_reading(s)
 

@@ -4,10 +4,10 @@ from datetime import datetime
 
 import pytest
 from flask import Flask
+from seeds.seed_data import seed_test_data
 
 from app.config import load_config
 from app.models import LogExpReading
-from seeds.seed_data import seed_test_data
 
 
 @pytest.fixture

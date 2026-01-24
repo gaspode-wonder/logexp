@@ -39,6 +39,4 @@ def register_cli(app: Flask) -> None:
         with app.app_context():
             db.drop_all()
             upgrade()
-            current_app.logger.info(
-                "Test database cleared and rebuilt via migrations."
-            )
+            current_app.logger.info("Test database cleared and rebuilt via migrations.")

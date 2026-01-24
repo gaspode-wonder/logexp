@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, Union
 import serial
 
 from app.logging_setup import get_logger
+
 from .poller_config import PollerConfig
 
 logger = get_logger("beamfoundry.poller")

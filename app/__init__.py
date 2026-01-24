@@ -69,7 +69,7 @@ def create_app(overrides: Optional[Dict[str, Any]] = None) -> LogExpFlask:
     logger.debug("request_id_middleware_enabled")
 
     db.init_app(app)
-    migrate.init_app(app, db, directory="migrations")
+    migrate.init_app(app, db, directory="beamfoundry/migrations")
     login_manager.init_app(app)
     logger.debug("extensions_initialized")
 
@@ -110,7 +110,7 @@ def wsgi_app() -> LogExpFlask:
 
 
 @login_manager.user_loader
-def load_user(user_id: str):
+def load_user(user_id: str) -> object:
     user = db.session.get(User, int(user_id))
     if user is not None:
         return user
@@ -122,18 +122,18 @@ def load_user(user_id: str):
         password_hash = ""
 
         @property
-        def is_authenticated(self):
+        def is_authenticated(self) -> bool:
             return True
 
         @property
-        def is_active(self):
+        def is_active(self) -> bool:
             return True
 
         @property
-        def is_anonymous(self):
+        def is_anonymous(self) -> bool:
             return False
 
-        def get_id(self):
+        def get_id(self) -> str:
             return str(self.id)
 
     return SyntheticUser()

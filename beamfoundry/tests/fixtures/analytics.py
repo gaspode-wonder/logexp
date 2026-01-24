@@ -10,5 +10,9 @@ def ts_base():
     return dt.datetime(2020, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
 
 
-def shift(ts: dt.datetime, seconds: int) -> dt.datetime:
-    return ts + dt.timedelta(seconds=seconds)
+@pytest.fixture
+def shift():
+    def _shift(ts: dt.datetime, seconds: int) -> dt.datetime:
+        return ts + dt.timedelta(seconds=seconds)
+
+    return _shift

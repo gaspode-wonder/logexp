@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import re
 import argparse
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).parent
@@ -18,7 +18,8 @@ PATTERNS = [
     ),
 ]
 
-def rewrite_imports(path: Path, write: bool):
+
+def rewrite_imports(path: Path, write: bool) -> None:
     original = path.read_text().splitlines()
     rewritten = []
     changed = False
@@ -44,7 +45,8 @@ def rewrite_imports(path: Path, write: bool):
     else:
         print(f"[OK]      {path}")
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Fix absolute imports inside app/ package.")
     parser.add_argument("--write", action="store_true", help="Apply changes instead of dry-run.")
     args = parser.parse_args()
@@ -55,6 +57,7 @@ def main():
 
     if not args.write:
         print("\nDry run complete. Use --write to apply changes.")
+
 
 if __name__ == "__main__":
     main()

@@ -18,9 +18,11 @@ for k, v in os.environ.items():
 print("\nImport Test:")
 try:
     import app
+
     print("app package:", app.__file__)
 
     import beamfoundry_app
+
     print("beamfoundry_app:", beamfoundry_app.__file__)
 
 except Exception as e:

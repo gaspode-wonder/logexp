@@ -1,4 +1,4 @@
-# filename: Makefile — LogExp (canonical, deterministic)
+# filename: Makefile — beamfoundry (canonical, PEP‑621‑native, deterministic)
 
 PYTHON := python3.10
 VENV := .venv
@@ -33,7 +33,7 @@ bootstrap:
 	$(call timed,"Bootstrapping development environment", \
 		$(PYTHON) -m venv $(VENV) && \
 		$(ACTIVATE) && pip install --upgrade pip && \
-		pip install -e . && pip install -r requirements.txt && \
+		pip install -e . && \
 		PYTHONPATH=. python scripts/ci_diagnostics.py \
 	)
 
@@ -43,7 +43,7 @@ bootstrap:
 
 ci:
 	$(call timed,"CI: Creating virtual environment", $(PYTHON) -m venv $(VENV))
-	$(call timed,"CI: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e . && pip install -r requirements.txt)
+	$(call timed,"CI: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e .)
 	$(call timed,"CI: Environment parity check", $(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py)
 	$(call timed,"CI: Diagnostics", $(ACTIVATE) && PYTHONPATH=. python scripts/ci_diagnostics.py)
 	$(call timed,"CI: Database migrations", \
@@ -51,7 +51,7 @@ ci:
 		$(ACTIVATE) && \
 		env \
 			SQLALCHEMY_DATABASE_URI=sqlite:///ci.db \
-			FLASK_APP=logexp.app:create_app \
+			FLASK_APP=beamfoundry:create_app \
 			flask db upgrade \
 	)
 	$(call timed,"CI: Running pytest", \
@@ -71,12 +71,12 @@ ci-local: ci
 ci-clean:
 	$(call timed,"CI-CLEAN: git clean -xdf", git clean -xdf)
 	$(call timed,"CI-CLEAN: Removing Python bytecode caches", \
-		find logexp -name "*.pyc" -delete && \
-		find logexp -name "__pycache__" -type d -exec rm -rf {} + \
+		find . -name "*.pyc" -delete && \
+		find . -type d -name "__pycache__" -exec rm -rf {} + \
 	)
 	$(call timed,"CI-CLEAN: Removing virtual environment", rm -rf $(VENV))
 	$(call timed,"CI-CLEAN: Creating virtual environment", $(PYTHON) -m venv $(VENV))
-	$(call timed,"CI-CLEAN: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e . && pip install -r requirements.txt)
+	$(call timed,"CI-CLEAN: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e .)
 	$(call timed,"CI-CLEAN: Environment parity check", $(ACTIVATE) && PYTHONPATH=. python scripts/check_env_parity.py)
 	$(call timed,"CI-CLEAN: Diagnostics", $(ACTIVATE) && PYTHONPATH=. python scripts/ci_diagnostics.py)
 	$(call timed,"CI-CLEAN: Database migrations", \
@@ -84,7 +84,7 @@ ci-clean:
 		$(ACTIVATE) && \
 		env \
 			SQLALCHEMY_DATABASE_URI=sqlite:///ci.db \
-			FLASK_APP=logexp.app:create_app \
+			FLASK_APP=beamfoundry:create_app \
 			flask db upgrade \
 	)
 	$(call timed,"CI-CLEAN: Running pytest", \
@@ -102,12 +102,12 @@ ci-clean:
 ci-hard:
 	$(call timed,"CI-HARD: git clean -xdf", git clean -xdf)
 	$(call timed,"CI-HARD: Removing Python bytecode caches", \
-		find logexp -name "*.pyc" -delete && \
-		find logexp -name "__pycache__" -type d -exec rm -rf {} + \
+		find . -name "*.pyc" -delete && \
+		find . -type d -name "__pycache__" -exec rm -rf {} + \
 	)
 	$(call timed,"CI-HARD: Removing virtual environment", rm -rf $(VENV))
 	$(call timed,"CI-HARD: Creating virtual environment", $(PYTHON) -m venv $(VENV))
-	$(call timed,"CI-HARD: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e . && pip install -r requirements.txt)
+	$(call timed,"CI-HARD: Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e .)
 
 	$(call timed,"CI-HARD: Environment parity check", \
 		$(ACTIVATE) && \
@@ -131,7 +131,7 @@ ci-hard:
 		env \
 			LOCAL_TIMEZONE=UTC \
 			SQLALCHEMY_DATABASE_URI=sqlite:///ci.db \
-			FLASK_APP=logexp.app:create_app \
+			FLASK_APP=beamfoundry:create_app \
 			flask db upgrade \
 	)
 
@@ -156,7 +156,7 @@ dev:
 	$(call timed,"Starting Flask development server", \
 		$(ACTIVATE) && \
 		env \
-			FLASK_APP=logexp.app:create_app \
+			FLASK_APP=beamfoundry:create_app \
 			FLASK_ENV=development \
 			flask run --reload \
 	)
@@ -164,12 +164,12 @@ dev:
 dev-fast:
 	$(call timed,"Starting Flask (fast mode)", \
 		$(ACTIVATE) && \
-		env FLASK_APP=logexp.app:create_app flask run --reload \
+		env FLASK_APP=beamfoundry:create_app flask run --reload \
 	)
 
 shell:
 	$(call timed,"Opening Flask shell", \
-		$(ACTIVATE) && env FLASK_APP=logexp.app:create_app flask shell \
+		$(ACTIVATE) && env FLASK_APP=beamfoundry:create_app flask shell \
 	)
 
 # =============================================================================
@@ -178,8 +178,8 @@ shell:
 
 db-reset:
 	$(call timed,"Resetting development DB", \
-		rm -f logexp/app/data/readings.db && \
-		$(ACTIVATE) && env FLASK_APP=logexp.app:create_app flask db upgrade \
+		rm -f beamfoundry/app/data/readings.db && \
+		$(ACTIVATE) && env FLASK_APP=beamfoundry:create_app flask db upgrade \
 	)
 
 test-db:
@@ -189,12 +189,12 @@ test-db:
 
 db-migrate:
 	$(call timed,"Creating migration", \
-		$(ACTIVATE) && env FLASK_APP=logexp.app:create_app flask db migrate \
+		$(ACTIVATE) && env FLASK_APP=beamfoundry:create_app flask db migrate \
 	)
 
 db-upgrade:
 	$(call timed,"Applying migrations", \
-		$(ACTIVATE) && env FLASK_APP=logexp.app:create_app flask db upgrade \
+		$(ACTIVATE) && env FLASK_APP=beamfoundry:create_app flask db upgrade \
 	)
 
 # =============================================================================
@@ -202,10 +202,10 @@ db-upgrade:
 # =============================================================================
 
 test-clean:
-	$(call timed,"Cleaning __pycache__", find logexp -type d -name "__pycache__" -exec rm -rf {} +)
+	$(call timed,"Cleaning __pycache__", find . -type d -name "__pycache__" -exec rm -rf {} +)
 	$(call timed,"git clean -xdf", git clean -xdf)
 	$(call timed,"Creating virtual environment", $(PYTHON) -m venv $(VENV))
-	$(call timed,"Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e . && pip install -r requirements.txt)
+	$(call timed,"Installing dependencies", $(ACTIVATE) && pip install --upgrade pip && pip install -e .)
 	$(call timed,"Rebuilding test DB", $(ACTIVATE) && PYTHONPATH=. python scripts/rebuild_test_db.py)
 	$(call timed,"Running pytest", $(ACTIVATE) && PYTHONPATH=. pytest -vv)
 
