@@ -125,8 +125,8 @@ jobs:
           --health-retries=5
 
     env:
-      DATABASE_URL: "postgresql://logexp:logexp@localhost:5432/logexp"
-      SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@localhost:5432/logexp"
+      DATABASE_URL: "postgresql://logexp:logexp@postgres:5432/logexp"
+      SQLALCHEMY_DATABASE_URI: "postgresql://logexp:logexp@postgres:5432/logexp"
       LOCAL_TIMEZONE: "UTC"
       GEIGER_THRESHOLD: "0.1"
       START_POLLER: "False"
