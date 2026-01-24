@@ -48,7 +48,7 @@ RUN pip install .
 ENV FLASK_APP=beamfoundry:create_app
 ENV FLASK_ENV=production
 
-COPY docker/entrypoint.sh /entrypoint.sh
+COPY beamfoundry/entrypoint.sh /entrypoint.sh
 USER root
 RUN chmod +x /entrypoint.sh
 USER logexp
