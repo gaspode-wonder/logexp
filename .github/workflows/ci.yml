@@ -173,13 +173,3 @@ jobs:
             -e SQLALCHEMY_DATABASE_URI="${SQLALCHEMY_DATABASE_URI}" \
             logexp:test \
             flask --app beamfoundry:create_app db upgrade
-
-      - name: "Smoke test DB connectivity"
-        run: |
-          docker run --rm \
-            --workdir /opt/logexp \
-            --network="${{ job.services.postgres.network }}" \
-            -e DATABASE_URL="${DATABASE_URL}" \
-            -e SQLALCHEMY_DATABASE_URI="${SQLALCHEMY_DATABASE_URI}" \
-            logexp:test \
-            python -c "from beamfoundry import create_app; app = create_app(); from beamfoundry.extensions import db; (lambda: (app.app_context().push(), db.engine.connect().close()))()"
