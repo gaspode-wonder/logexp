@@ -41,7 +41,7 @@ COPY pyproject.toml .
 COPY app/ app/
 COPY beamfoundry/ beamfoundry/
 COPY alembic.ini .
-COPY gunicorn.conf.py .
+COPY beamfoundry/gunicorn.conf.py beamfoundry/gunicorn.conf.py
 COPY beamfoundry/entrypoint.sh /entrypoint.sh
 
 USER root
@@ -59,4 +59,4 @@ HEALTHCHECK --interval=30s --timeout=5s \
     CMD curl -f http://localhost:5000/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "beamfoundry:create_app"]
+CMD ["gunicorn", "-c", "beamfoundry/gunicorn.conf.py", "beamfoundry:create_app"]
