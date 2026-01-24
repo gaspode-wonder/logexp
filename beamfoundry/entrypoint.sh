@@ -1,4 +1,3 @@
-# filename: beamfoundry/entrypoint.sh
 #!/usr/bin/env bash
 set -euo pipefail
 
