@@ -5,21 +5,14 @@ on:
     workflow_dispatch:
     push:
         branches:
-            - main
+        - main
+        - develop
+        - release/**
     pull_request:
         branches:
-            - main
-            - develop
-  push:
-    branches:
-      - main
-      - develop
-      - release/**
-  pull_request:
-    branches:
-      - main
-      - develop
-      - release/**
+        - main
+        - develop
+        - release/**
 
 jobs:
 
