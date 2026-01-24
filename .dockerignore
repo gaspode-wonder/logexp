@@ -5,9 +5,13 @@ env/
 
 # --- Python bytecode ---
 __pycache__/
-*.pyc
 *.pyo
 *.pyd
+beamfoundry.egg-info
+*.egg-info
+__pycache__
+*.pyc
+
 
 # --- Flask instance data ---
 instance/
