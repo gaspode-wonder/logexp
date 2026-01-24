@@ -1,4 +1,4 @@
-# filename: Dockerfile
+# filename: beamfoundry/Dockerfile
 
 ##############################
 # Stage 1 — Builder
@@ -17,16 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install build-time Python deps
-COPY beamfoundry/docker-requirements.txt .
+COPY docker-requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir --prefer-binary -r docker-requirements.txt
 
 # Copy full source
 COPY . .
 
-# Remove any egg-info from the repo
+# Remove any egg-info from repo
 RUN rm -rf beamfoundry.egg-info
 
-# Install the package into /install (no runtime pip install needed)
+# Install the package into /install
 RUN pip install --prefix=/install .
 
 
@@ -40,7 +40,7 @@ WORKDIR /opt/logexp
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Runtime system deps only
+# Runtime system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
@@ -52,10 +52,10 @@ RUN useradd -m logexp
 # Bring in installed Python packages
 COPY --from=builder /install /usr/local
 
-# Copy source code (no pip install here)
+# Copy source code
 COPY . .
 
-# Remove egg-info again just to be safe
+# Remove egg-info again to avoid timestamp issues
 RUN rm -rf beamfoundry.egg-info
 
 # Fix permissions
@@ -72,4 +72,4 @@ HEALTHCHECK --interval=30s --timeout=5s \
     CMD curl -f http://localhost:5000/health || exit 1
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "-c", "beamfoundry/gunicorn.conf.py", "beamfoundry:create_app"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "beamfoundry:create_app"]

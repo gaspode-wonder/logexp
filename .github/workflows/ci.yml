@@ -5,11 +5,13 @@ on:
   push:
     branches:
       - main
+      - develop
       - release/**
   pull_request:
     branches:
       - main
       - develop
+      - release/**
 
 jobs:
 
@@ -80,13 +82,8 @@ jobs:
       - name: "Clean workspace"
         run: git clean -xfd
 
-      - name: "Set up Python"
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10.14"
-
       - name: "Build Docker image (no cache)"
-        run: docker build --no-cache -t logexp:test -f Dockerfile .
+        run: docker build --no-cache -t logexp:test -f beamfoundry/Dockerfile beamfoundry
 
       - name: "Smoke test: ensure create_app boots"
         run: |
