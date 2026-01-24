@@ -33,7 +33,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m logexp
-USER logexp
 
 COPY --from=builder /install /usr/local
 
@@ -46,9 +45,11 @@ COPY beamfoundry/entrypoint.sh /entrypoint.sh
 
 USER root
 RUN chmod +x /entrypoint.sh
-USER logexp
 
+# Install the package as root (fixes egg-info permission failure)
 RUN pip install .
+
+USER logexp
 
 ENV FLASK_APP=beamfoundry:create_app
 ENV FLASK_ENV=production
