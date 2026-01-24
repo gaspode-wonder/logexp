@@ -71,7 +71,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Build Docker image
-              run: docker build -t logexp:test .
+              run: docker build -t logexp:test -f beamfoundry/Dockerfile beamfoundry
 
             - name: Ensure create_app() boots inside container
               run: |
