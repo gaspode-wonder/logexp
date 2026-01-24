@@ -17,7 +17,7 @@ RUN pip install --prefix=/install --no-cache-dir --prefer-binary -r docker-requi
 
 COPY pyproject.toml .
 COPY app/ app/
-COPY beamfoundry/ beamfoundry/
+COPY beamfoundry/ .
 COPY alembic.ini .
 
 FROM python:3.10-slim AS runtime
@@ -39,7 +39,7 @@ COPY --from=builder /install /usr/local
 
 COPY pyproject.toml .
 COPY app/ app/
-COPY beamfoundry/ beamfoundry/
+COPY beamfoundry/ .
 COPY alembic.ini .
 COPY beamfoundry/gunicorn.conf.py beamfoundry/gunicorn.conf.py
 COPY beamfoundry/entrypoint.sh /entrypoint.sh
