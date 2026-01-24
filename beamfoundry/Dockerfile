@@ -18,6 +18,7 @@ RUN pip install --prefix=/install --no-cache-dir --prefer-binary -r docker-requi
 COPY pyproject.toml .
 COPY app/ app/
 COPY beamfoundry/ beamfoundry/
+COPY alembic.ini .
 
 FROM python:3.10-slim AS runtime
 
@@ -41,17 +42,16 @@ COPY app/ app/
 COPY beamfoundry/ beamfoundry/
 COPY alembic.ini .
 COPY gunicorn.conf.py .
-COPY wsgi.py .
+COPY beamfoundry/entrypoint.sh /entrypoint.sh
+
+USER root
+RUN chmod +x /entrypoint.sh
+USER logexp
 
 RUN pip install .
 
 ENV FLASK_APP=beamfoundry:create_app
 ENV FLASK_ENV=production
-
-COPY beamfoundry/entrypoint.sh /entrypoint.sh
-USER root
-RUN chmod +x /entrypoint.sh
-USER logexp
 
 EXPOSE 5000
 
@@ -59,4 +59,4 @@ HEALTHCHECK --interval=30s --timeout=5s \
     CMD curl -f http://localhost:5000/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "beamfoundry:create_app"]

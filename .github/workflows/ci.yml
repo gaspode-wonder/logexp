@@ -73,6 +73,9 @@ jobs:
             - name: Build Docker image
               run: docker build -t logexp:test -f beamfoundry/Dockerfile .
 
+            - name: Install package for smoketest
+              run: pip install .
+
             - name: Ensure create_app() boots inside container
               run: |
                   docker run --rm \
