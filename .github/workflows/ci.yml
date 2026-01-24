@@ -166,11 +166,10 @@ jobs:
 
       - name: "Smoke test DB connectivity"
         run: |
-          python - << 'EOF'
-          from beamfoundry import create_app
-          app = create_app()
-          with app.app_context():
-              from beamfoundry.extensions import db
-              conn = db.engine.connect()
-              conn.close()
-          EOF
+          docker run --rm \
+            -e DATABASE_URL="${DATABASE_URL}" \
+            -e SQLALCHEMY_DATABASE_URI="${SQLALCHEMY_DATABASE_URI}" \
+            logexp:test \
+            python -c "from beamfoundry import create_app; app = create_app();
+                       from beamfoundry.extensions import db;
+                       with app.app_context(): db.engine.connect().close()"
