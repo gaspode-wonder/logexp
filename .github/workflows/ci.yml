@@ -140,6 +140,9 @@ jobs:
       - name: "Clean workspace"
         run: git clean -xfd
 
+      - name: "Build Docker image (no cache)"
+        run: docker build --no-cache -t logexp:test -f beamfoundry/Dockerfile .
+
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
