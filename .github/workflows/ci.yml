@@ -167,6 +167,7 @@ jobs:
       - name: "Run migrations inside container"
         run: |
           docker run --rm \
+            --network="${{ job.services.postgres.network }}" \
             -e DATABASE_URL="${DATABASE_URL}" \
             -e SQLALCHEMY_DATABASE_URI="${SQLALCHEMY_DATABASE_URI}" \
             logexp:test \
@@ -175,6 +176,7 @@ jobs:
       - name: "Smoke test DB connectivity"
         run: |
           docker run --rm \
+            --network="${{ job.services.postgres.network }}" \
             -e DATABASE_URL="${DATABASE_URL}" \
             -e SQLALCHEMY_DATABASE_URI="${SQLALCHEMY_DATABASE_URI}" \
             logexp:test \
