@@ -17,10 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install build-time Python deps
-COPY docker-requirements.txt .
+COPY beamfoundry/docker-requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir --prefer-binary -r docker-requirements.txt
 
-# Copy full source
+# Copy full repo (so pyproject.toml is included)
 COPY . .
 
 # Remove any egg-info from repo
@@ -59,7 +59,7 @@ COPY . .
 RUN rm -rf beamfoundry.egg-info
 
 # Fix permissions
-RUN chmod +x entrypoint.sh
+RUN chmod +x beamfoundry/entrypoint.sh
 
 USER logexp
 
@@ -71,5 +71,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s \
     CMD curl -f http://localhost:5000/health || exit 1
 
-ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "beamfoundry:create_app"]
+ENTRYPOINT ["beamfoundry/entrypoint.sh"]
+CMD ["gunicorn", "-c", "beamfoundry/gunicorn.conf.py", "beamfoundry:create_app"]
