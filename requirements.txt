@@ -1,0 +1,36 @@
+# --- Core Framework ---
+Flask==3.0.2
+Flask-Login==0.6.3
+Flask-Migrate==4.0.5
+Flask-SQLAlchemy==3.1.1
+
+# --- Database ---
+SQLAlchemy==2.0.25
+alembic==1.13.1
+psycopg2-binary==2.9.9
+
+# --- Analytics / Time ---
+pytz==2024.1
+python-dateutil==2.9.0.post0
+
+# --- Logging / Utilities ---
+structlog==24.1.0
+click==8.1.7
+
+# --- Poller / Serial ---
+pyserial==3.5
+
+# --- Testing ---
+pytest==8.2.1
+pytest-mock==3.12.0
+freezegun==1.4.0
+anyio==4.4.0
+
+# --- Linting / Typing ---
+ruff==0.3.4
+mypy==1.8.0
+types-python-dateutil==2.9.0.20240316
+types-pytz==2024.1.0.20240203
+
+# --- WSGI / Deployment ---
+gunicorn==21.2.0
