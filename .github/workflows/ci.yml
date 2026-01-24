@@ -1,4 +1,4 @@
-# clean/.github/workflows/ci.yml
+# filename: .github/workflows/ci.yml
 name: CI
 
 on:
@@ -71,7 +71,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Build Docker image
-              run: docker build -t logexp:test -f beamfoundry/Dockerfile beamfoundry
+              run: docker build -t logexp:test -f beamfoundry/Dockerfile .
 
             - name: Ensure create_app() boots inside container
               run: |
@@ -85,8 +85,7 @@ jobs:
                     -e TELEMETRY_ENABLED=${TELEMETRY_ENABLED} \
                     -e TELEMETRY_INTERVAL_SECONDS=${TELEMETRY_INTERVAL_SECONDS} \
                     logexp:test \
-                    flask --app logexp.app:create_app routes
-
+                    flask --app beamfoundry:create_app routes
 
     postgres-migrations:
         name: Postgres 18 Migrations + DB Connectivity
@@ -149,10 +148,10 @@ jobs:
             - name: Smoke test DB connectivity
               run: |
                   python - << 'EOF'
-                  from logexp.app import create_app
+                  from beamfoundry import create_app
                   app = create_app()
                   with app.app_context():
-                      from logexp.app.extensions import db
+                      from beamfoundry.extensions import db
                       conn = db.engine.connect()
                       conn.close()
                   EOF
