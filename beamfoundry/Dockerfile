@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN rm -rf beamfoundry.egg-info
 COPY beamfoundry/docker-requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir --prefer-binary -r docker-requirements.txt
 
@@ -20,6 +19,9 @@ COPY pyproject.toml .
 COPY app/ app/
 COPY beamfoundry/ .
 COPY alembic.ini .
+
+# 🔥 CRITICAL FIX: remove egg-info AFTER copying the source
+RUN rm -rf beamfoundry.egg-info
 
 FROM python:3.10-slim AS runtime
 
