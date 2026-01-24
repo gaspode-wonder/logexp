@@ -46,7 +46,7 @@ COPY beamfoundry/entrypoint.sh /entrypoint.sh
 USER root
 RUN chmod +x /entrypoint.sh
 
-# Install the package as root (fixes egg-info permission failure)
+# Install the package as root so egg-info can be created
 RUN pip install .
 
 USER logexp
