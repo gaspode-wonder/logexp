@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY docker-requirements.txt .
+COPY beamfoundry/docker-requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir --prefer-binary -r docker-requirements.txt
 
 COPY pyproject.toml .
