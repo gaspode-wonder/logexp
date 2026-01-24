@@ -10,7 +10,7 @@ WORKDIR /opt/logexp
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# System deps for building wheels
+# Build-time system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -20,14 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY beamfoundry/docker-requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir --prefer-binary -r docker-requirements.txt
 
-# Copy full source once
-COPY pyproject.toml .
-COPY app/ app/
-COPY beamfoundry/ beamfoundry/
-COPY alembic.ini .
+# Copy full source
+COPY . .
 
-# 🔥 Ensure no egg-info survives into runtime
+# Remove any egg-info from the repo
 RUN rm -rf beamfoundry.egg-info
+
+# Install the package into /install (no runtime pip install needed)
+RUN pip install --prefix=/install .
 
 
 ##############################
@@ -49,24 +49,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user
 RUN useradd -m logexp
 
-# Bring in prebuilt wheels and deps
+# Bring in installed Python packages
 COPY --from=builder /install /usr/local
 
-# Copy full source once
-COPY pyproject.toml .
-COPY app/ app/
-COPY beamfoundry/ beamfoundry/
-COPY alembic.ini .
+# Copy source code (no pip install here)
+COPY . .
 
-# Runtime-only files
-COPY beamfoundry/gunicorn.conf.py beamfoundry/gunicorn.conf.py
-COPY beamfoundry/entrypoint.sh /entrypoint.sh
+# Remove egg-info again just to be safe
+RUN rm -rf beamfoundry.egg-info
 
 # Fix permissions
-RUN chmod +x /entrypoint.sh
-
-# 🔥 Install the package cleanly (no egg-info conflicts)
-RUN rm -rf beamfoundry.egg-info && pip install .
+RUN chmod +x entrypoint.sh
 
 USER logexp
 
@@ -78,5 +71,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s \
     CMD curl -f http://localhost:5000/health || exit 1
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["gunicorn", "-c", "beamfoundry/gunicorn.conf.py", "beamfoundry:create_app"]

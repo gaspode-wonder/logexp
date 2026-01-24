@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
+# filename: entrypoint.sh
 set -euo pipefail
 
-# Ensure the working directory is correct
 cd /opt/logexp
-
-# Install the application into the container environment
-pip install .
 
 # Export canonical Flask environment variables
 export FLASK_APP="beamfoundry:create_app"
 export FLASK_ENV="production"
 
-# Run any pending migrations automatically if desired
+# Run migrations if enabled
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     flask db upgrade || {
         echo "Migration failed"
@@ -19,5 +16,4 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     }
 fi
 
-# Execute the container's command (gunicorn by default)
 exec "$@"
